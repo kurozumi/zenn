@@ -1,0 +1,81 @@
+name: Post to X
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'articles/*.md'
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Get added articles
+        id: added
+        run: |
+          ADDED_FILES=$(git diff --name-only --diff-filter=A HEAD~1 HEAD -- 'articles/*.md' || true)
+          echo "files=$ADDED_FILES" >> $GITHUB_OUTPUT
+
+      - name: Post to X
+        if: steps.added.outputs.files != ''
+        env:
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_KEY_SECRET: ${{ secrets.X_API_KEY_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
+        run: |
+          for file in ${{ steps.added.outputs.files }}; do
+            # 記事のタイトルを取得
+            TITLE=$(grep -m1 '^title:' "$file" | sed 's/title: *["'\'']*\([^"'\'']*\)["'\'']*$/\1/')
+
+            # ファイル名からスラッグを取得
+            SLUG=$(basename "$file" .md)
+
+            # Zenn URLを生成
+            URL="https://zenn.dev/kurozumi/articles/${SLUG}"
+
+            # ツイート本文
+            TWEET="📝 新しい記事を投稿しました
+
+${TITLE}
+
+${URL}
+
+#eccube #php #symfony"
+
+            # X API v2 でツイート
+            # OAuth 1.0a 署名を生成してPOST
+            pip install requests requests-oauthlib -q
+
+            python3 << EOF
+import os
+from requests_oauthlib import OAuth1Session
+
+client = OAuth1Session(
+    os.environ['X_API_KEY'],
+    client_secret=os.environ['X_API_KEY_SECRET'],
+    resource_owner_key=os.environ['X_ACCESS_TOKEN'],
+    resource_owner_secret=os.environ['X_ACCESS_TOKEN_SECRET']
+)
+
+payload = {"text": """$TWEET"""}
+
+response = client.post(
+    "https://api.twitter.com/2/tweets",
+    json=payload
+)
+
+if response.status_code == 201:
+    print("Tweet posted successfully!")
+    print(response.json())
+else:
+    print(f"Error: {response.status_code}")
+    print(response.text)
+    exit(1)
+EOF
+          done
