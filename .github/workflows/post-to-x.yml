@@ -15,6 +15,14 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests requests-oauthlib
+
       - name: Get added articles
         id: added
         run: |
@@ -28,54 +36,6 @@ jobs:
           X_API_KEY_SECRET: ${{ secrets.X_API_KEY_SECRET }}
           X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
           X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
+          ADDED_FILES: ${{ steps.added.outputs.files }}
         run: |
-          for file in ${{ steps.added.outputs.files }}; do
-            # 記事のタイトルを取得
-            TITLE=$(grep -m1 '^title:' "$file" | sed 's/title: *["'\'']*\([^"'\'']*\)["'\'']*$/\1/')
-
-            # ファイル名からスラッグを取得
-            SLUG=$(basename "$file" .md)
-
-            # Zenn URLを生成
-            URL="https://zenn.dev/kurozumi/articles/${SLUG}"
-
-            # ツイート本文
-            TWEET="📝 新しい記事を投稿しました
-
-${TITLE}
-
-${URL}
-
-#eccube #php #symfony"
-
-            # X API v2 でツイート
-            # OAuth 1.0a 署名を生成してPOST
-            pip install requests requests-oauthlib -q
-
-            python3 << EOF
-import os
-from requests_oauthlib import OAuth1Session
-
-client = OAuth1Session(
-    os.environ['X_API_KEY'],
-    client_secret=os.environ['X_API_KEY_SECRET'],
-    resource_owner_key=os.environ['X_ACCESS_TOKEN'],
-    resource_owner_secret=os.environ['X_ACCESS_TOKEN_SECRET']
-)
-
-payload = {"text": """$TWEET"""}
-
-response = client.post(
-    "https://api.twitter.com/2/tweets",
-    json=payload
-)
-
-if response.status_code == 201:
-    print("Tweet posted successfully!")
-    print(response.json())
-else:
-    print(f"Error: {response.status_code}")
-    print(response.text)
-    exit(1)
-EOF
-          done
+          python3 .github/scripts/post_to_x.py
