@@ -3,7 +3,7 @@ title: "EC-CUBEプラグイン開発者が押さえるべきセキュリティ�
 emoji: "🔐"
 type: "tech"
 topics: ["eccube", "security", "php", "symfony"]
-published: false
+published: true
 ---
 
 EC-CUBEでプラグインを開発する際、セキュリティは最も重要な要素の一つです。この記事では、プラグイン開発時に必ずチェックすべきセキュリティ項目をまとめました。
