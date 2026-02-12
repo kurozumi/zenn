@@ -286,17 +286,7 @@ class OrderStateMachineSubscriber implements EventSubscriberInterface
 }
 ```
 
-### 2. services.yamlで登録
-
-```yaml
-# app/Plugin/MyPlugin/Resource/config/services.yaml
-services:
-    Plugin\MyPlugin\EventSubscriber\OrderStateMachineSubscriber:
-        tags:
-            - { name: kernel.event_subscriber }
-```
-
-### 3. 遷移前の検証（Guard）
+### 2. 遷移前の検証（Guard）
 
 遷移を許可するかどうかを動的に制御できます。
 
@@ -339,7 +329,7 @@ class OrderStateMachineGuard implements EventSubscriberInterface
 }
 ```
 
-### 4. カスタムステータスと遷移の追加
+### 3. カスタムステータスと遷移の追加
 
 プラグインで独自のステータスと遷移を追加する例です。
 
@@ -393,7 +383,7 @@ framework:
                     to: '3'    # CANCEL
 ```
 
-### 5. Controllerでの使用例
+### 4. Controllerでの使用例
 
 ```php
 <?php
