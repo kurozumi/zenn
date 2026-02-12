@@ -6,6 +6,10 @@ topics: ["eccube", "eccube4", "php", "symfony"]
 published: true
 ---
 
+:::message
+この記事は [Claude Code](https://claude.ai/claude-code) を使って書かれています。内容に誤りがある場合はコメントでお知らせください。
+:::
+
 EC-CUBEプラグイン開発において、外部のSymfonyバンドルを利用したいケースがあります。この記事では、プラグインからSymfonyバンドルを登録する方法を解説します。
 
 ## ユースケース
