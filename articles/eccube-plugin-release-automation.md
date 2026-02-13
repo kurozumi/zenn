@@ -210,45 +210,6 @@ git push origin main
 
 ## ワークフローのカスタマイズ
 
-### PHPバージョンチェックを追加
-
-リリース前にPHP構文チェックを行う例です。
-
-```yaml
-name: Packaging for EC-CUBE Plugin
-on:
-  release:
-    types: [ published ]
-jobs:
-  deploy:
-    name: Build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.1'
-
-      - name: Syntax check
-        run: find . -name "*.php" -exec php -l {} \;
-
-      - name: Packaging
-        run: |
-          git archive HEAD --format=tar.gz > ../${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.tar.gz
-
-      - name: Upload binaries to release of TGZ
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ runner.workspace }}/${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.tar.gz
-          asset_name: ${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.tar.gz
-          tag: ${{ github.ref }}
-          overwrite: true
-```
-
 ### zip形式も同時に作成
 
 tar.gzとzipの両方を作成する例です。
