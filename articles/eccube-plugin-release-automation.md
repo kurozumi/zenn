@@ -1,5 +1,5 @@
 ---
-title: "EC-CUBE 4プラグインのリリースをGitHub Actionsで自動化する"
+title: "EC-CUBE 4プラグインのパッケージングを自動化する方法"
 emoji: "🚀"
 type: "tech"
 topics: ["eccube", "eccube4", "php", "github", "githubactions"]
