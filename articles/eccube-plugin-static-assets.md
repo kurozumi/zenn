@@ -7,7 +7,8 @@ published: true
 ---
 
 :::message
-この記事は [Claude Code](https://claude.ai/claude-code) を使って書かれています。内容に誤りがある場合はコメントでお知らせください。
+この記事は EC-CUBE 4.3 以上を対象としています。
+また、[Claude Code](https://claude.ai/claude-code) を使って書かれています。内容に誤りがある場合はコメントでお知らせください。
 :::
 
 EC-CUBEプラグイン開発において、独自のCSSやJavaScriptを同梱したいケースがあります。この記事では、プラグインに静的ファイルを配置し、テンプレートから読み込む方法を解説します。

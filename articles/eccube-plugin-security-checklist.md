@@ -7,7 +7,8 @@ published: true
 ---
 
 :::message
-この記事は [Claude Code](https://claude.ai/claude-code) を使って書かれています。内容に誤りがある場合はコメントでお知らせください。
+この記事は EC-CUBE 4.3 以上を対象としています。
+また、[Claude Code](https://claude.ai/claude-code) を使って書かれています。内容に誤りがある場合はコメントでお知らせください。
 :::
 
 EC-CUBEでプラグインを開発する際、セキュリティは最も重要な要素の一つです。この記事では、プラグイン開発時に必ずチェックすべきセキュリティ項目をまとめました。

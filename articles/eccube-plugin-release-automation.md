@@ -7,7 +7,8 @@ published: true
 ---
 
 :::message
-この記事は [Claude Code](https://claude.ai/claude-code) を使って書かれています。内容に誤りがある場合はコメントでお知らせください。
+この記事は EC-CUBE 4.3 以上を対象としています。
+また、[Claude Code](https://claude.ai/claude-code) を使って書かれています。内容に誤りがある場合はコメントでお知らせください。
 :::
 
 EC-CUBEプラグインの配布には、ソースコードをtar.gz形式でパッケージングする必要があります。この記事では、GitHubのリリース機能とGitHub Actionsを使って、パッケージングを自動化する方法を解説します。
