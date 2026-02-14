@@ -1,5 +1,5 @@
 ---
-title: "Claude Codeのeccube-dockerスキルでEC-CUBE 4のDocker環境を簡単構築"
+title: "Claude CodeのスキルでEC-CUBE 4のDocker環境を簡単構築"
 emoji: "🐳"
 type: "tech"
 topics: ["eccube", "eccube4", "docker", "claudecode"]
@@ -15,7 +15,7 @@ EC-CUBE 4の開発環境をDocker Composeで構築する際、コマンドを調
 
 ## eccube-dockerスキルとは
 
-`eccube-docker`は、私が普段のEC-CUBE開発で使用しているClaude Codeのスキルです。Docker Compose環境を対話形式で管理できます。
+`eccube-docker`は、私がEC-CUBE開発用に作成したClaude Codeのスキルです。Docker Compose環境を対話形式で管理できます。
 
 以下の操作をサポートしています。
 
