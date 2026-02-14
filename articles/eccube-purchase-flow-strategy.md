@@ -7,7 +7,8 @@ published: true
 ---
 
 :::message
-この記事は [Claude Code](https://claude.ai/claude-code) を使って書かれています。内容に誤りがある場合はコメントでお知らせください。
+この記事は EC-CUBE 4.3 以上を対象としています。
+また、[Claude Code](https://claude.ai/claude-code) を使って書かれています。内容に誤りがある場合はコメントでお知らせください。
 :::
 
 EC-CUBE 4の購入処理を支える「PurchaseFlow」は、ストラテジーパターンを活用した柔軟な設計になっています。この記事では、デザインパターンの基礎から実際のカスタマイズ方法まで、順を追って解説します。
