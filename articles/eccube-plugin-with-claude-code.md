@@ -147,32 +147,32 @@ class ProductTypeExtension extends AbstractTypeExtension
 }
 ```
 
-#### EventSubscriber（ポイント計算）
+#### PurchaseFlow Processor（ポイント計算）
 
 ```php
 <?php
 
-namespace Plugin\PointMultiplier\EventSubscriber;
+namespace Plugin\PointMultiplier\Service\PurchaseFlow\Processor;
 
-use Eccube\Event\EccubeEvents;
-use Eccube\Event\EventArgs;
-use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Eccube\Annotation\ShoppingFlow;
+use Eccube\Entity\ItemHolderInterface;
+use Eccube\Entity\Order;
+use Eccube\Service\PurchaseFlow\ItemHolderPreprocessor;
+use Eccube\Service\PurchaseFlow\PurchaseContext;
 
-class PointEventSubscriber implements EventSubscriberInterface
+/**
+ * @ShoppingFlow
+ */
+class PointMultiplierProcessor implements ItemHolderPreprocessor
 {
-    public static function getSubscribedEvents(): array
+    public function process(ItemHolderInterface $itemHolder, PurchaseContext $context): void
     {
-        return [
-            EccubeEvents::FRONT_SHOPPING_CONFIRM_INITIALIZE => 'onShoppingConfirmInitialize',
-        ];
-    }
-
-    public function onShoppingConfirmInitialize(EventArgs $event): void
-    {
-        $Order = $event->getArgument('Order');
+        if (!$itemHolder instanceof Order) {
+            return;
+        }
 
         $totalPoint = 0;
-        foreach ($Order->getOrderItems() as $orderItem) {
+        foreach ($itemHolder->getProductOrderItems() as $orderItem) {
             $product = $orderItem->getProduct();
             if ($product === null) {
                 continue;
@@ -183,7 +183,7 @@ class PointEventSubscriber implements EventSubscriberInterface
             $totalPoint += (int) floor($basePoint * $multiplier);
         }
 
-        $Order->setAddPoint($totalPoint);
+        $itemHolder->setAddPoint($totalPoint);
     }
 }
 ```
