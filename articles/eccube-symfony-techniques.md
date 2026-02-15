@@ -495,34 +495,41 @@ class ShippingFeeCalculator
 
 ## 8. Serializer - データ変換
 
-CSV/JSON のインポート・エクスポートに活用できます。
+カスタム Normalizer を使って、コアエンティティを任意の形式に変換できます。
 
-### エンティティの設定
+### カスタム Normalizer
 
 ```php
 <?php
 
-namespace Plugin\YourPlugin\Entity;
+namespace Plugin\YourPlugin\Serializer\Normalizer;
 
-use Symfony\Component\Serializer\Annotation\Groups;
-use Symfony\Component\Serializer\Annotation\SerializedName;
+use Eccube\Entity\Product;
+use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
-class Product
+class ProductNormalizer implements NormalizerInterface
 {
-    #[Groups(['export', 'api'])]
-    private ?int $id = null;
+    public function normalize(mixed $object, ?string $format = null, array $context = []): array
+    {
+        /** @var Product $object */
+        return [
+            'id' => $object->getId(),
+            '商品名' => $object->getName(),
+            '商品コード' => $object->getCodeMin(),
+            '価格' => $object->getPrice02Min(),
+            '登録日' => $object->getCreateDate()->format('Y-m-d'),
+        ];
+    }
 
-    #[Groups(['export', 'api', 'import'])]
-    #[SerializedName('商品名')]
-    private ?string $name = null;
+    public function supportsNormalization(mixed $data, ?string $format = null, array $context = []): bool
+    {
+        return $data instanceof Product;
+    }
 
-    #[Groups(['export', 'api', 'import'])]
-    #[SerializedName('価格')]
-    private ?int $price = null;
-
-    #[Groups(['export'])]
-    #[SerializedName('登録日')]
-    private ?\DateTimeInterface $createDate = null;
+    public function getSupportedTypes(?string $format): array
+    {
+        return [Product::class => true];
+    }
 }
 ```
 
@@ -533,43 +540,28 @@ class Product
 
 namespace Plugin\YourPlugin\Service;
 
-use Symfony\Component\Serializer\SerializerInterface;
+use Eccube\Repository\ProductRepository;
 use Symfony\Component\Serializer\Encoder\CsvEncoder;
+use Symfony\Component\Serializer\Serializer;
+use Plugin\YourPlugin\Serializer\Normalizer\ProductNormalizer;
 
 class ProductExportService
 {
     public function __construct(
-        private SerializerInterface $serializer,
         private ProductRepository $productRepository
     ) {
     }
 
     public function exportToCsv(): string
     {
+        $serializer = new Serializer(
+            [new ProductNormalizer()],
+            [new CsvEncoder()]
+        );
+
         $products = $this->productRepository->findAll();
 
-        return $this->serializer->serialize($products, 'csv', [
-            'groups' => ['export'],
-            CsvEncoder::DELIMITER_KEY => ',',
-            CsvEncoder::ENCLOSURE_KEY => '"',
-        ]);
-    }
-
-    public function exportToJson(): string
-    {
-        $products = $this->productRepository->findAll();
-
-        return $this->serializer->serialize($products, 'json', [
-            'groups' => ['api'],
-            'json_encode_options' => JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT,
-        ]);
-    }
-
-    public function importFromCsv(string $csvContent): array
-    {
-        return $this->serializer->deserialize($csvContent, Product::class . '[]', 'csv', [
-            'groups' => ['import'],
-        ]);
+        return $serializer->serialize($products, 'csv');
     }
 }
 ```
