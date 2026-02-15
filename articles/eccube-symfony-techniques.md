@@ -287,21 +287,20 @@ class InventoryService
 
 ## 5. HttpClient - 外部API連携
 
-決済サービスや外部システムとの連携に使用します。
+配送状況の確認や在庫管理システムとの連携など、外部APIとの通信に使用します。
 
 ### サービス定義
 
 ```yaml
 # app/Plugin/YourPlugin/Resource/config/services.yaml
 services:
-    Plugin\YourPlugin\Service\PaymentApiClient:
+    Plugin\YourPlugin\Service\ShippingTrackingClient:
         arguments:
             $httpClient: '@http_client'
-            $apiKey: '%env(PAYMENT_API_KEY)%'
-            $apiEndpoint: '%env(PAYMENT_API_ENDPOINT)%'
+            $apiEndpoint: '%env(SHIPPING_API_ENDPOINT)%'
 ```
 
-### 使用例
+### 配送状況確認の例
 
 ```php
 <?php
@@ -309,51 +308,102 @@ services:
 namespace Plugin\YourPlugin\Service;
 
 use Symfony\Contracts\HttpClient\HttpClientInterface;
-use Symfony\Component\HttpClient\Exception\TransportExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;
 
-class PaymentApiClient
+class ShippingTrackingClient
 {
     public function __construct(
         private HttpClientInterface $httpClient,
-        private string $apiKey,
         private string $apiEndpoint
     ) {
     }
 
-    public function charge(int $amount, string $token): array
+    /**
+     * 送り状番号から配送状況を取得
+     */
+    public function getTrackingStatus(string $trackingNumber): ?array
     {
         try {
-            $response = $this->httpClient->request('POST', $this->apiEndpoint . '/charges', [
+            $response = $this->httpClient->request('GET', $this->apiEndpoint . '/track', [
+                'query' => [
+                    'tracking_number' => $trackingNumber,
+                ],
+                'timeout' => 10,
+            ]);
+
+            if ($response->getStatusCode() === 200) {
+                return $response->toArray();
+            }
+
+            return null;
+        } catch (ExceptionInterface $e) {
+            return null;
+        }
+    }
+}
+```
+
+### 在庫同期の例
+
+```php
+<?php
+
+namespace Plugin\YourPlugin\Service;
+
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;
+
+class InventorySyncClient
+{
+    public function __construct(
+        private HttpClientInterface $httpClient,
+        private string $apiEndpoint,
+        private string $apiToken
+    ) {
+    }
+
+    /**
+     * 外部システムから在庫情報を取得
+     */
+    public function fetchStock(array $productCodes): array
+    {
+        try {
+            $response = $this->httpClient->request('POST', $this->apiEndpoint . '/stock', [
                 'headers' => [
-                    'Authorization' => 'Bearer ' . $this->apiKey,
+                    'Authorization' => 'Bearer ' . $this->apiToken,
                     'Content-Type' => 'application/json',
                 ],
                 'json' => [
-                    'amount' => $amount,
-                    'token' => $token,
+                    'product_codes' => $productCodes,
                 ],
                 'timeout' => 30,
             ]);
 
             return $response->toArray();
-        } catch (TransportExceptionInterface $e) {
-            throw new PaymentException('決済APIとの通信に失敗しました: ' . $e->getMessage());
+        } catch (ExceptionInterface $e) {
+            throw new \RuntimeException('在庫情報の取得に失敗しました: ' . $e->getMessage());
         }
     }
 
-    public function refund(string $chargeId, int $amount): array
+    /**
+     * 在庫数を外部システムに通知
+     */
+    public function updateStock(string $productCode, int $quantity): bool
     {
-        $response = $this->httpClient->request('POST', $this->apiEndpoint . '/refunds', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $this->apiKey,
-            ],
-            'json' => [
-                'charge_id' => $chargeId,
-                'amount' => $amount,
-            ],
-        ]);
+        try {
+            $response = $this->httpClient->request('PUT', $this->apiEndpoint . '/stock/' . $productCode, [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $this->apiToken,
+                ],
+                'json' => [
+                    'quantity' => $quantity,
+                ],
+            ]);
 
-        return $response->toArray();
+            return $response->getStatusCode() === 200;
+        } catch (ExceptionInterface $e) {
+            return false;
+        }
     }
 }
 ```
