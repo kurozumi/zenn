@@ -410,7 +410,7 @@ class InventorySyncClient
 
 ## 6. Validator（カスタム制約） - 独自バリデーション
 
-商品コードの重複チェックなど、独自のバリデーションルールを作成できます。
+独自のバリデーションルールを作成し、FormExtension でコアのフォームに適用できます。
 
 ### 制約クラス
 
@@ -421,10 +421,11 @@ namespace Plugin\YourPlugin\Validator\Constraints;
 
 use Symfony\Component\Validator\Constraint;
 
-#[\Attribute(\Attribute::TARGET_PROPERTY)]
+#[\Attribute(\Attribute::TARGET_PROPERTY | \Attribute::TARGET_METHOD)]
 class UniqueProductCode extends Constraint
 {
     public string $message = '商品コード「{{ code }}」は既に使用されています。';
+    public ?int $excludeId = null;
 }
 ```
 
@@ -452,11 +453,10 @@ class UniqueProductCodeValidator extends ConstraintValidator
             return;
         }
 
-        // 現在編集中の商品を除外して検索
-        $product = $this->context->getObject();
         $existingProduct = $this->productRepository->findOneBy(['code' => $value]);
 
-        if ($existingProduct && $existingProduct->getId() !== $product->getId()) {
+        // 編集中の商品は除外
+        if ($existingProduct && $existingProduct->getId() !== $constraint->excludeId) {
             $this->context->buildViolation($constraint->message)
                 ->setParameter('{{ code }}', $value)
                 ->addViolation();
@@ -465,20 +465,56 @@ class UniqueProductCodeValidator extends ConstraintValidator
 }
 ```
 
-### 使用例
+### FormExtension で既存フォームに適用
 
 ```php
 <?php
 
-namespace Plugin\YourPlugin\Entity;
+namespace Plugin\YourPlugin\Form\Extension;
 
-use Plugin\YourPlugin\Validator\Constraints as PluginAssert;
+use Eccube\Form\Type\Admin\ProductType;
+use Plugin\YourPlugin\Validator\Constraints\UniqueProductCode;
+use Symfony\Component\Form\AbstractTypeExtension;
+use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
 
-class Product
+class ProductTypeExtension extends AbstractTypeExtension
 {
-    #[PluginAssert\UniqueProductCode]
-    private ?string $code = null;
+    public static function getExtendedTypes(): iterable
+    {
+        yield ProductType::class;
+    }
+
+    public function buildForm(FormBuilderInterface $builder, array $options): void
+    {
+        // フォーム生成時に既存の商品IDを取得してバリデーションに渡す
+        $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) {
+            $product = $event->getData();
+            $form = $event->getForm();
+
+            // 既存のcodeフィールドにカスタム制約を追加
+            $codeField = $form->get('code');
+            $options = $codeField->getConfig()->getOptions();
+
+            $options['constraints'][] = new UniqueProductCode(
+                excludeId: $product?->getId()
+            );
+
+            $form->add('code', $codeField->getConfig()->getType()->getInnerType()::class, $options);
+        });
+    }
 }
+```
+
+### サービス定義
+
+```yaml
+# app/Plugin/YourPlugin/Resource/config/services.yaml
+services:
+    Plugin\YourPlugin\Form\Extension\ProductTypeExtension:
+        tags:
+            - { name: form.type_extension }
 ```
 
 ## 7. ExpressionLanguage - 動的条件評価
