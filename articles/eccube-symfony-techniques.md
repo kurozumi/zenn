@@ -453,80 +453,42 @@ class ProductClassEditTypeExtension extends AbstractTypeExtension
 
 ## 7. ExpressionLanguage - 動的条件評価
 
-送料計算や割引条件など、管理画面から設定可能な動的ルールを実装できます。
-
-### サービスクラス
-
-```php
-<?php
-
-namespace Plugin\YourPlugin\Service;
-
-use Symfony\Component\ExpressionLanguage\ExpressionLanguage;
-
-class DiscountRuleEvaluator
-{
-    private ExpressionLanguage $expressionLanguage;
-
-    public function __construct()
-    {
-        $this->expressionLanguage = new ExpressionLanguage();
-
-        // カスタム関数を登録
-        $this->expressionLanguage->register(
-            'contains',
-            fn($str, $needle) => sprintf('str_contains(%s, %s)', $str, $needle),
-            fn($arguments, $str, $needle) => str_contains($str, $needle)
-        );
-    }
-
-    /**
-     * 割引ルールを評価
-     *
-     * @param string $expression 例: "subtotal >= 10000 and itemCount >= 3"
-     * @param array $context 評価コンテキスト
-     */
-    public function evaluate(string $expression, array $context): bool
-    {
-        try {
-            return (bool) $this->expressionLanguage->evaluate($expression, $context);
-        } catch (\Exception $e) {
-            return false;
-        }
-    }
-}
-```
+条件式を文字列で記述し、動的に評価できます。
 
 ### 使用例
 
 ```php
 <?php
 
-class DiscountService
+namespace Plugin\YourPlugin\Service;
+
+use Eccube\Entity\Cart;
+use Symfony\Component\ExpressionLanguage\ExpressionLanguage;
+
+class ShippingFeeCalculator
 {
-    public function __construct(
-        private DiscountRuleEvaluator $evaluator,
-        private DiscountRuleRepository $ruleRepository
-    ) {
+    private ExpressionLanguage $expressionLanguage;
+
+    public function __construct()
+    {
+        $this->expressionLanguage = new ExpressionLanguage();
     }
 
-    public function calculateDiscount(Cart $cart): int
+    /**
+     * カートの内容に応じて送料無料かどうかを判定
+     */
+    public function isFreeShipping(Cart $cart): bool
     {
         $context = [
-            'subtotal' => $cart->getTotal(),
-            'itemCount' => $cart->getQuantity(),
-            'customerRank' => $cart->getCustomer()?->getRank() ?? 'guest',
+            'total' => $cart->getTotal(),
+            'quantity' => $cart->getQuantity(),
         ];
 
-        $discount = 0;
-        foreach ($this->ruleRepository->findActive() as $rule) {
-            // 管理画面で設定した条件式: "subtotal >= 10000 and customerRank == 'gold'"
-            if ($this->evaluator->evaluate($rule->getCondition(), $context)) {
-                $discount += $rule->getDiscountAmount();
-            }
-        }
-
-        return $discount;
+        // 合計10,000円以上、または5個以上で送料無料
+        return $this->expressionLanguage->evaluate(
+            'total >= 10000 or quantity >= 5',
+            $context
+        );
     }
 }
 ```
