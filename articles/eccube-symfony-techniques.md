@@ -240,15 +240,6 @@ class ApiController extends AbstractController
 
 在庫更新や重複注文防止に活用できます。
 
-### 設定ファイル
-
-```yaml
-# app/Plugin/YourPlugin/Resource/config/services.yaml
-framework:
-    lock:
-        inventory: '%env(LOCK_DSN)%'
-```
-
 ### 使用例
 
 ```php
@@ -256,14 +247,22 @@ framework:
 
 namespace Plugin\YourPlugin\Service;
 
+use Eccube\Repository\ProductClassRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Lock\LockFactory;
+use Symfony\Component\Lock\Store\FlockStore;
 
 class InventoryService
 {
+    private LockFactory $lockFactory;
+
     public function __construct(
-        private LockFactory $lockFactory,
-        private ProductClassRepository $productClassRepository
+        private ProductClassRepository $productClassRepository,
+        private EntityManagerInterface $entityManager
     ) {
+        // ファイルベースのロックを使用
+        $store = new FlockStore();
+        $this->lockFactory = new LockFactory($store);
     }
 
     public function decreaseStock(int $productClassId, int $quantity): bool
