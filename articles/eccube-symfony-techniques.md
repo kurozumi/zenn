@@ -480,8 +480,8 @@ class ShippingFeeCalculator
     public function isFreeShipping(Cart $cart): bool
     {
         $context = [
-            'total' => $cart->getTotal(),
-            'quantity' => $cart->getQuantity(),
+            'total' => $cart->getTotalPrice(),
+            'quantity' => $cart->getTotalQuantity(),
         ];
 
         // 合計10,000円以上、または5個以上で送料無料
