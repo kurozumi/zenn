@@ -507,16 +507,6 @@ class ProductTypeExtension extends AbstractTypeExtension
 }
 ```
 
-### サービス定義
-
-```yaml
-# app/Plugin/YourPlugin/Resource/config/services.yaml
-services:
-    Plugin\YourPlugin\Form\Extension\ProductTypeExtension:
-        tags:
-            - { name: form.type_extension }
-```
-
 ## 7. ExpressionLanguage - 動的条件評価
 
 送料計算や割引条件など、管理画面から設定可能な動的ルールを実装できます。
