@@ -53,16 +53,27 @@ framework:
 
 namespace Plugin\YourPlugin\Controller\Admin;
 
+use Eccube\Controller\AbstractController;
 use Plugin\YourPlugin\Entity\OrderReview;
+use Plugin\YourPlugin\Repository\OrderReviewRepository;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Workflow\WorkflowInterface;
 
 class OrderReviewController extends AbstractController
 {
     public function __construct(
-        private WorkflowInterface $orderReviewStateMachine
+        private WorkflowInterface $orderReviewStateMachine,
+        private OrderReviewRepository $orderReviewRepository
     ) {
     }
 
+    #[Route(
+        path: '/%eccube_admin_route%/order_review/{id}/approve',
+        name: 'admin_order_review_approve',
+        requirements: ['id' => '\d+'],
+        methods: ['POST']
+    )]
     public function approve(OrderReview $review): Response
     {
         // 遷移可能かチェック
@@ -71,7 +82,7 @@ class OrderReviewController extends AbstractController
             $this->orderReviewStateMachine->apply($review, 'approve');
             $this->entityManager->flush();
 
-            $this->addSuccess('承認しました。');
+            $this->addSuccess('admin.common.save_complete', 'admin');
         }
 
         return $this->redirectToRoute('admin_order_review_list');
