@@ -566,9 +566,9 @@ class ProductExportService
 }
 ```
 
-## 9. Security Voter - 細かいアクセス制御
+## 9. Security Voter - 購入制限
 
-商品やカテゴリへのアクセス制限を実装できます。
+会員のみ購入可能な商品など、購入制限を実装できます。
 
 ### Voterクラス
 
@@ -582,57 +582,20 @@ use Eccube\Entity\Customer;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 
-class ProductVoter extends Voter
+class ProductPurchaseVoter extends Voter
 {
-    public const VIEW = 'PRODUCT_VIEW';
     public const PURCHASE = 'PRODUCT_PURCHASE';
 
     protected function supports(string $attribute, mixed $subject): bool
     {
-        return in_array($attribute, [self::VIEW, self::PURCHASE])
-            && $subject instanceof Product;
+        return $attribute === self::PURCHASE && $subject instanceof Product;
     }
 
     protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token): bool
     {
-        /** @var Product $product */
-        $product = $subject;
         $user = $token->getUser();
 
-        // 会員限定商品のチェック
-        if ($product->isMemberOnly() && !$user instanceof Customer) {
-            return false;
-        }
-
-        return match ($attribute) {
-            self::VIEW => $this->canView($product, $user),
-            self::PURCHASE => $this->canPurchase($product, $user),
-            default => false,
-        };
-    }
-
-    private function canView(Product $product, mixed $user): bool
-    {
-        // 公開中の商品は誰でも閲覧可能
-        if ($product->isPublic()) {
-            return true;
-        }
-
-        // 非公開商品はゴールド会員以上のみ
-        if ($user instanceof Customer) {
-            return $user->getRank() === 'gold' || $user->getRank() === 'platinum';
-        }
-
-        return false;
-    }
-
-    private function canPurchase(Product $product, mixed $user): bool
-    {
-        if (!$this->canView($product, $user)) {
-            return false;
-        }
-
-        // 購入は会員のみ
+        // 会員のみ購入可能
         return $user instanceof Customer;
     }
 }
@@ -645,6 +608,11 @@ class ProductVoter extends Voter
 
 namespace Plugin\YourPlugin\Controller;
 
+use Eccube\Controller\AbstractController;
+use Eccube\Entity\Product;
+use Plugin\YourPlugin\Security\Voter\ProductPurchaseVoter;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 class ProductController extends AbstractController
@@ -654,14 +622,10 @@ class ProductController extends AbstractController
     ) {
     }
 
+    #[Route(path: '/plugin/product/{id}', name: 'plugin_product_detail')]
     public function detail(Product $product): Response
     {
-        // 閲覧権限チェック
-        if (!$this->authChecker->isGranted(ProductVoter::VIEW, $product)) {
-            throw $this->createAccessDeniedException('この商品を閲覧する権限がありません。');
-        }
-
-        $canPurchase = $this->authChecker->isGranted(ProductVoter::PURCHASE, $product);
+        $canPurchase = $this->authChecker->isGranted(ProductPurchaseVoter::PURCHASE, $product);
 
         return $this->render('@YourPlugin/Product/detail.twig', [
             'Product' => $product,
