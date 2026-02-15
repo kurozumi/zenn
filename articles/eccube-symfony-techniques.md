@@ -381,14 +381,14 @@ class UniqueProductCode extends Constraint
 
 namespace Plugin\YourPlugin\Validator\Constraints;
 
-use Eccube\Repository\ProductRepository;
+use Eccube\Repository\ProductClassRepository;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 
 class UniqueProductCodeValidator extends ConstraintValidator
 {
     public function __construct(
-        private ProductRepository $productRepository
+        private ProductClassRepository $productClassRepository
     ) {
     }
 
@@ -398,10 +398,10 @@ class UniqueProductCodeValidator extends ConstraintValidator
             return;
         }
 
-        $existingProduct = $this->productRepository->findOneBy(['code' => $value]);
+        $existingProductClass = $this->productClassRepository->findOneBy(['code' => $value]);
 
-        // 編集中の商品は除外
-        if ($existingProduct && $existingProduct->getId() !== $constraint->excludeId) {
+        // 編集中の規格は除外
+        if ($existingProductClass && $existingProductClass->getId() !== $constraint->excludeId) {
             $this->context->buildViolation($constraint->message)
                 ->setParameter('{{ code }}', $value)
                 ->addViolation();
@@ -417,25 +417,24 @@ class UniqueProductCodeValidator extends ConstraintValidator
 
 namespace Plugin\YourPlugin\Form\Extension;
 
-use Eccube\Form\Type\Admin\ProductType;
+use Eccube\Form\Type\Admin\ProductClassEditType;
 use Plugin\YourPlugin\Validator\Constraints\UniqueProductCode;
 use Symfony\Component\Form\AbstractTypeExtension;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
 
-class ProductTypeExtension extends AbstractTypeExtension
+class ProductClassEditTypeExtension extends AbstractTypeExtension
 {
     public static function getExtendedTypes(): iterable
     {
-        yield ProductType::class;
+        yield ProductClassEditType::class;
     }
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        // フォーム生成時に既存の商品IDを取得してバリデーションに渡す
         $builder->addEventListener(FormEvents::PRE_SET_DATA, function (FormEvent $event) {
-            $product = $event->getData();
+            $productClass = $event->getData();
             $form = $event->getForm();
 
             // 既存のcodeフィールドにカスタム制約を追加
@@ -443,7 +442,7 @@ class ProductTypeExtension extends AbstractTypeExtension
             $options = $codeField->getConfig()->getOptions();
 
             $options['constraints'][] = new UniqueProductCode(
-                excludeId: $product?->getId()
+                excludeId: $productClass?->getId()
             );
 
             $form->add('code', $codeField->getConfig()->getType()->getInnerType()::class, $options);
