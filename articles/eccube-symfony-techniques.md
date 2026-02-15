@@ -696,18 +696,6 @@ class OrderProcessService implements ServiceSubscriberInterface
 }
 ```
 
-### サービス定義
-
-```yaml
-# app/Plugin/YourPlugin/Resource/config/services.yaml
-services:
-    Plugin\YourPlugin\Service\OrderProcessService:
-        arguments:
-            $locator: '@Psr\Container\ContainerInterface'
-        tags:
-            - { name: 'container.service_subscriber' }
-```
-
 ## まとめ
 
 | 技術 | 主な用途 |
