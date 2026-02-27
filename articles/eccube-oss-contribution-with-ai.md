@@ -60,16 +60,78 @@ gh auth status
 
 ## 全体の流れ
 
-1. issue を選ぶ
-2. リポジトリをフォーク・クローン
-3. 該当コードを特定
-4. 修正を実装
-5. テスト
-6. PR を作成
+1. CLAUDE.md を準備（初回のみ）
+2. issue を選ぶ
+3. worktree でブランチを作成
+4. Claude Code に修正を依頼
+5. PR を作成（プロンプトで指示するだけ）
 
-## 1. issue を選ぶ
+## 1. CLAUDE.md を準備する（初回のみ）
 
-まず、EC-CUBE の issue 一覧を確認します。
+Claude Code はプロジェクトルートの `CLAUDE.md` を読み込んで、プロジェクト固有のルールを理解します。EC-CUBE へのコントリビュート用に CLAUDE.md を作成しておくと、毎回指示しなくても適切な PR を作成してくれます。
+
+### フォークとクローン
+
+```bash
+gh repo fork EC-CUBE/ec-cube --clone
+cd ec-cube
+```
+
+### upstream の設定
+
+```bash
+git remote add upstream https://github.com/EC-CUBE/ec-cube.git
+```
+
+### CLAUDE.md の作成
+
+```bash
+cat > CLAUDE.md << 'EOF'
+# EC-CUBE コントリビューションガイド
+
+## コミットメッセージ
+
+- 英語で記述
+- 末尾に `refs #issue番号` を含める
+- Co-Authored-By は不要
+
+## PR 作成
+
+- `--repo EC-CUBE/ec-cube` を指定してフォーク元にPRを送る
+- タイトルは日本語でOK
+- 本文に以下を含める:
+  - 概要
+  - 変更内容
+  - 確認方法
+  - `refs #issue番号`
+
+## コーディング規約
+
+- PSR-12 準拠
+- 既存のコードスタイルに合わせる
+- Twig テンプレートは EC-CUBE の既存パターンに従う
+EOF
+```
+
+これで Claude Code が EC-CUBE のコントリビュートルールを理解した状態で作業できます。
+
+## 2. issue を選ぶ
+
+Claude Code を起動して issue を確認します。
+
+```bash
+claude
+```
+
+プロンプトで指示するだけで、Claude Code が gh コマンドを実行します。
+
+### プロンプト例
+
+```
+EC-CUBE/ec-cube の open な issue を20件表示して
+```
+
+### Claude Code が実行するコマンド
 
 ```bash
 gh issue list --repo EC-CUBE/ec-cube --state open --limit 20
@@ -77,15 +139,23 @@ gh issue list --repo EC-CUBE/ec-cube --state open --limit 20
 
 `good-first-issue` ラベルが付いている issue は、初めてのコントリビュートに適しています。
 
+```
+good-first-issue ラベルの issue を表示して
+```
+
 ```bash
+# Claude Code が実行
 gh issue list --repo EC-CUBE/ec-cube --label "good-first-issue" --state open
 ```
 
 ### 具体例：issue #6582
 
-今回は以下の issue を例に進めます。
+```
+issue #6582 の詳細を見せて
+```
 
 ```bash
+# Claude Code が実行
 gh issue view 6582 --repo EC-CUBE/ec-cube
 ```
 
@@ -102,78 +172,84 @@ labels: bug
 src/Eccube/Resource/template/admin/Order/shipping.twig#L247
 ```
 
-issue には該当ファイルとコードの場所が記載されています。
+## 3. worktree でブランチを作成
 
-## 2. リポジトリをフォーク・クローン
-
-### フォーク
-
-GitHub で EC-CUBE リポジトリをフォークします。
-
-```bash
-gh repo fork EC-CUBE/ec-cube --clone
-cd ec-cube
-```
-
-### upstream の設定
-
-本家リポジトリを `upstream` として追加します。これにより、最新の変更を取り込めるようになります。
-
-```bash
-git remote add upstream https://github.com/EC-CUBE/ec-cube.git
-git remote -v
-```
-
-```
-origin    git@github.com:your-username/ec-cube.git (fetch)
-origin    git@github.com:your-username/ec-cube.git (push)
-upstream  https://github.com/EC-CUBE/ec-cube.git (fetch)
-upstream  https://github.com/EC-CUBE/ec-cube.git (push)
-```
-
-:::message
-`gh repo fork --clone` は自動的に `upstream` を設定する場合もありますが、設定されていない場合は手動で追加してください。
-:::
+複数の issue を並行して作業する場合、`git worktree` が便利です。ブランチごとに別のディレクトリで作業できます。
 
 ### 最新の main を取得
-
-作業前に本家の最新コードを取り込みます。
 
 ```bash
 git fetch upstream
 git checkout main
 git merge upstream/main
+git push origin main
 ```
 
-### ブランチ作成
-
-issue 番号を含むブランチ名にすると管理しやすいです。
+### worktree でブランチを作成
 
 ```bash
-git checkout -b fix/6582-duplicate-data-bs-toggle
+# worktree 用のディレクトリを作成
+mkdir -p ../ec-cube-worktrees
+
+# issue #6582 用の worktree を作成
+git worktree add ../ec-cube-worktrees/fix-6582 -b fix/6582-duplicate-data-bs-toggle
 ```
 
-## 3. Claude Code で該当コードを特定
+### CLAUDE.md をシンボリックリンク
 
-Claude Code を起動して、issue の内容を伝えます。
+worktree で作成したディレクトリには CLAUDE.md がありません。main ブランチの CLAUDE.md をシンボリックリンクすると、どの worktree でも同じルールで作業できます。
+
+```bash
+cd ../ec-cube-worktrees/fix-6582
+ln -s ../../ec-cube/CLAUDE.md CLAUDE.md
+```
+
+:::message
+シンボリックリンクにすることで、CLAUDE.md を更新したときにすべての worktree に反映されます。
+:::
+
+### worktree の一覧確認
+
+```bash
+git worktree list
+```
 
 ```
+/path/to/ec-cube                          abc1234 [main]
+/path/to/ec-cube-worktrees/fix-6582       def5678 [fix/6582-duplicate-data-bs-toggle]
+```
+
+## 4. Claude Code に修正を依頼
+
+worktree のディレクトリで Claude Code を起動します。
+
+```bash
+cd ../ec-cube-worktrees/fix-6582
 claude
 ```
 
 ### プロンプト例
 
 ```
-issue #6582 の内容:
+issue #6582 を修正して。
+
+内容:
 - 出荷登録画面の「出荷情報を削除」ボタンで data-bs-toggle が重複している
 - src/Eccube/Resource/template/admin/Order/shipping.twig の247行目付近
-
-該当コードを確認して、修正方法を提案してください。
 ```
 
-### Claude Code の応答例
+Claude Code が自動的に以下を実行します：
 
-Claude Code がファイルを読み込み、問題を特定します。
+1. **ファイルを読み込み**
+2. **問題を特定**
+3. **修正を実装**
+
+### Claude Code の動作例
+
+```bash
+# Claude Code が実行するコマンド（Read ツール）
+# shipping.twig を読み込んで問題箇所を確認
+```
 
 ```twig
 {# 問題のあるコード #}
@@ -187,22 +263,7 @@ Claude Code がファイルを読み込み、問題を特定します。
 </button>
 ```
 
-`data-bs-toggle` 属性が2回指定されており、後から書いた `tooltip` が無視されています。
-
-## 4. 修正を実装
-
-Claude Code に修正を依頼します。
-
-### プロンプト例
-
-```
-この問題を修正してください。Bootstrap 5 では data-bs-toggle は1つの要素に1つしか
-指定できないので、tooltip は別のアプローチが必要です。
-```
-
-### 修正方法
-
-Bootstrap 5 では、モーダルとツールチップを同時に使う場合、ボタンを `<span>` でラップしてツールチップを外側に付けるパターンがあります。
+Claude Code が問題を特定し、修正案を提示します。
 
 ```twig
 {# 修正後のコード #}
@@ -216,80 +277,35 @@ Bootstrap 5 では、モーダルとツールチップを同時に使う場合�
 </span>
 ```
 
-または、JavaScript で tooltip を初期化する方法もあります。
+Bootstrap 5 では `data-bs-toggle` は1つの要素に1つしか指定できないため、ボタンを `<span>` でラップしてツールチップを外側に付けます。
 
-```twig
-{# 別の修正方法: data-tooltip 属性を使用 #}
-<button type="button"
-        class="btn btn-ec-actionIcon"
-        data-bs-toggle="modal"
-        data-bs-target="#simpleModal"
-        data-tooltip="tooltip"
-        title="{{ 'admin.order.delete_shipping_label'|trans }}">
-    <i class="fa fa-trash"></i>
-</button>
-```
+## 5. PR を作成（プロンプトで指示するだけ）
 
-```javascript
-// JavaScript で初期化
-document.querySelectorAll('[data-tooltip="tooltip"]').forEach(el => {
-    new bootstrap.Tooltip(el);
-});
-```
+修正が完了したら、プロンプトで PR 作成を指示するだけです。
 
-### Claude Code で編集
-
-Claude Code の Edit 機能を使って直接ファイルを編集できます。
+### プロンプト例
 
 ```
-shipping.twig の247行目付近を修正してください。
-span でラップするアプローチで実装してください。
+この修正をコミットして PR を作成して
 ```
 
-## 5. 動作確認
+**これだけで OK です。** Claude Code が CLAUDE.md のルールに従って、以下を自動実行します。
 
-### EC-CUBE の起動
+### Claude Code が実行するコマンド
 
 ```bash
-# 依存関係のインストール
-composer install
-
-# データベースのセットアップ（SQLite を使用）
-bin/console eccube:install --no-interaction
-
-# 開発サーバー起動
-symfony server:start
-```
-
-### 確認項目
-
-1. 管理画面にログイン
-2. 受注管理 → 出荷登録画面を開く
-3. 「出荷情報を削除」ボタンにホバーしてツールチップが表示されるか確認
-4. ボタンをクリックしてモーダルが開くか確認
-
-## 6. コミットと PR 作成
-
-### コミット
-
-```bash
+# 変更をステージング
 git add src/Eccube/Resource/template/admin/Order/shipping.twig
+
+# コミット（CLAUDE.md のルールに従って英語 + refs #issue番号）
 git commit -m "Fix duplicate data-bs-toggle attribute on shipping delete button
 
 refs #6582"
-```
 
-コミットメッセージに `refs #6582` を含めると、GitHub で issue と自動的にリンクされます。
-
-### プッシュ
-
-```bash
+# プッシュ
 git push -u origin fix/6582-duplicate-data-bs-toggle
-```
 
-### PR 作成
-
-```bash
+# PR 作成（CLAUDE.md のルールに従って --repo EC-CUBE/ec-cube を指定）
 gh pr create --repo EC-CUBE/ec-cube --title "出荷登録画面のdata-bs-toggle重複を修正" --body "$(cat <<'EOF'
 ## 概要
 
@@ -307,117 +323,86 @@ gh pr create --repo EC-CUBE/ec-cube --title "出荷登録画面のdata-bs-toggle
 2. 「出荷情報を削除」ボタンにホバー → ツールチップが表示される
 3. ボタンをクリック → モーダルが開く
 
-## 関連 issue
-
 refs #6582
 EOF
 )"
 ```
 
-## Claude Code 活用のコツ
+CLAUDE.md にルールを書いておくことで、毎回細かく指示しなくても適切な PR が作成されます。
 
-### 1. issue の内容をそのまま伝える
+## worktree の後片付け
 
-```
-以下のissueを修正したい:
-[issue の内容をコピペ]
-
-該当ファイルを読んで、修正方法を提案してください。
-```
-
-### 2. EC-CUBE のコーディング規約を意識させる
-
-```
-EC-CUBE のコーディング規約に従って修正してください。
-既存のコードスタイルに合わせてください。
-```
-
-### 3. 影響範囲を確認させる
-
-```
-この修正が他の画面に影響しないか確認してください。
-同じパターンが使われている箇所を検索してください。
-```
+PR がマージされたら、worktree を削除します。
 
 ```bash
-# Claude Code が実行するコマンド例
-grep -r "data-bs-toggle=\"modal\"" --include="*.twig" src/
+# worktree を削除
+git worktree remove ../ec-cube-worktrees/fix-6582
+
+# ブランチも削除
+git branch -d fix/6582-duplicate-data-bs-toggle
 ```
 
-### 4. テストコードの有無を確認
+## CLAUDE.md をさらに充実させる
 
-```
-この機能に関連するテストコードはありますか？
-テストを追加する必要がありますか？
-```
+プロジェクトに慣れてきたら、CLAUDE.md に追加のルールを書いておくとさらに便利です。
 
-## よくある issue のパターン
+```markdown
+# EC-CUBE コントリビューションガイド
+
+## コミットメッセージ
+
+- 英語で記述
+- 末尾に `refs #issue番号` を含める
+- Co-Authored-By は不要
+
+## PR 作成
+
+- `--repo EC-CUBE/ec-cube` を指定してフォーク元にPRを送る
+- タイトルは日本語でOK
+- 本文に以下を含める:
+  - 概要
+  - 変更内容
+  - 確認方法
+  - `refs #issue番号`
+
+## コーディング規約
+
+- PSR-12 準拠
+- 既存のコードスタイルに合わせる
+- Twig テンプレートは EC-CUBE の既存パターンに従う
+
+## よくある修正パターン
 
 ### 多言語化対応
 
-```twig
-{# Before: ハードコード #}
-<button onclick="return confirm('削除してもよろしいですか？')">
+ハードコードされた日本語は `|trans` フィルターを使う。
+翻訳キーは `src/Eccube/Resource/locale/messages.ja.yaml` に追加。
 
-{# After: trans フィルター使用 #}
-<button onclick="return confirm('{{ 'common.delete_confirm'|trans }}')">
-```
+### data-bs-toggle の重複
 
-翻訳キーは `src/Eccube/Resource/locale/messages.ja.yaml` に追加します。
+Bootstrap 5 では1要素に1つまで。
+モーダル + ツールチップの場合は span でラップする。
 
-### Twig テンプレートの修正
+## テスト
 
-```twig
-{# エスケープ漏れの修正 #}
-{# Before #}
-{{ variable|raw }}
-
-{# After #}
-{{ variable }}
-```
-
-### JavaScript の修正
-
-```javascript
-// jQuery から Vanilla JS への移行
-// Before
-$('#element').on('click', function() {});
-
-// After
-document.getElementById('element').addEventListener('click', function() {});
-```
-
-## PR がマージされるまで
-
-1. **CI チェック**: GitHub Actions でテストが実行される
-2. **レビュー**: メンテナーからフィードバックがある場合は対応
-3. **マージ**: 承認されるとマージされる
-
-### レビュー対応のコツ
-
-レビューコメントが付いたら、Claude Code に相談できます。
-
-```
-レビューで以下のコメントをもらいました:
-[コメント内容]
-
-どう対応すべきですか？
+- 修正したら必ず動作確認の手順を PR に記載する
+- 既存のテストが壊れていないか確認する
 ```
 
 ## まとめ
 
-| ステップ | Claude Code の活用 |
-|---------|-------------------|
-| issue 調査 | `gh issue view` で内容確認 |
-| コード特定 | Grep/Read で該当箇所を検索 |
-| 修正実装 | Edit で直接編集 |
-| 影響調査 | 同じパターンの検索 |
-| PR 作成 | `gh pr create` でテンプレート生成 |
+| ポイント | 効果 |
+|---------|------|
+| CLAUDE.md を準備 | 毎回指示しなくても適切な PR が作成される |
+| worktree を使用 | 複数の issue を並行して作業できる |
+| シンボリックリンク | すべての worktree で同じルールを適用 |
+| プロンプトで指示 | コマンドを覚えなくても PR まで完了 |
 
-Claude Code を使うことで、コードの調査から PR 作成までをスムーズに進められます。まずは `good-first-issue` から始めて、EC-CUBE のコントリビュートに挑戦してみてください。
+Claude Code + CLAUDE.md + worktree の組み合わせで、EC-CUBE へのコントリビュートがスムーズになります。まずは `good-first-issue` から始めて、OSS コントリビュートに挑戦してみてください。
 
 ## 参考リンク
 
 - [EC-CUBE GitHub](https://github.com/EC-CUBE/ec-cube)
 - [EC-CUBE 開発者向けドキュメント](https://doc4.ec-cube.net/)
 - [EC-CUBE コントリビューションガイド](https://github.com/EC-CUBE/ec-cube/blob/4.3/CONTRIBUTING.md)
+- [Git Worktree ドキュメント](https://git-scm.com/docs/git-worktree)
