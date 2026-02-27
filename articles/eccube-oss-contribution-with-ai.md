@@ -76,6 +76,36 @@ gh repo fork EC-CUBE/ec-cube --clone
 cd ec-cube
 ```
 
+### upstream の設定
+
+本家リポジトリを `upstream` として追加します。これにより、最新の変更を取り込めるようになります。
+
+```bash
+git remote add upstream https://github.com/EC-CUBE/ec-cube.git
+git remote -v
+```
+
+```
+origin    git@github.com:your-username/ec-cube.git (fetch)
+origin    git@github.com:your-username/ec-cube.git (push)
+upstream  https://github.com/EC-CUBE/ec-cube.git (fetch)
+upstream  https://github.com/EC-CUBE/ec-cube.git (push)
+```
+
+:::message
+`gh repo fork --clone` は自動的に `upstream` を設定する場合もありますが、設定されていない場合は手動で追加してください。
+:::
+
+### 最新の main を取得
+
+作業前に本家の最新コードを取り込みます。
+
+```bash
+git fetch upstream
+git checkout main
+git merge upstream/main
+```
+
 ### ブランチ作成
 
 issue 番号を含むブランチ名にすると管理しやすいです。
