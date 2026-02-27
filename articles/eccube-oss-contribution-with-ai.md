@@ -17,7 +17,46 @@ EC-CUBE はオープンソースのECパッケージです。GitHub で issue �
 
 - GitHub アカウント
 - Claude Code がインストール済み
+- GitHub CLI（gh コマンド）がインストール済み
 - PHP 8.1 以上、Composer がインストール済み
+
+## GitHub CLI のセットアップ
+
+この記事では GitHub CLI（`gh` コマンド）を使用します。ターミナルから GitHub の操作（issue の確認、PR の作成など）ができる公式ツールです。
+
+### インストール
+
+```bash
+# macOS（Homebrew）
+brew install gh
+
+# Windows（winget）
+winget install GitHub.cli
+
+# Ubuntu/Debian
+sudo apt install gh
+```
+
+その他の環境は [公式ドキュメント](https://cli.github.com/manual/installation) を参照してください。
+
+### 認証
+
+インストール後、GitHub アカウントでログインします。
+
+```bash
+gh auth login
+```
+
+対話形式で進みます。HTTPS と SSH のどちらかを選び、ブラウザで認証を完了させてください。
+
+### 動作確認
+
+```bash
+gh --version
+gh auth status
+```
+
+`Logged in to github.com` と表示されれば準備完了です。
 
 ## 全体の流れ
 
