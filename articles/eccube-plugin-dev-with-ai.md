@@ -477,3 +477,13 @@ AI はペアプログラミングの相手として優秀です。特に「こ�
 - [EC-CUBE 4 開発者向けドキュメント](https://doc4.ec-cube.net/)
 - [Symfony Documentation](https://symfony.com/doc/current/index.html)
 - [Claude Code](https://claude.ai/claude-code)
+
+---
+
+:::message alert
+**EC-CUBEのカスタマイズをお待ちしております！**
+
+EC-CUBEのカスタマイズや開発のご相談は、お気軽にお問い合わせください。
+
+この記事が役に立ったら、ぜひ**バッジを贈っていただけると励みになります！**
+:::

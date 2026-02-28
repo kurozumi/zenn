@@ -406,3 +406,13 @@ Claude Code + CLAUDE.md + worktree の組み合わせで、EC-CUBE へのコン�
 - [EC-CUBE 開発者向けドキュメント](https://doc4.ec-cube.net/)
 - [EC-CUBE コントリビューションガイド](https://github.com/EC-CUBE/ec-cube/blob/4.3/CONTRIBUTING.md)
 - [Git Worktree ドキュメント](https://git-scm.com/docs/git-worktree)
+
+---
+
+:::message alert
+**EC-CUBEのカスタマイズをお待ちしております！**
+
+EC-CUBEのカスタマイズや開発のご相談は、お気軽にお問い合わせください。
+
+この記事が役に立ったら、ぜひ**バッジを贈っていただけると励みになります！**
+:::

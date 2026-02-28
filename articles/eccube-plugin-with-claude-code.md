@@ -313,3 +313,13 @@ Claude Code を活用することで、EC-CUBE プラグイン開発を大幅に
 - [Claude Code 公式ドキュメント](https://docs.anthropic.com/en/docs/claude-code)
 - [EC-CUBE 4 開発者向けドキュメント](https://doc4.ec-cube.net/)
 - [EC-CUBE プラグイン仕様](https://doc4.ec-cube.net/plugin)
+
+---
+
+:::message alert
+**EC-CUBEのカスタマイズをお待ちしております！**
+
+EC-CUBEのカスタマイズや開発のご相談は、お気軽にお問い合わせください。
+
+この記事が役に立ったら、ぜひ**バッジを贈っていただけると励みになります！**
+:::
