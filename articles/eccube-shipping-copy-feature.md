@@ -102,6 +102,15 @@ class ShippingCopyEventSubscriber implements EventSubscriberInterface
 ```twig
 {# app/Customize/Resource/template/admin/Order/shipping_copy_button.twig #}
 
+{# コピーボタンのテンプレート #}
+<template id="shipping-copy-btn-template">
+    <div class="btn-group me-2 shipping-copy-buttons">
+        <button type="button" class="btn btn-ec-regular btn-sm copy-order-info">
+            <i class="fa fa-clipboard me-1"></i>注文者情報をコピー
+        </button>
+    </div>
+</template>
+
 <script>
 $(function() {
     // 注文者情報を取得（受注編集画面から渡されたデータを使用）
@@ -118,21 +127,20 @@ $(function() {
         company_name: '{{ Order.company_name|e('js') }}'
     };
 
+    // 出荷先カードのセレクタ
+    var shippingCardSelector = '.card.rounded.border-0.mb-4.h-adr';
+
     // 各出荷先カードにコピーボタンを追加
-    $('.card.rounded.shipping-item').each(function(index) {
+    $(shippingCardSelector).each(function(index) {
         var $card = $(this);
-        var $header = $card.find('.card-header .col-auto').first();
+        var $headerRight = $card.find('.card-header .text-end').first();
 
-        // ボタングループを作成
-        var $btnGroup = $('<div class="btn-group me-2"></div>');
-
-        // 注文者情報をコピーボタン
-        var $copyOrderBtn = $('<button type="button" class="btn btn-ec-regular btn-sm copy-order-info" data-index="' + index + '">' +
-            '<i class="fa fa-clipboard me-1"></i>注文者情報をコピー</button>');
-        $btnGroup.append($copyOrderBtn);
+        // テンプレートからボタングループをクローン
+        var $btnGroup = $('#shipping-copy-btn-template').contents().clone();
+        $btnGroup.find('.copy-order-info').attr('data-index', index);
 
         // 他のお届け先からコピー（2つ以上の配送先がある場合のみ）
-        var shippingCount = $('.card.rounded.shipping-item').length;
+        var shippingCount = $(shippingCardSelector).length;
         if (shippingCount > 1) {
             var $copyOtherBtn = $('<button type="button" class="btn btn-ec-regular btn-sm dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">' +
                 '<span class="visually-hidden">他のお届け先</span></button>');
@@ -149,7 +157,7 @@ $(function() {
         }
 
         // ヘッダーの先頭に挿入
-        $header.prepend($btnGroup);
+        $headerRight.prepend($btnGroup);
     });
 
     // 注文者情報をコピー
