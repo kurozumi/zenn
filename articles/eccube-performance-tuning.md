@@ -507,3 +507,13 @@ opcache.preload_user=www-data
 - [EC-CUBE 4 開発者向けドキュメント](https://doc4.ec-cube.net/)
 - [Doctrine ORM Performance](https://www.doctrine-project.org/projects/doctrine-orm/en/current/reference/improving-performance.html)
 - [Symfony Performance](https://symfony.com/doc/current/performance.html)
+
+---
+
+:::message alert
+**EC-CUBEのカスタマイズをお待ちしております！**
+
+EC-CUBEのカスタマイズや開発のご相談は、お気軽にお問い合わせください。
+
+この記事が役に立ったら、ぜひ**バッジを贈っていただけると励みになります！**
+:::

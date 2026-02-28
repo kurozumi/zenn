@@ -320,3 +320,13 @@ Docker Composeのコマンドを覚えていなくても、スキルがガイド
 ## 参考
 
 - [EC-CUBE 4 ドキュメント - Docker Composeを使用したインストール](https://doc4.ec-cube.net/quickstart/docker_compose_install)
+
+---
+
+:::message alert
+**EC-CUBEのカスタマイズをお待ちしております！**
+
+EC-CUBEのカスタマイズや開発のご相談は、お気軽にお問い合わせください。
+
+この記事が役に立ったら、ぜひ**バッジを贈っていただけると励みになります！**
+:::
