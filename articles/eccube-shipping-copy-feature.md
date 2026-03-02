@@ -24,22 +24,12 @@ EC-CUBEの開発コミュニティで、こんな要望を見つけました。
 
 この記事では、この機能を `app/Customize` を使って自分で実装する方法を解説します。
 
-## 現状の問題
-
-出荷登録画面で「出荷情報の追加」をすると、名前や住所を手入力する必要があります。
-
-![現状の出荷登録画面](/images/eccube-shipping-before.png)
-
-出荷情報(2)のように、すべてのフィールドが空欄の状態から入力するのは大変です。受注編集画面には「注文者情報をコピー」ボタンがあるのに、出荷登録画面にはありません。
-
 ## 完成イメージ
 
-出荷登録画面の各配送先カードのヘッダー部分（「出荷情報を削除」ボタンの左側）に、以下のボタンを追加します。
+出荷登録画面の各配送先に、以下のボタンを追加します。
 
 - **注文者情報をコピー**: 注文者の名前・住所を配送先にコピー
 - **他のお届け先からコピー**: 別の配送先の情報をコピー（複数配送先がある場合）
-
-ボタンをクリックするだけで、注文者情報が自動入力されます。
 
 ## 実装方針
 
@@ -102,15 +92,6 @@ class ShippingCopyEventSubscriber implements EventSubscriberInterface
 ```twig
 {# app/Customize/Resource/template/admin/Order/shipping_copy_button.twig #}
 
-{# コピーボタンのテンプレート #}
-<template id="shipping-copy-btn-template">
-    <div class="btn-group me-2 shipping-copy-buttons">
-        <button type="button" class="btn btn-ec-regular btn-sm copy-order-info">
-            <i class="fa fa-clipboard me-1"></i>注文者情報をコピー
-        </button>
-    </div>
-</template>
-
 <script>
 $(function() {
     // 注文者情報を取得（受注編集画面から渡されたデータを使用）
@@ -127,20 +108,21 @@ $(function() {
         company_name: '{{ Order.company_name|e('js') }}'
     };
 
-    // 出荷先カードのセレクタ
-    var shippingCardSelector = '.card.rounded.border-0.mb-4.h-adr';
-
     // 各出荷先カードにコピーボタンを追加
-    $(shippingCardSelector).each(function(index) {
+    $('.card.rounded.shipping-item').each(function(index) {
         var $card = $(this);
-        var $headerRight = $card.find('.card-header .text-end').first();
+        var $header = $card.find('.card-header .col-auto').first();
 
-        // テンプレートからボタングループをクローン
-        var $btnGroup = $('#shipping-copy-btn-template').contents().clone();
-        $btnGroup.find('.copy-order-info').attr('data-index', index);
+        // ボタングループを作成
+        var $btnGroup = $('<div class="btn-group me-2"></div>');
+
+        // 注文者情報をコピーボタン
+        var $copyOrderBtn = $('<button type="button" class="btn btn-ec-regular btn-sm copy-order-info" data-index="' + index + '">' +
+            '<i class="fa fa-clipboard me-1"></i>注文者情報をコピー</button>');
+        $btnGroup.append($copyOrderBtn);
 
         // 他のお届け先からコピー（2つ以上の配送先がある場合のみ）
-        var shippingCount = $(shippingCardSelector).length;
+        var shippingCount = $('.card.rounded.shipping-item').length;
         if (shippingCount > 1) {
             var $copyOtherBtn = $('<button type="button" class="btn btn-ec-regular btn-sm dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">' +
                 '<span class="visually-hidden">他のお届け先</span></button>');
@@ -157,7 +139,7 @@ $(function() {
         }
 
         // ヘッダーの先頭に挿入
-        $headerRight.prepend($btnGroup);
+        $header.prepend($btnGroup);
     });
 
     // 注文者情報をコピー
