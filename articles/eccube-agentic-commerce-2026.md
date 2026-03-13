@@ -325,6 +325,25 @@ class ProductFeedController extends AbstractController
 </feed>
 ```
 
+#### プラグインで簡単に実装する
+
+自作が面倒な場合は、**商品データフィードプラグイン** を使うと簡単です。
+
+https://www.ec-cube.net/products/detail.php?product_id=3209
+
+**商品データフィードプラグイン（Google/Meta/LINE/TikTok対応）** は、以下のプラットフォーム向けのフィードを管理画面から簡単に生成できます。
+
+| 対応サービス | 用途 |
+|-------------|------|
+| Google Merchant Center | Google ショッピング広告、無料リスティング |
+| Meta（Facebook/Instagram） | Facebook/Instagramショップ |
+| LINE | LINE広告 |
+| TikTok | TikTok広告 |
+
+Google Merchant Centerの商品データ仕様とEC-CUBEのデータ項目の対応表も用意されており、GMC対応に必要な項目（GTIN、商品カテゴリ、状態、送料など）をEC-CUBEの管理画面から設定できます。
+
+AIエージェント時代に備えて、まずはGoogle Merchant Centerへの登録から始めるのがおすすめです。
+
 ### 5. 会話型コマースへの対応
 
 将来的には、EC-CUBEサイト自体にチャットボットを組み込むことも検討できます。
