@@ -15,704 +15,226 @@ published: true
 
 BtoB EC市場は514兆円を超え、企業間取引のオンライン化が急速に進んでいます。EC-CUBEでもBtoB向けプラグインが充実してきましたが、競合のBtoB専用ECサービス（Bカート、ecbeing BtoB、AladdinECなど）と比較すると、まだ不足している機能があります。
 
-この記事では、EC-CUBEの既存B2B機能を整理した上で、不足している「多段階承認ワークフロー」と「親子アカウント（企業アカウント管理）」の実装アイデアを解説します。
+この記事では、EC-CUBEの既存B2B機能を整理した上で、競合サービスとの差分を分析し、不足している「多段階承認ワークフロー」と「親子アカウント（企業アカウント管理）」の実装方針を解説します。
+
+## BtoB ECに求められる機能とは
+
+BtoC ECとBtoB ECでは、求められる機能が大きく異なります。BtoB ECでは以下のような企業間取引特有の要件があります。
+
+### 価格・商品管理の複雑さ
+
+BtoC ECでは基本的に全顧客に同一価格で販売しますが、BtoB ECでは取引先ごとに異なる価格設定が必要です。長年の取引実績がある得意先には特別価格を適用したり、大量購入する顧客には掛率を下げたりと、顧客ごとのきめ細かな価格管理が求められます。
+
+また、商品の公開範囲も取引先によって異なることがあります。特定の顧客にのみ販売する専用商品や、新商品の先行公開なども一般的です。
+
+### 決済・請求の特殊性
+
+個人向けECではクレジットカードや代金引換が主流ですが、企業間取引では「掛け払い」が基本です。月末締め翌月払いなどの支払条件に基づき、複数回の取引をまとめて請求書を発行します。
+
+これには与信管理も伴います。取引先ごとに与信限度額を設定し、未払い残高が限度額を超える場合は新規発注をブロックするといった仕組みが必要になります。
+
+### 組織的な購買プロセス
+
+BtoC ECでは購入者本人が即座に購入を決定しますが、BtoB ECでは組織としての購買プロセスがあります。担当者が商品を選んでカートに入れても、上長の承認がなければ発注が確定しないというケースが一般的です。
+
+特に金額が大きい発注では、課長→部長→役員といった多段階の承認フローが必要になることもあります。
 
 ## EC-CUBEの既存B2B機能
 
-まず、プラグインを含めたEC-CUBEの現状を整理します。
+EC-CUBEはオープンソースのECプラットフォームとして、プラグインによる機能拡張が可能です。現時点でBtoB向けに利用できるプラグインを整理します。
 
-### プラグインでカバーされている機能
+### 会員グループ管理プラグイン
 
-| 機能 | プラグイン例 |
-|------|-------------|
-| 会員グループ管理 | [会員グループ管理プラグイン](https://www.ec-cube.net/products/detail.php?product_id=2439) |
-| グループ別商品・カテゴリ表示制限 | 同上 |
-| グループ別価格・掛率設定 | [会員グループ価格管理アドオン](https://www.ec-cube.net/products/detail.php?product_id=2440) |
+[会員グループ管理プラグイン](https://www.ec-cube.net/products/detail.php?product_id=2439)を使うと、会員をグループ分けして管理できます。「法人A」「法人B」「卸会員」といったグループを作成し、グループごとに閲覧できる商品やカテゴリを制限できます。
+
+これにより、特定の取引先にのみ表示される専用商品ページや、ログインしないと閲覧できないクローズドなECサイトを構築できます。BtoB ECの基本となる「取引先別カタログ」を実現する機能です。
+
+### 会員グループ価格管理アドオン
+
+[会員グループ価格管理アドオン](https://www.ec-cube.net/products/detail.php?product_id=2440)は、会員グループ管理プラグインと組み合わせて使用します。グループごとに異なる販売価格や掛率を設定できるため、取引先別の価格管理が可能になります。
+
+たとえば、「A社グループは定価の80%」「B社グループは定価の75%」といった掛率設定や、特定グループ向けの固定価格設定ができます。
+
+### その他のBtoB向け機能
+
+| 機能 | 対応プラグイン・サービス |
+|------|------------------------|
 | 見積機能 | 見積プラグイン各種 |
 | 掛け払い決済 | EC-CUBE Payment Plus B2B |
-| 会員制サイト（ログイン必須） | 会員制サイトプラグイン |
+| 会員制サイト | 会員制サイトプラグイン |
+| 法人向け決済 | 各種BtoB決済サービス連携 |
 
-これらを組み合わせることで、基本的なBtoB ECサイトは構築可能です。
+これらのプラグインを組み合わせることで、基本的なBtoB ECサイトは構築可能です。
 
-### 競合サービスにあってEC-CUBEにない機能
+## 競合サービスとの機能比較
 
-| 機能 | 概要 | 競合での対応 |
-|------|------|-------------|
-| **多段階承認ワークフロー** | 金額や商品に応じた承認フロー | Bカート、ecbeing等で標準機能 |
-| **親子アカウント管理** | 企業配下に複数担当者を管理 | 多くのB2B ECで標準機能 |
-| 与信・取引限度額管理 | 企業ごとの与信枠設定 | 一部サービスで対応 |
-| 購買予算管理 | 部門別予算の設定と管理 | 一部サービスで対応 |
+しかし、Bカート、ecbeing BtoB、AladdinECといったBtoB専用ECサービスと比較すると、EC-CUBEには不足している機能があります。
 
-特に「多段階承認ワークフロー」と「親子アカウント管理」は、中堅以上の企業との取引で必須となる機能です。
+### 多段階承認ワークフロー
 
-## 実装1: 親子アカウント（企業アカウント管理）
+競合サービスの多くは「承認機能」を標準で搭載しています。これは、担当者が発注を申請すると、設定された承認者に通知が届き、承認されて初めて正式な注文として確定する仕組みです。
 
-### 概要
+特に以下のような高度な機能が提供されています。
 
-BtoB取引では、1つの企業内に複数の担当者が存在します。
+**金額別の承認ルート設定**
+10万円未満の発注は承認不要、10万円以上50万円未満は課長承認、50万円以上は部長承認といった、金額に応じた承認ルートの自動振り分けができます。
 
-- 購買担当者（発注を行う）
-- 承認者（発注を承認する）
-- 経理担当者（請求書を確認する）
-- 管理者（担当者の追加・削除を行う）
+**多段階承認**
+高額な発注では、課長→部長→役員といった複数段階の承認を経て確定する仕組みを構築できます。1人でも却下すれば発注は不成立となります。
 
-これを実現するため、「企業（Company）」エンティティを作成し、既存のCustomerと紐付けます。
+**承認履歴の監査**
+誰がいつ承認・却下したかの履歴が記録され、後から監査できます。内部統制やコンプライアンスの観点から重要な機能です。
 
-### Entityの設計
+EC-CUBEには、このような承認ワークフロー機能を提供するプラグインがまだ充実していません。
 
-```php
-<?php
-// app/Entity/Company.php
+### 親子アカウント管理（企業アカウント）
 
-namespace Customize\Entity;
+BtoB取引では、1つの企業内に複数の担当者が存在するのが一般的です。購買担当者、承認者、経理担当者、管理者など、それぞれ異なる役割を持つ担当者が同じ企業アカウントの下で活動します。
 
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
-use Doctrine\ORM\Mapping as ORM;
-use Eccube\Entity\Customer;
+競合サービスでは「親子アカウント」または「企業アカウント」機能として、以下のような仕組みを提供しています。
 
-#[ORM\Entity]
-#[ORM\Table(name: 'plg_company')]
-class Company
-{
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private ?int $id = null;
+**企業単位での管理**
+企業（親アカウント）の下に、複数の担当者（子アカウント）を登録できます。担当者の追加・削除は企業の管理者が行えるため、ECサイト運営者の手を煩わせません。
 
-    #[ORM\Column(type: 'string', length: 255)]
-    private string $name;
+**担当者ごとの権限設定**
+担当者ごとに「閲覧のみ」「発注可能」「承認者」「管理者」といった権限を設定できます。新入社員は閲覧のみ、ベテラン担当者は発注可能、課長は承認者といった運用が可能です。
 
-    #[ORM\Column(type: 'string', length: 255, nullable: true)]
-    private ?string $corporateNumber = null; // 法人番号
+**企業単位での注文履歴・請求管理**
+同じ企業の担当者が行った注文は、企業単位で集約して確認できます。請求書も企業宛に一括で発行されます。
 
-    #[ORM\Column(type: 'integer', options: ['default' => 0])]
-    private int $creditLimit = 0; // 与信限度額
+EC-CUBEの標準機能では、顧客（Customer）は個人単位での管理となっており、企業としてのまとまりを持たせることが難しい状態です。
 
-    #[ORM\Column(type: 'string', length: 50, nullable: true)]
-    private ?string $paymentTerms = null; // 支払条件（月末締め翌月払い等）
+### その他の差分機能
 
-    #[ORM\OneToMany(targetEntity: CompanyMember::class, mappedBy: 'company', cascade: ['persist', 'remove'])]
-    private Collection $members;
+| 機能 | 競合サービス | EC-CUBE |
+|------|-------------|---------|
+| 与信限度額管理 | 標準搭載が多い | プラグインで一部対応 |
+| 購買予算管理 | 一部サービスで対応 | 未対応 |
+| CSV一括発注 | 標準搭載が多い | プラグインで一部対応 |
+| クイックオーダー | 標準搭載が多い | 一部対応 |
 
-    public function __construct()
-    {
-        $this->members = new ArrayCollection();
-    }
+## 実装方針1: 親子アカウント（企業アカウント管理）
 
-    // getter/setter省略
-}
-```
+EC-CUBEで親子アカウント機能を実装する場合の設計方針を解説します。
 
-```php
-<?php
-// app/Entity/CompanyMember.php
+### データモデルの設計
 
-namespace Customize\Entity;
+まず、「企業」を表すエンティティを新規に作成します。このエンティティには企業名、法人番号、与信限度額、支払条件（月末締め翌月払いなど）といった情報を持たせます。
 
-use Doctrine\ORM\Mapping as ORM;
-use Eccube\Entity\Customer;
+次に、企業と会員（Customer）を紐付ける中間エンティティを作成します。このエンティティには、どの会員がどの企業に所属しているか、その会員の役割（管理者、承認者、購買担当、閲覧のみ）は何か、発注上限金額はいくらかといった情報を持たせます。
 
-#[ORM\Entity]
-#[ORM\Table(name: 'plg_company_member')]
-class CompanyMember
-{
-    public const ROLE_ADMIN = 'admin';       // 管理者
-    public const ROLE_APPROVER = 'approver'; // 承認者
-    public const ROLE_BUYER = 'buyer';       // 購買担当
-    public const ROLE_VIEWER = 'viewer';     // 閲覧のみ
+EC-CUBEの既存の会員（Customer）エンティティは、Traitを使って拡張します。これにより、会員から所属企業や役割を取得できるようになります。
 
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private ?int $id = null;
+### 役割と権限の設計
 
-    #[ORM\ManyToOne(targetEntity: Company::class, inversedBy: 'members')]
-    #[ORM\JoinColumn(nullable: false)]
-    private Company $company;
+企業内の担当者には以下の4つの役割を設定できるようにします。
 
-    #[ORM\ManyToOne(targetEntity: Customer::class)]
-    #[ORM\JoinColumn(nullable: false)]
-    private Customer $customer;
+**管理者（admin）**
+企業アカウントの最高権限を持ちます。担当者の追加・削除、権限変更、企業情報の編集が可能です。発注や承認も行えます。
 
-    #[ORM\Column(type: 'string', length: 20)]
-    private string $role = self::ROLE_BUYER;
+**承認者（approver）**
+発注の承認・却下ができる権限です。自身で発注を行うこともできます。課長や部長といった役職者に割り当てます。
 
-    #[ORM\Column(type: 'integer', nullable: true)]
-    private ?int $orderLimit = null; // 発注上限金額（この金額以上は承認必要）
+**購買担当（buyer）**
+発注を行える権限です。ただし、設定された金額以上の発注は承認者の承認が必要になります。一般的な購買担当者に割り当てます。
 
-    #[ORM\Column(type: 'boolean', options: ['default' => true])]
-    private bool $isActive = true;
+**閲覧のみ（viewer）**
+商品の閲覧や価格の確認はできますが、発注はできません。新入社員や他部署の参照用アカウントに割り当てます。
 
-    // getter/setter省略
+### 実装上のポイント
 
-    public function canApprove(): bool
-    {
-        return in_array($this->role, [self::ROLE_ADMIN, self::ROLE_APPROVER], true);
-    }
+**ログイン後の挙動**
+会員がログインした際、その会員が企業アカウントに所属しているかを判定します。所属している場合は、企業の設定に基づいた価格表示や商品表示を行います。
 
-    public function canOrder(): bool
-    {
-        return in_array($this->role, [self::ROLE_ADMIN, self::ROLE_APPROVER, self::ROLE_BUYER], true);
-    }
-}
-```
+**マイページの拡張**
+企業の管理者は、マイページから担当者の一覧を確認したり、新しい担当者を招待したりできるようにします。担当者ごとの発注履歴も確認できるようにすると便利です。
 
-### CustomerへのTraitによる拡張
-
-```php
-<?php
-// app/Entity/CustomerTrait.php
-
-namespace Customize\Entity;
+**注文履歴の集約**
+同じ企業に所属する担当者の注文は、企業単位で集約して表示できるようにします。管理者や経理担当者が全体の発注状況を把握するために必要です。
 
-use Doctrine\ORM\Mapping as ORM;
+## 実装方針2: 多段階承認ワークフロー
 
-trait CustomerTrait
-{
-    #[ORM\OneToOne(targetEntity: CompanyMember::class, mappedBy: 'customer')]
-    private ?CompanyMember $companyMember = null;
+承認ワークフロー機能の設計方針を解説します。
 
-    public function getCompanyMember(): ?CompanyMember
-    {
-        return $this->companyMember;
-    }
+### データモデルの設計
 
-    public function getCompany(): ?Company
-    {
-        return $this->companyMember?->getCompany();
-    }
+承認ワークフローは3つのエンティティで構成します。
 
-    public function isCompanyAdmin(): bool
-    {
-        return $this->companyMember?->getRole() === CompanyMember::ROLE_ADMIN;
-    }
-}
-```
+**承認フロー（ApprovalFlow）**
+企業ごとに設定する承認フローの定義です。フロー名、適用される金額範囲（10万円以上50万円未満など）、有効/無効フラグを持ちます。1つの企業が複数の承認フローを持つことができ、発注金額に応じて適用されるフローが決まります。
 
-## 実装2: 多段階承認ワークフロー
+**承認ステップ（ApprovalStep）**
+承認フローを構成する各ステップです。ステップの順序、ステップ名（「課長承認」「部長承認」など）、承認者の役割または特定の承認者を指定します。1つの承認フローが複数のステップを持つことで、多段階承認を実現します。
 
-### 概要
+**注文承認（OrderApproval）**
+実際の注文に対する承認リクエストです。注文との紐付け、現在のステップ、承認ステータス（承認待ち、承認済み、却下）、承認者、承認日時、コメントを記録します。
 
-企業の購買プロセスでは、金額に応じた承認フローが必要です。
+### 承認フローの動作
 
-例：
-- 10万円未満：承認不要
-- 10万円以上50万円未満：課長承認
-- 50万円以上：部長承認
+担当者が発注を完了すると、以下の流れで承認フローが開始されます。
 
-### Entityの設計
+**フローの判定**
+発注金額に基づいて、適用される承認フローを判定します。該当するフローがなければ、承認不要として即座に注文が確定します。
 
-```php
-<?php
-// app/Entity/ApprovalFlow.php
+**承認待ち状態への移行**
+適用されるフローがある場合、注文ステータスを「承認待ち」に変更します。同時に、最初のステップの承認リクエストを作成し、承認者にメール通知を送信します。
 
-namespace Customize\Entity;
+**承認処理**
+承認者がマイページで承認を行うと、次のステップがあれば次のステップの承認リクエストを作成します。最後のステップが承認されれば、注文ステータスを「新規受付」に変更して注文が確定します。
 
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\Common\Collections\Collection;
-use Doctrine\ORM\Mapping as ORM;
-
-#[ORM\Entity]
-#[ORM\Table(name: 'plg_approval_flow')]
-class ApprovalFlow
-{
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private ?int $id = null;
-
-    #[ORM\ManyToOne(targetEntity: Company::class)]
-    #[ORM\JoinColumn(nullable: false)]
-    private Company $company;
-
-    #[ORM\Column(type: 'string', length: 255)]
-    private string $name; // フロー名（例：「標準承認フロー」）
-
-    #[ORM\Column(type: 'integer')]
-    private int $minAmount = 0; // 適用下限金額
-
-    #[ORM\Column(type: 'integer', nullable: true)]
-    private ?int $maxAmount = null; // 適用上限金額（nullは上限なし）
+**却下処理**
+いずれかのステップで却下された場合、注文ステータスを「キャンセル」に変更します。却下理由のコメントは必須とし、申請者に通知します。
 
-    #[ORM\OneToMany(targetEntity: ApprovalStep::class, mappedBy: 'flow', cascade: ['persist', 'remove'])]
-    #[ORM\OrderBy(['stepOrder' => 'ASC'])]
-    private Collection $steps;
+### 承認画面の設計
 
-    #[ORM\Column(type: 'boolean', options: ['default' => true])]
-    private bool $isActive = true;
+承認者向けの画面をマイページに追加します。
 
-    public function __construct()
-    {
-        $this->steps = new ArrayCollection();
-    }
+**承認待ち一覧**
+自分が承認できる注文の一覧を表示します。注文番号、申請者名、金額、申請日時、注文内容へのリンクを表示します。
 
-    public function isApplicable(int $amount): bool
-    {
-        if ($amount < $this->minAmount) {
-            return false;
-        }
-        if ($this->maxAmount !== null && $amount > $this->maxAmount) {
-            return false;
-        }
-        return true;
-    }
-}
-```
+**承認・却下操作**
+各注文に対して、承認ボタンと却下ボタンを用意します。却下時は却下理由の入力を必須とします。コメント欄も用意し、承認時にもコメントを残せるようにします。
 
-```php
-<?php
-// app/Entity/ApprovalStep.php
-
-namespace Customize\Entity;
-
-use Doctrine\ORM\Mapping as ORM;
-
-#[ORM\Entity]
-#[ORM\Table(name: 'plg_approval_step')]
-class ApprovalStep
-{
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private ?int $id = null;
-
-    #[ORM\ManyToOne(targetEntity: ApprovalFlow::class, inversedBy: 'steps')]
-    #[ORM\JoinColumn(nullable: false)]
-    private ApprovalFlow $flow;
-
-    #[ORM\Column(type: 'integer')]
-    private int $stepOrder; // 承認順序
-
-    #[ORM\Column(type: 'string', length: 255)]
-    private string $name; // ステップ名（例：「課長承認」）
-
-    #[ORM\Column(type: 'string', length: 20)]
-    private string $approverRole; // 承認者の役割
-
-    #[ORM\ManyToOne(targetEntity: CompanyMember::class)]
-    private ?CompanyMember $specificApprover = null; // 特定の承認者（指定する場合）
-}
-```
-
-```php
-<?php
-// app/Entity/OrderApproval.php
-
-namespace Customize\Entity;
-
-use Doctrine\ORM\Mapping as ORM;
-use Eccube\Entity\Order;
-
-#[ORM\Entity]
-#[ORM\Table(name: 'plg_order_approval')]
-class OrderApproval
-{
-    public const STATUS_PENDING = 'pending';   // 承認待ち
-    public const STATUS_APPROVED = 'approved'; // 承認済み
-    public const STATUS_REJECTED = 'rejected'; // 却下
-    public const STATUS_CANCELLED = 'cancelled'; // キャンセル
-
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column(type: 'integer')]
-    private ?int $id = null;
-
-    #[ORM\ManyToOne(targetEntity: Order::class)]
-    #[ORM\JoinColumn(nullable: false)]
-    private Order $order;
-
-    #[ORM\ManyToOne(targetEntity: ApprovalStep::class)]
-    #[ORM\JoinColumn(nullable: false)]
-    private ApprovalStep $step;
-
-    #[ORM\Column(type: 'string', length: 20)]
-    private string $status = self::STATUS_PENDING;
-
-    #[ORM\ManyToOne(targetEntity: CompanyMember::class)]
-    private ?CompanyMember $approvedBy = null;
-
-    #[ORM\Column(type: 'datetime', nullable: true)]
-    private ?\DateTimeInterface $approvedAt = null;
-
-    #[ORM\Column(type: 'text', nullable: true)]
-    private ?string $comment = null; // 承認・却下コメント
-
-    #[ORM\Column(type: 'datetime')]
-    private \DateTimeInterface $createdAt;
-
-    public function __construct()
-    {
-        $this->createdAt = new \DateTimeImmutable();
-    }
-}
-```
-
-### 承認ワークフローサービス
-
-```php
-<?php
-// app/Service/ApprovalWorkflowService.php
-
-namespace Customize\Service;
-
-use Customize\Entity\ApprovalFlow;
-use Customize\Entity\ApprovalStep;
-use Customize\Entity\CompanyMember;
-use Customize\Entity\OrderApproval;
-use Customize\Repository\ApprovalFlowRepository;
-use Customize\Repository\OrderApprovalRepository;
-use Doctrine\ORM\EntityManagerInterface;
-use Eccube\Entity\Order;
-use Eccube\Entity\Master\OrderStatus;
-use Eccube\Repository\Master\OrderStatusRepository;
-
-class ApprovalWorkflowService
-{
-    public function __construct(
-        private EntityManagerInterface $entityManager,
-        private ApprovalFlowRepository $approvalFlowRepository,
-        private OrderApprovalRepository $orderApprovalRepository,
-        private OrderStatusRepository $orderStatusRepository,
-    ) {
-    }
-
-    /**
-     * 注文に対して承認フローを開始する
-     */
-    public function startApprovalFlow(Order $order, CompanyMember $requester): void
-    {
-        $company = $requester->getCompany();
-        $amount = (int) $order->getPaymentTotal();
-
-        // 適用される承認フローを取得
-        $flow = $this->approvalFlowRepository->findApplicableFlow($company, $amount);
-
-        if ($flow === null) {
-            // 承認フローなし = 即時確定
-            return;
-        }
-
-        // 注文ステータスを「承認待ち」に変更
-        $pendingStatus = $this->orderStatusRepository->find(OrderStatus::PENDING);
-        $order->setOrderStatus($pendingStatus);
-
-        // 最初のステップの承認レコードを作成
-        $firstStep = $flow->getSteps()->first();
-        if ($firstStep) {
-            $this->createApprovalRequest($order, $firstStep);
-        }
-
-        $this->entityManager->flush();
-    }
-
-    /**
-     * 承認処理
-     */
-    public function approve(
-        OrderApproval $approval,
-        CompanyMember $approver,
-        ?string $comment = null
-    ): void {
-        $approval->setStatus(OrderApproval::STATUS_APPROVED);
-        $approval->setApprovedBy($approver);
-        $approval->setApprovedAt(new \DateTimeImmutable());
-        $approval->setComment($comment);
-
-        // 次のステップがあるかチェック
-        $nextStep = $this->getNextStep($approval->getStep());
-
-        if ($nextStep !== null) {
-            // 次のステップの承認リクエストを作成
-            $this->createApprovalRequest($approval->getOrder(), $nextStep);
-        } else {
-            // 全ステップ完了 = 注文確定
-            $this->finalizeOrder($approval->getOrder());
-        }
-
-        $this->entityManager->flush();
-    }
-
-    /**
-     * 却下処理
-     */
-    public function reject(
-        OrderApproval $approval,
-        CompanyMember $approver,
-        string $comment
-    ): void {
-        $approval->setStatus(OrderApproval::STATUS_REJECTED);
-        $approval->setApprovedBy($approver);
-        $approval->setApprovedAt(new \DateTimeImmutable());
-        $approval->setComment($comment);
-
-        // 注文をキャンセル状態に
-        $cancelStatus = $this->orderStatusRepository->find(OrderStatus::CANCEL);
-        $approval->getOrder()->setOrderStatus($cancelStatus);
-
-        $this->entityManager->flush();
-    }
-
-    private function createApprovalRequest(Order $order, ApprovalStep $step): void
-    {
-        $approval = new OrderApproval();
-        $approval->setOrder($order);
-        $approval->setStep($step);
-
-        $this->entityManager->persist($approval);
-
-        // TODO: 承認者にメール通知
-    }
-
-    private function getNextStep(ApprovalStep $currentStep): ?ApprovalStep
-    {
-        $flow = $currentStep->getFlow();
-        $steps = $flow->getSteps();
-        $currentOrder = $currentStep->getStepOrder();
-
-        foreach ($steps as $step) {
-            if ($step->getStepOrder() > $currentOrder) {
-                return $step;
-            }
-        }
-
-        return null;
-    }
-
-    private function finalizeOrder(Order $order): void
-    {
-        $newStatus = $this->orderStatusRepository->find(OrderStatus::NEW);
-        $order->setOrderStatus($newStatus);
-    }
-}
-```
-
-### EventSubscriberで注文時に自動起動
-
-```php
-<?php
-// app/EventSubscriber/OrderApprovalSubscriber.php
-
-namespace Customize\EventSubscriber;
-
-use Customize\Entity\CompanyMember;
-use Customize\Service\ApprovalWorkflowService;
-use Eccube\Event\EccubeEvents;
-use Eccube\Event\EventArgs;
-use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-
-class OrderApprovalSubscriber implements EventSubscriberInterface
-{
-    public function __construct(
-        private ApprovalWorkflowService $workflowService,
-        private TokenStorageInterface $tokenStorage,
-    ) {
-    }
-
-    public static function getSubscribedEvents(): array
-    {
-        return [
-            EccubeEvents::FRONT_SHOPPING_COMPLETE_INITIALIZE => 'onShoppingComplete',
-        ];
-    }
-
-    public function onShoppingComplete(EventArgs $event): void
-    {
-        $order = $event->getArgument('Order');
-        $customer = $this->tokenStorage->getToken()?->getUser();
-
-        if (!$customer instanceof \Eccube\Entity\Customer) {
-            return;
-        }
-
-        $companyMember = $customer->getCompanyMember();
-
-        if ($companyMember === null) {
-            // 企業アカウントでない場合はスキップ
-            return;
-        }
-
-        // 承認ワークフローを開始
-        $this->workflowService->startApprovalFlow($order, $companyMember);
-    }
-}
-```
-
-## マイページへの承認画面追加
-
-### Controller
-
-```php
-<?php
-// app/Controller/Mypage/ApprovalController.php
-
-namespace Customize\Controller\Mypage;
-
-use Customize\Entity\OrderApproval;
-use Customize\Repository\OrderApprovalRepository;
-use Customize\Service\ApprovalWorkflowService;
-use Eccube\Controller\AbstractController;
-use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
-
-class ApprovalController extends AbstractController
-{
-    public function __construct(
-        private OrderApprovalRepository $approvalRepository,
-        private ApprovalWorkflowService $workflowService,
-    ) {
-    }
-
-    #[Route('/mypage/approval', name: 'mypage_approval', methods: ['GET'])]
-    #[Template('@user_data/mypage/approval_list.twig')]
-    public function index(): array
-    {
-        $customer = $this->getUser();
-        $companyMember = $customer->getCompanyMember();
-
-        if ($companyMember === null || !$companyMember->canApprove()) {
-            throw $this->createAccessDeniedException();
-        }
-
-        $pendingApprovals = $this->approvalRepository
-            ->findPendingByCompany($companyMember->getCompany());
-
-        return [
-            'approvals' => $pendingApprovals,
-        ];
-    }
-
-    #[Route('/mypage/approval/{id}/approve', name: 'mypage_approval_approve', methods: ['POST'])]
-    public function approve(Request $request, OrderApproval $approval): Response
-    {
-        $customer = $this->getUser();
-        $companyMember = $customer->getCompanyMember();
-
-        if (!$companyMember->canApprove()) {
-            throw $this->createAccessDeniedException();
-        }
-
-        $comment = $request->request->get('comment');
-        $this->workflowService->approve($approval, $companyMember, $comment);
-
-        $this->addFlash('success', '承認しました。');
-
-        return $this->redirectToRoute('mypage_approval');
-    }
-
-    #[Route('/mypage/approval/{id}/reject', name: 'mypage_approval_reject', methods: ['POST'])]
-    public function reject(Request $request, OrderApproval $approval): Response
-    {
-        $customer = $this->getUser();
-        $companyMember = $customer->getCompanyMember();
-
-        if (!$companyMember->canApprove()) {
-            throw $this->createAccessDeniedException();
-        }
-
-        $comment = $request->request->get('comment');
-
-        if (empty($comment)) {
-            $this->addFlash('error', '却下理由を入力してください。');
-            return $this->redirectToRoute('mypage_approval');
-        }
-
-        $this->workflowService->reject($approval, $companyMember, $comment);
-
-        $this->addFlash('warning', '却下しました。');
-
-        return $this->redirectToRoute('mypage_approval');
-    }
-}
-```
-
-### Twigテンプレート
-
-```twig
-{# app/template/user_data/mypage/approval_list.twig #}
-
-{% extends 'Mypage/index.twig' %}
-
-{% block main %}
-<h2>承認待ち一覧</h2>
-
-{% if approvals is empty %}
-    <p>承認待ちの注文はありません。</p>
-{% else %}
-    <table class="table">
-        <thead>
-            <tr>
-                <th>注文番号</th>
-                <th>申請者</th>
-                <th>金額</th>
-                <th>申請日</th>
-                <th>操作</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for approval in approvals %}
-            <tr>
-                <td>{{ approval.order.orderNo }}</td>
-                <td>{{ approval.order.customer.name01 }} {{ approval.order.customer.name02 }}</td>
-                <td>{{ approval.order.paymentTotal|price }}</td>
-                <td>{{ approval.createdAt|date('Y/m/d H:i') }}</td>
-                <td>
-                    <form action="{{ url('mypage_approval_approve', {id: approval.id}) }}" method="post" style="display: inline;">
-                        <button type="submit" class="btn btn-success btn-sm">承認</button>
-                    </form>
-                    <button type="button" class="btn btn-danger btn-sm"
-                            onclick="showRejectModal({{ approval.id }})">却下</button>
-                </td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-{% endif %}
-
-{# 却下モーダル #}
-<div id="rejectModal" class="modal" style="display: none;">
-    <form id="rejectForm" method="post">
-        <label>却下理由（必須）</label>
-        <textarea name="comment" required></textarea>
-        <button type="submit" class="btn btn-danger">却下する</button>
-        <button type="button" onclick="closeRejectModal()">キャンセル</button>
-    </form>
-</div>
-
-<script>
-function showRejectModal(id) {
-    document.getElementById('rejectForm').action = '{{ url('mypage_approval_reject', {id: '__ID__'}) }}'.replace('__ID__', id);
-    document.getElementById('rejectModal').style.display = 'block';
-}
-function closeRejectModal() {
-    document.getElementById('rejectModal').style.display = 'none';
-}
-</script>
-{% endblock %}
-```
+**承認履歴**
+過去の承認・却下履歴を確認できるようにします。監査やトラブル対応に役立ちます。
+
+### 注文完了時のフック
+
+EC-CUBEでは、注文完了時にイベントが発火します。EventSubscriberを実装してこのイベントをフックし、承認ワークフローを自動的に開始します。
+
+ログイン中の会員が企業アカウントに所属しているかを判定し、所属している場合のみ承認フローの判定を行います。個人会員の場合は従来通り即座に注文が確定します。
+
+## 発展的な機能
+
+基本的な承認ワークフローを実装した後、以下のような機能を追加するとより実用的になります。
+
+### メール通知
+
+承認依頼時、承認完了時、却下時にそれぞれメール通知を送信します。承認者が承認依頼に気づかないと業務が滞るため、メール通知は必須といえます。
+
+### Slack・Teams連携
+
+メールだけでなく、SlackやTeamsに通知を送る機能があると便利です。特に承認依頼は即座に気づいて対応したいケースが多いため、チャットツール連携は効果的です。
+
+### 代理承認
+
+承認者が休暇中や不在の場合に、代理で承認できる仕組みがあると運用しやすくなります。あらかじめ代理承認者を設定しておくか、管理者が臨時で代理承認者を指定できるようにします。
+
+### 承認期限とエスカレーション
+
+承認依頼から一定期間が経過しても承認されない場合、上位の承認者にエスカレーションする仕組みがあると便利です。業務が滞ることを防げます。
+
+### 承認フローの可視化
+
+現在の承認状況を視覚的に表示する機能があると、申請者も承認者も状況を把握しやすくなります。「課長承認済み→部長承認待ち→役員承認（未）」といったステップの進捗を表示します。
 
 ## まとめ
 
-この記事では、EC-CUBEにおけるBtoB EC機能の現状を整理し、不足している「親子アカウント管理」と「多段階承認ワークフロー」の実装アイデアを紹介しました。
+この記事では、EC-CUBEにおけるBtoB EC機能の現状を整理し、競合サービスとの差分を分析しました。
 
-### 実装のポイント
+EC-CUBEは会員グループ管理プラグインや会員グループ価格管理アドオンにより、取引先別の商品表示や価格設定には対応できています。しかし、「多段階承認ワークフロー」と「親子アカウント管理」については、本格的なプラグインがまだ少ない状況です。
 
-1. **親子アカウント管理**: Company エンティティを作成し、CustomerとCompanyMemberで紐付ける
-2. **多段階承認**: ApprovalFlow/ApprovalStep/OrderApprovalの3つのエンティティで柔軟なワークフローを実現
-3. **EventSubscriber**: 注文完了時に自動で承認フローを開始
-
-### 発展的な機能
-
-本記事で紹介した基本実装をベースに、以下の機能も追加できます：
-
-- メール通知（承認依頼・承認完了・却下通知）
-- 承認履歴の監査ログ
-- 代理承認機能
-- 承認期限と自動エスカレーション
-- Slack/Teams連携
+これらの機能は中堅以上の企業との取引では必須となることが多く、EC-CUBEでBtoB ECを構築する際の課題となっています。本記事で解説した設計方針を参考に、プラグインやカスタマイズで実装することで、競合サービスに引けを取らないBtoB ECサイトを構築できます。
 
 BtoB ECの需要は今後も拡大が予想されます。EC-CUBEの柔軟なカスタマイズ性を活かして、企業のニーズに合ったBtoB ECサイトを構築してみてください。
 
