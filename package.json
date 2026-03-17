@@ -5,8 +5,11 @@
   "main": "index.js",
   "scripts": {
     "preview": "zenn preview",
+    "preview:qiita": "qiita preview",
     "new:article": "zenn new:article",
-    "new:book": "zenn new:book"
+    "new:book": "zenn new:book",
+    "qiita:convert": "node scripts/zenn-to-qiita.js",
+    "qiita:convert:all": "node scripts/zenn-to-qiita.js --all"
   },
   "keywords": [],
   "author": "",
@@ -14,5 +17,8 @@
   "type": "commonjs",
   "dependencies": {
     "zenn-cli": "^0.4.5"
+  },
+  "devDependencies": {
+    "@qiita/qiita-cli": "^1.8.0"
   }
 }
