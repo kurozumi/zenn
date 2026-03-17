@@ -1,0 +1,66 @@
+---
+title: 'Claude CodeのスキルでEC-CUBE 4のDocker環境を簡単構築'
+tags:
+  - EC-CUBE
+  - docker
+  - claudecode
+private: false
+updated_at: ''
+id: null
+organization_url_name: null
+slide: false
+ignorePublish: false
+---
+
+:::note info
+この記事はZennに投稿した記事の要約です。詳細は以下のリンクからご覧ください。
+:::
+
+**詳細記事: [Claude CodeのスキルでEC-CUBE 4のDocker環境を簡単構築](https://zenn.dev/and_and/articles/eccube-docker-compose-setup)**
+
+---
+
+EC-CUBE 4の開発環境をDocker Composeで構築する際、コマンドを調べながら実行するのは手間がかかります。Claude Codeの`eccube-docker`スキルを使えば、対話形式で簡単にDocker環境を構築・管理できます。
+
+## eccube-dockerスキルとは
+
+`eccube-docker`は、私がEC-CUBE開発用に作成したClaude Codeのスキルです。Docker Compose環境を対話形式で管理できます。
+
+以下の操作をサポートしています。
+
+- **新規セットアップ**: Docker環境の構築とDB初期化
+- **起動**: コンテナの起動
+- **停止**: コンテナの停止
+- **再起動**: コンテナの再起動
+
+
+
+## SKILL.mdの内容
+
+以下が`eccube-docker`スキルの全内容です。
+
+````markdown
+---
+name: eccube-docker
+description: EC-CUBE 4 を Docker Compose で起動する。ローカル開発環境のセットアップ時に使用する。
+---
+
+# EC-CUBE 4 Docker Compose 環境管理
+
+あなたはEC-CUBE 4のDocker環境構築の専門家です。Docker ComposeでEC-CUBEの起動・停止・管理を行います。
+
+引数が渡された場合（`$ARGUMENTS`）はEC-CUBEのディレクトリパスまたは操作内容として解釈してください。
+
+---
+
+## 続きはZennで
+
+この記事では概要のみを紹介しました。詳細な解説やコード例は、Zennの記事をご覧ください。
+
+**[Claude CodeのスキルでEC-CUBE 4のDocker環境を簡単構築](https://zenn.dev/and_and/articles/eccube-docker-compose-setup)**
+
+---
+
+:::note
+EC-CUBEのカスタマイズや開発のご相談は、お気軽にお問い合わせください。
+:::
