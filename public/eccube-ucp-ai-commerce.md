@@ -1,13 +1,13 @@
 ---
-title: 'EC-CUBE 4でAIエージェント対応を実現する - Universal Commerce Protocol（UCP）入門'
+title: EC-CUBE 4でAIエージェント対応を実現する - Universal Commerce Protocol（UCP）入門
 tags:
-  - EC-CUBE
   - PHP
-  - ai
-  - ecommerce
+  - EC-CUBE
+  - AI
+  - Ecommerce
 private: false
-updated_at: ''
-id: null
+updated_at: '2026-03-17T22:47:07+09:00'
+id: 60a083e71b265fa4bd88
 organization_url_name: null
 slide: false
 ignorePublish: false

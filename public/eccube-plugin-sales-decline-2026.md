@@ -1,12 +1,12 @@
 ---
-title: 'EC-CUBEプラグインが売れなくなった理由を考察する【2026年】'
+title: EC-CUBEプラグインが売れなくなった理由を考察する【2026年】
 tags:
-  - EC-CUBE
   - ec
+  - EC-CUBE
   - ビジネス
 private: false
-updated_at: ''
-id: null
+updated_at: '2026-03-17T22:47:07+09:00'
+id: 1179f3db476f9a5c800a
 organization_url_name: null
 slide: false
 ignorePublish: false

@@ -1,12 +1,12 @@
 ---
-title: 'EC-CUBEの「業務適応型コマース基盤」への転換と、私たちが考えるべきこと'
+title: EC-CUBEの「業務適応型コマース基盤」への転換と、私たちが考えるべきこと
 tags:
   - EC-CUBE
   - OSS
   - キャリア
 private: false
-updated_at: ''
-id: null
+updated_at: '2026-03-17T22:47:06+09:00'
+id: 0ab150a36576b1a3a54b
 organization_url_name: null
 slide: false
 ignorePublish: false

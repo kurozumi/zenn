@@ -1,13 +1,13 @@
 ---
-title: '「任せるEC」の時代到来 - EC-CUBEサイトをAIエージェント対応にする'
+title: 「任せるEC」の時代到来 - EC-CUBEサイトをAIエージェント対応にする
 tags:
-  - EC-CUBE
-  - ai
   - ec
+  - EC-CUBE
+  - AI
   - ビジネス
 private: false
-updated_at: ''
-id: null
+updated_at: '2026-03-17T22:47:07+09:00'
+id: 763a600141a6207f7a3a
 organization_url_name: null
 slide: false
 ignorePublish: false

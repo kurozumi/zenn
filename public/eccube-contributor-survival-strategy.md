@@ -1,13 +1,13 @@
 ---
-title: '「業務適応型コマース基盤」時代にEC-CUBEコントリビューターが生き残る方法'
+title: 「業務適応型コマース基盤」時代にEC-CUBEコントリビューターが生き残る方法
 tags:
   - EC-CUBE
+  - AI
   - OSS
   - キャリア
-  - AI
 private: false
-updated_at: ''
-id: null
+updated_at: '2026-03-17T22:47:07+09:00'
+id: 983dfe70950ec65698b9
 organization_url_name: null
 slide: false
 ignorePublish: false
