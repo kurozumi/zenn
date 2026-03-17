@@ -1,0 +1,81 @@
+---
+title: EC-CUBEプラグイン開発者が押さえるべきセキュリティチェックリスト
+tags:
+  - PHP
+  - Symfony
+  - Security
+  - EC-CUBE
+private: false
+updated_at: '2026-03-17T21:49:34+09:00'
+id: 7ff0ebf4f1f094f176af
+organization_url_name: null
+slide: false
+ignorePublish: false
+---
+
+:::note info
+この記事はZennに投稿した記事の要約です。詳細は以下のリンクからご覧ください。
+:::
+
+**詳細記事: [EC-CUBEプラグイン開発者が押さえるべきセキュリティチェックリスト](https://zenn.dev/and_and/articles/eccube-plugin-security-checklist)**
+
+---
+
+EC-CUBEでプラグインを開発する際、セキュリティは最も重要な要素の一つです。この記事では、プラグイン開発時に必ずチェックすべきセキュリティ項目をまとめました。
+
+## 1. SQLインジェクション対策
+
+### チェックポイント
+- ユーザー入力をそのままSQLクエリに埋め込んでいないか
+- DoctrineのQueryBuilderまたはDQLを使用しているか
+- プレースホルダ（バインドパラメータ）を使用しているか
+
+### 悪い例
+```php
+// 危険: ユーザー入力を直接クエリに埋め込んでいる
+$sql = "SELECT * FROM dtb_product WHERE name = '" . $request->get('name') . "'";
+```
+
+### 良い例
+```php
+// 安全: QueryBuilderとパラメータバインディングを使用
+$qb = $this->createQueryBuilder('p')
+    ->where('p.name = :name')
+    ->setParameter('name', $request->get('name'));
+```
+
+## 2. クロスサイトスクリプティング（XSS）対策
+
+### チェックポイント
+- Twigテンプレートで `{{ }}` を使用しているか（自動エスケープ）
+- `|raw` フィルターを不用意に使用していないか
+- JavaScriptに動的な値を埋め込む際はエスケープしているか
+
+### 悪い例
+```twig
+{# 危険: rawフィルターでエスケープを無効化 #}
+{{ user_input|raw }}
+```
+
+### 良い例
+```twig
+{# 安全: 自動エスケープが適用される #}
+{{ user_input }}
+
+{# HTMLを許可する場合は、サニタイズしてから #}
+{{ sanitized_html|raw }}
+```
+
+---
+
+## 続きはZennで
+
+この記事では概要のみを紹介しました。詳細な解説やコード例は、Zennの記事をご覧ください。
+
+**[EC-CUBEプラグイン開発者が押さえるべきセキュリティチェックリスト](https://zenn.dev/and_and/articles/eccube-plugin-security-checklist)**
+
+---
+
+:::note
+EC-CUBEのカスタマイズや開発のご相談は、お気軽にお問い合わせください。
+:::
