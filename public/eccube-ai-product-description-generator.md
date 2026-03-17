@@ -6,8 +6,8 @@ tags:
   - openai
   - ai
 private: false
-updated_at: '2026-03-17T22:17:55+09:00'
-id: d6d60c1826560a56af03
+updated_at: ''
+id: null
 organization_url_name: null
 slide: false
 ignorePublish: false

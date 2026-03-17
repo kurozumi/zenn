@@ -6,8 +6,8 @@ tags:
   - Symfony
   - デザインパターン
 private: false
-updated_at: '2026-03-17T22:17:54+09:00'
-id: e5996f1ae28d7e8a8806
+updated_at: ''
+id: null
 organization_url_name: null
 slide: false
 ignorePublish: false
