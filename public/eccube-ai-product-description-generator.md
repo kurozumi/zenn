@@ -1,10 +1,10 @@
 ---
-title: EC-CUBE 4で商品説明文をAIで自動生成するプラグインを作る
+title: 'EC-CUBE 4で商品説明文をAIで自動生成するプラグインを作る'
 tags:
-  - PHP
   - EC-CUBE
-  - AI
-  - OpenAI
+  - PHP
+  - openai
+  - ai
 private: false
 updated_at: '2026-03-17T22:17:55+09:00'
 id: d6d60c1826560a56af03

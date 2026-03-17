@@ -1,9 +1,9 @@
 ---
-title: EC-CUBE 4プラグインにCSS/JSなどの静的ファイルを同梱する方法
+title: 'EC-CUBE 4プラグインにCSS/JSなどの静的ファイルを同梱する方法'
 tags:
+  - EC-CUBE
   - PHP
   - Symfony
-  - EC-CUBE
 private: false
 updated_at: '2026-03-17T22:17:55+09:00'
 id: d6e58f72ec7ffa0d962e

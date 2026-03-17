@@ -105,6 +105,31 @@ function extractSummary(body) {
 }
 
 /**
+ * 既存のQiita記事からフロントマターを取得
+ */
+function getExistingQiitaFrontmatter(filename) {
+  const existingPath = path.join(QIITA_PUBLIC_DIR, filename);
+  if (!fs.existsSync(existingPath)) {
+    return { id: null, updated_at: '' };
+  }
+
+  const content = fs.readFileSync(existingPath, 'utf-8');
+  const parsed = parseZennFrontmatter(content);
+  if (!parsed) {
+    return { id: null, updated_at: '' };
+  }
+
+  // 引用符を除去
+  const id = parsed.frontmatter.id ? parsed.frontmatter.id.replace(/^['"]|['"]$/g, '') : null;
+  const updated_at = parsed.frontmatter.updated_at ? parsed.frontmatter.updated_at.replace(/^['"]|['"]$/g, '') : '';
+
+  return {
+    id: id === 'null' ? null : id,
+    updated_at
+  };
+}
+
+/**
  * Qiita用の記事を生成
  */
 function generateQiitaArticle(zennFilename, zennContent) {
@@ -119,14 +144,18 @@ function generateQiitaArticle(zennFilename, zennContent) {
   const zennUrl = getZennArticleUrl(zennFilename);
   const summary = extractSummary(body);
 
+  // 既存のQiita記事のIDとupdated_atを取得
+  const existing = getExistingQiitaFrontmatter(zennFilename);
+
   // Qiita用のフロントマター
+  const updatedAt = existing.updated_at ? `'${existing.updated_at}'` : "''";
   const qiitaFrontmatter = `---
 title: '${frontmatter.title}'
 tags:
 ${tags.map(tag => `  - ${tag}`).join('\n')}
 private: false
-updated_at: ''
-id: null
+updated_at: ${updatedAt}
+id: ${existing.id}
 organization_url_name: null
 slide: false
 ignorePublish: false

@@ -1,10 +1,10 @@
 ---
-title: EC-CUBEプラグイン開発者が押さえるべきセキュリティチェックリスト
+title: 'EC-CUBEプラグイン開発者が押さえるべきセキュリティチェックリスト'
 tags:
+  - EC-CUBE
+  - security
   - PHP
   - Symfony
-  - Security
-  - EC-CUBE
 private: false
 updated_at: '2026-03-17T22:17:54+09:00'
 id: acb70cf791b4bab2680c

@@ -1,8 +1,8 @@
 ---
-title: EC-CUBE大量商品サイトの高速化テクニック10選
+title: 'EC-CUBE大量商品サイトの高速化テクニック10選'
 tags:
-  - PHP
   - EC-CUBE
+  - PHP
   - performance
 private: false
 updated_at: '2026-03-17T22:17:54+09:00'

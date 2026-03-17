@@ -1,10 +1,10 @@
 ---
-title: EC-CUBE 4のPurchaseFlowを理解する - ストラテジーパターンで実現する柔軟な購入フロー
+title: 'EC-CUBE 4のPurchaseFlowを理解する - ストラテジーパターンで実現する柔軟な購入フロー'
 tags:
+  - EC-CUBE
   - PHP
   - Symfony
   - デザインパターン
-  - EC-CUBE
 private: false
 updated_at: '2026-03-17T22:17:54+09:00'
 id: e5996f1ae28d7e8a8806

@@ -1,10 +1,10 @@
 ---
-title: EC-CUBEプラグイン開発をAIで効率化してみた
+title: 'EC-CUBEプラグイン開発をAIで効率化してみた'
 tags:
+  - EC-CUBE
   - PHP
   - Symfony
-  - EC-CUBE
-  - AI
+  - ai
 private: false
 updated_at: '2026-03-17T22:17:54+09:00'
 id: b78d2cf757acf82d3581
