@@ -1,10 +1,10 @@
 ---
-title: EC-CUBE 4プラグインのパッケージングを自動化する方法
+title: 'EC-CUBE 4プラグインのパッケージングを自動化する方法'
 tags:
-  - PHP
-  - GitHub
   - EC-CUBE
-  - GitHubActions
+  - PHP
+  - github
+  - githubactions
 private: false
 updated_at: '2026-03-18T21:54:50+09:00'
 id: 34b07e91339d93839f3c

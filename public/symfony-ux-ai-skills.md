@@ -5,7 +5,7 @@ tags:
   - Symfony
   - EC-CUBE
   - AI
-private: false
+private: true
 updated_at: '2026-03-18T21:54:50+09:00'
 id: 372ac4e0d125b18df86b
 organization_url_name: null

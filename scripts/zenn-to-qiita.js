@@ -235,16 +235,30 @@ function main() {
     const filename = path.basename(file);
     const content = fs.readFileSync(file, 'utf-8');
 
-    // published: false の記事はスキップ
-    if (content.includes('published: false')) {
-      console.log(`Skipping (not published): ${filename}`);
+    const outputPath = path.join(QIITA_PUBLIC_DIR, filename);
+    const isPublished = !content.includes('published: false');
+
+    // published: false の記事
+    if (!isPublished) {
+      // 既存のQiita記事があれば非公開に設定
+      if (fs.existsSync(outputPath)) {
+        let existingContent = fs.readFileSync(outputPath, 'utf-8');
+        if (existingContent.includes('private: false')) {
+          existingContent = existingContent.replace('private: false', 'private: true');
+          fs.writeFileSync(outputPath, existingContent);
+          console.log(`Set to private: ${filename}`);
+        } else {
+          console.log(`Already private: ${filename}`);
+        }
+      } else {
+        console.log(`Skipping (not published): ${filename}`);
+      }
       continue;
     }
 
     const qiitaContent = generateQiitaArticle(filename, content);
     if (!qiitaContent) continue;
 
-    const outputPath = path.join(QIITA_PUBLIC_DIR, filename);
     fs.writeFileSync(outputPath, qiitaContent);
     console.log(`Generated: ${outputPath}`);
   }

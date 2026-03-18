@@ -1,9 +1,9 @@
 ---
-title: EC-CUBEの未来を考える - 主要コントリビューターの貢献から見えるもの
+title: 'EC-CUBEの未来を考える - 主要コントリビューターの貢献から見えるもの'
 tags:
   - EC-CUBE
-  - OpenSource
-  - Community
+  - opensource
+  - community
 private: false
 updated_at: '2026-03-18T21:54:50+09:00'
 id: 8863b18f9336ee3350ed

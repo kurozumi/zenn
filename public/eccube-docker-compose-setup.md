@@ -1,9 +1,9 @@
 ---
-title: Claude CodeのスキルでEC-CUBE 4のDocker環境を簡単構築
+title: 'Claude CodeのスキルでEC-CUBE 4のDocker環境を簡単構築'
 tags:
-  - Docker
   - EC-CUBE
-  - ClaudeCode
+  - docker
+  - claudecode
 private: false
 updated_at: '2026-03-18T21:54:49+09:00'
 id: 38e91ce6bb86fd51cf1f
