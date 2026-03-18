@@ -1,5 +1,5 @@
 ---
-title: "Symfony UX AI Skills - AIエージェントがSymfony UXを正しく使えるようになる仕組み"
+title: "Symfony UX AI Skills - AIがWeb開発の「正しいやり方」を学べる仕組み"
 emoji: "🤖"
 type: "tech"
 topics: ["symfony", "AI", "eccube", "php"]
@@ -13,149 +13,116 @@ published: true
 
 ## はじめに
 
-Symfonyの公式ブログで「AI Skills for Symfony UX」が発表されました。これは、Claude CodeやGemini CLIなどのAIコーディングエージェントが、Symfony UXコンポーネント（Stimulus、Turbo、TwigComponent、LiveComponent）を正しく使えるようにするための仕組みです。
+最近、AIを使ってプログラミングをする人が増えています。Claude CodeやCursor、GitHub Copilotなど、AIがコードを書いてくれるツールが普及してきました。
 
-EC-CUBEはSymfonyベースのため、この仕組みはEC-CUBEのフロントエンド開発にも活用できます。
+しかし、AIは万能ではありません。「動くコード」は書けても、「そのプロジェクトに最適なコード」を書くのは難しいことがあります。
 
-## AI Skillsとは
+この課題を解決するために、Symfonyの公式から「AI Skills」という仕組みが発表されました。簡単に言うと、**AIに「このプロジェクトではこうやって書くのが正解だよ」と教える仕組み**です。
 
-AI Skillsは、AIコーディングエージェント向けの「構造化された知識パッケージ」です。`SKILL.md`というMarkdownファイルと参考ドキュメントで構成されています。
+## AIが間違えやすいこと
 
-通常、AIエージェントは汎用的な知識を持っていますが、特定のフレームワークの「ベストプラクティス」や「よくある落とし穴」までは把握していないことがあります。AI Skillsは、この知識ギャップを埋めるためのものです。
+例えば、Webサイトに「検索機能」を追加したいとします。
 
-### 仕組み
+Symfonyには複数の方法があります。
 
-1. エージェント起動時に各スキルの`description`フィールドを読み込む
-2. ユーザーのタスクとマッチするスキルを自動的に検出
-3. 該当するスキルの知識を使って実装を支援
+- **Stimulus**: シンプルなJavaScriptの書き方
+- **Turbo**: ページの一部だけを更新する方法
+- **LiveComponent**: サーバーと連携してリアルタイム更新する方法
 
-明示的にスキルを呼び出す必要はありません。タスクに応じて自動的にアクティベートされます。
+どれを使うべきかは、状況によって異なります。しかし、AIはこの「使い分け」を間違えることがあります。
 
-## 対応AIツール
+結果として、動くけど「イマイチなコード」ができてしまうことも。
 
-AI Skillsは[Agent Skills標準](https://agentskills.io/specification)に準拠しているため、以下のツールで利用できます。
+## AI Skillsで解決
 
-- **Claude Code**（公式推奨）
-- Gemini CLI
-- OpenAI Codex
-- Cursor
-- Windsurf
-- その他SKILL.md対応プラットフォーム
+AI Skillsは、AIに「正しい使い分け」を教えるファイルです。
 
-## 提供されるスキル
+具体的には：
 
-SensioLabsのリード開発者であるSimon André氏が、以下の5つのスキルを公開しています。
+- **どんな時にどの方法を使うべきか**（判断基準）
+- **やってはいけないこと**（よくある失敗）
+- **お手本のコード**（ベストプラクティス）
 
-| スキル | 内容 |
-|--------|------|
-| **symfony-ux** | Stimulus / Turbo / TwigComponent / LiveComponent の選択判断ツリー |
-| **stimulus** | コントローラー、ターゲット、値、アクション、クラス、アウトレット |
-| **turbo** | Turbo Drive、Frames、Streams、Mercure統合 |
-| **twig-component** | props、ブロック、計算プロパティ、匿名コンポーネント |
-| **live-component** | props、アクション、データモデルバインディング、フォーム、emit |
+これらをAIが読み込むことで、最初から正しいアプローチで実装できるようになります。
 
-### ファイル構成
+## 誰が作ったの？
 
-各スキルは以下のような構成になっています。
+Symfonyの開発に深く関わっているSimon André氏（SensioLabs所属）が作成しました。
 
-```
-skills/stimulus/
-├── SKILL.md              # メインスキル定義
-├── references/
-│   ├── api.md           # APIリファレンス
-│   ├── patterns.md      # 推奨パターン
-│   └── gotchas.md       # よくある落とし穴
-```
+Symfonyの「中の人」が作っているので、内容は公式に近いクオリティです。
 
-## インストール方法
+## 対応しているAIツール
 
-### Claude Codeの場合
+以下のツールで使えます。
 
-リポジトリをクローンして、スキルをコピーします。
+- **Claude Code**（Anthropic社のCLIツール）
+- **Cursor**（AI搭載エディタ）
+- **Gemini CLI**（Google製）
+- **Windsurf**
+
+最近のAIコーディングツールであれば、ほとんど対応しています。
+
+## 使い方
+
+Claude Codeの場合、以下のコマンドでインストールできます。
 
 ```bash
 git clone https://github.com/smnandre/symfony-ux-skills.git
 cp -r symfony-ux-skills/skills/* ~/.claude/skills/
 ```
 
-プロジェクト単位でインストールする場合は、プロジェクトの`.claude/skills/`ディレクトリにコピーします。
+一度インストールすれば、あとは自動的に機能します。「このスキルを使って」と指示する必要はありません。
 
-```bash
-cd your-project/
-mkdir -p .claude/skills
-cp -r symfony-ux-skills/skills/* .claude/skills/
-```
+## 実際の効果
 
-### その他のツール
+### Before（スキルなし）
 
-```bash
-# Gemini CLI
-cp -r skills/* ~/.gemini/skills/
+ユーザー：「商品検索をリアルタイムにしたい」
 
-# OpenAI Codex
-cp -r skills/* ~/.codex/skills/
-```
+AI：「えーと、JavaScriptで書きますね...」（試行錯誤が発生）
 
-## 使用例
+### After（スキルあり）
 
-### 例1: ライブ検索の実装
+ユーザー：「商品検索をリアルタイムにしたい」
 
-ユーザーが「商品一覧にライブ検索フィルターを追加して」と指示した場合：
+AI：「リアルタイム検索ですね。LiveComponentを使うのが最適です。こう書きます」（一発で正解）
 
-1. エージェントが「ライブ検索」→ LiveComponentタスクと判断
-2. `live-component`スキルを自動ロード
-3. `data-model`、`emit`等の正しいAPIを使った実装を生成
+スキルがあると、AIが「経験豊富なSymfony開発者」のように振る舞えるようになります。
 
-スキルがない場合は試行錯誤が必要になりますが、スキルがあれば最初から正しいアプローチで実装できます。
+## EC-CUBEでも使える
 
-### 例2: Stimulus vs LiveComponent の選択
+EC-CUBEはSymfonyベースで作られています。そのため、このAI Skillsはそのまま活用できます。
 
-「フォーム送信時にページ遷移なしで結果を表示したい」という要件の場合：
+例えば：
 
-1. `symfony-ux`スキル（オーケストレーター）がロードされる
-2. 決定木に基づいて、Turbo StreamsかLiveComponentを推奨
-3. ユースケースに応じた最適なコンポーネントを選択
+- カートの数量変更をリアルタイム反映
+- 商品検索の結果を素早く更新
+- お気に入りボタンのアニメーション
 
-この「どのコンポーネントを使うべきか」という判断は、経験がないと難しいポイントです。スキルがこの判断を支援してくれます。
+こうした機能をAIに実装してもらう際に、より良いコードが生成されるようになります。
 
-## EC-CUBEでの活用
+## 人間にも役立つ
 
-EC-CUBEはSymfonyベースのため、Symfony UX AI Skillsをそのまま活用できます。
+実は、AI Skillsのファイルは人間が読んでも勉強になります。
 
-### 活用シーン
+「Stimulus、Turbo、LiveComponentの違いがよく分からない」という方は、スキルファイルを読むだけでも理解が深まるはずです。
 
-- **カート機能**: LiveComponentで数量変更をリアルタイム反映
-- **商品検索**: Turbo Framesで検索結果を部分更新
-- **お気に入り登録**: Stimulusコントローラーでアニメーション付きトグル
-- **管理画面**: TwigComponentで再利用可能なUIパーツを作成
-
-EC-CUBE固有のコードベースについては、別途EC-CUBE用のスキルを作成することで、さらに精度を上げることも可能です。
-
-## 人間にも有用
-
-AI Skills は、AIエージェントだけでなく人間の開発者にとっても価値があります。
-
-- Symfony UXの各コンポーネントの使い分けが分かる
-- 経験豊富なコントリビューターによる推奨パターンが学べる
-- よくある落とし穴とその対処法が分かる
-
-特に「Turbo vs LiveComponent vs Stimulus」の選択基準は、公式ドキュメントだけでは判断しづらい部分なので、決定木があるのは非常に助かります。
+公式ドキュメントより実践的で、「こういう時はこれを使う」という判断基準が明確に書かれています。
 
 ## まとめ
 
-Symfony UX AI Skillsは、AIコーディングエージェントがSymfony UXを正しく使えるようにするための知識パッケージです。
+- AI Skillsは、AIに「正しいコードの書き方」を教える仕組み
+- Symfonyの専門家が作成した公式に近いクオリティ
+- Claude Code、Cursorなど主要ツールに対応
+- EC-CUBE開発にも活用可能
+- 人間の学習リソースとしても有用
 
-- 自動アクティベーションで明示的な呼び出し不要
-- 決定木により試行錯誤なしで正しい実装へ導く
-- Claude Code、Gemini CLI、Cursorなど主要ツールに対応
-
-EC-CUBE開発においても、フロントエンドの実装支援として活用できます。Claude Codeを使っている方は、ぜひインストールしてみてください。
+AIと一緒にコードを書く機会が増えている今、こうした仕組みを活用することで、より良いコードを効率的に書けるようになります。
 
 ## 参考リンク
 
 - [Introducing AI Skills for Symfony UX (Symfony Blog)](https://symfony.com/blog/introducing-ai-skills-for-symfony-ux)
 - [GitHub: symfony-ux-skills](https://github.com/smnandre/symfony-ux-skills)
-- [Agent Skills 仕様](https://agentskills.io/specification)
 
 ---
 
