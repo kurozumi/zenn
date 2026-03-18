@@ -1,12 +1,12 @@
 ---
-title: 'EC-CUBE 4用MCPサーバーを作ってAI開発を効率化する'
+title: EC-CUBE 4用MCPサーバーを作ってAI開発を効率化する
 tags:
-  - EC-CUBE
   - PHP
-  - mcp
-  - ai
+  - EC-CUBE
+  - AI
+  - MCP
 private: false
-updated_at: '2026-03-18T21:54:50+09:00'
+updated_at: '2026-03-18T21:58:36+09:00'
 id: 3cc3dc868923064efecb
 organization_url_name: null
 slide: false
