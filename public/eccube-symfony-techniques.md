@@ -1,11 +1,11 @@
 ---
-title: 'EC-CUBEプラグインで使えるSymfonyの技術10選'
+title: EC-CUBEプラグインで使えるSymfonyの技術10選
 tags:
-  - EC-CUBE
   - PHP
   - Symfony
+  - EC-CUBE
 private: false
-updated_at: '2026-03-17T22:47:07+09:00'
+updated_at: '2026-03-19T15:13:05+09:00'
 id: 29391614825540b1a049
 organization_url_name: null
 slide: false

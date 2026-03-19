@@ -1,12 +1,12 @@
 ---
-title: 'Claude CodeでEC-CUBEのissueを解決してPRを送る方法'
+title: Claude CodeでEC-CUBEのissueを解決してPRを送る方法
 tags:
-  - EC-CUBE
   - PHP
+  - EC-CUBE
+  - AI
   - OSS
-  - ai
 private: false
-updated_at: '2026-03-18T22:06:04+09:00'
+updated_at: '2026-03-19T15:13:06+09:00'
 id: 80c23f62a9da8a7f93c4
 organization_url_name: null
 slide: false

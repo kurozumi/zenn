@@ -1,12 +1,12 @@
 ---
-title: 'EC-CUBE 4.3のSymfony7/Doctrine ORM3対応で注意すべきLazyGhostObjectsの変更点'
+title: EC-CUBE 4.3のSymfony7/Doctrine ORM3対応で注意すべきLazyGhostObjectsの変更点
 tags:
-  - EC-CUBE
   - PHP
   - Symfony
   - doctrine
+  - EC-CUBE
 private: false
-updated_at: '2026-03-17T22:47:07+09:00'
+updated_at: '2026-03-19T15:13:05+09:00'
 id: 32bca50ada1057023ba4
 organization_url_name: null
 slide: false

@@ -1,11 +1,11 @@
 ---
-title: 'EC-CUBE 4でカスタムルートを作成するとエラーになる原因と対処法'
+title: EC-CUBE 4でカスタムルートを作成するとエラーになる原因と対処法
 tags:
-  - EC-CUBE
   - PHP
   - Symfony
+  - EC-CUBE
 private: false
-updated_at: '2026-03-17T22:47:07+09:00'
+updated_at: '2026-03-19T15:13:05+09:00'
 id: c8107abfe8873753f830
 organization_url_name: null
 slide: false
