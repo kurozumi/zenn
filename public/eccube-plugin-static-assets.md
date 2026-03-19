@@ -1,9 +1,9 @@
 ---
-title: EC-CUBE 4プラグインにCSS/JSなどの静的ファイルを同梱する方法
+title: 'EC-CUBE 4プラグインにCSS/JSなどの静的ファイルを同梱する方法'
 tags:
+  - EC-CUBE
   - PHP
   - Symfony
-  - EC-CUBE
 private: false
 updated_at: '2026-03-17T22:47:07+09:00'
 id: b5bb9b47b03ee00f562b
@@ -16,7 +16,7 @@ ignorePublish: false
 この記事はZennに投稿した記事の要約です。詳細は以下のリンクからご覧ください。
 :::
 
-**詳細記事: [EC-CUBE 4プラグインにCSS/JSなどの静的ファイルを同梱する方法](https://zenn.dev/and_and/articles/eccube-plugin-static-assets)**
+**詳細記事: [EC-CUBE 4プラグインにCSS/JSなどの静的ファイルを同梱する方法](https://zenn.dev/kurozumi/articles/eccube-plugin-static-assets)**
 
 ---
 
@@ -71,7 +71,7 @@ public function copyAssets($pluginCode)
 
 この記事では概要のみを紹介しました。詳細な解説やコード例は、Zennの記事をご覧ください。
 
-**[EC-CUBE 4プラグインにCSS/JSなどの静的ファイルを同梱する方法](https://zenn.dev/and_and/articles/eccube-plugin-static-assets)**
+**[EC-CUBE 4プラグインにCSS/JSなどの静的ファイルを同梱する方法](https://zenn.dev/kurozumi/articles/eccube-plugin-static-assets)**
 
 ---
 

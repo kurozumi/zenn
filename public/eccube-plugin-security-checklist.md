@@ -1,10 +1,10 @@
 ---
-title: EC-CUBEプラグイン開発者が押さえるべきセキュリティチェックリスト
+title: 'EC-CUBEプラグイン開発者が押さえるべきセキュリティチェックリスト'
 tags:
+  - EC-CUBE
+  - security
   - PHP
   - Symfony
-  - Security
-  - EC-CUBE
 private: false
 updated_at: '2026-03-18T22:06:04+09:00'
 id: e173f4bb037aac3efe80
@@ -17,7 +17,7 @@ ignorePublish: false
 この記事はZennに投稿した記事の要約です。詳細は以下のリンクからご覧ください。
 :::
 
-**詳細記事: [EC-CUBEプラグイン開発者が押さえるべきセキュリティチェックリスト](https://zenn.dev/and_and/articles/eccube-plugin-security-checklist)**
+**詳細記事: [EC-CUBEプラグイン開発者が押さえるべきセキュリティチェックリスト](https://zenn.dev/kurozumi/articles/eccube-plugin-security-checklist)**
 
 ---
 
@@ -72,7 +72,7 @@ $qb = $this->createQueryBuilder('p')
 
 この記事では概要のみを紹介しました。詳細な解説やコード例は、Zennの記事をご覧ください。
 
-**[EC-CUBEプラグイン開発者が押さえるべきセキュリティチェックリスト](https://zenn.dev/and_and/articles/eccube-plugin-security-checklist)**
+**[EC-CUBEプラグイン開発者が押さえるべきセキュリティチェックリスト](https://zenn.dev/kurozumi/articles/eccube-plugin-security-checklist)**
 
 ---
 

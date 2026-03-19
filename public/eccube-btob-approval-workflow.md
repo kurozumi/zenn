@@ -1,9 +1,9 @@
 ---
-title: EC-CUBE 4でBtoB EC機能を実装する - 承認ワークフローと企業アカウント管理
+title: 'EC-CUBE 4でBtoB EC機能を実装する - 承認ワークフローと企業アカウント管理'
 tags:
+  - EC-CUBE
   - PHP
   - Symfony
-  - EC-CUBE
   - BtoB
 private: false
 updated_at: '2026-03-17T22:47:07+09:00'
@@ -17,7 +17,7 @@ ignorePublish: false
 この記事はZennに投稿した記事の要約です。詳細は以下のリンクからご覧ください。
 :::
 
-**詳細記事: [EC-CUBE 4でBtoB EC機能を実装する - 承認ワークフローと企業アカウント管理](https://zenn.dev/and_and/articles/eccube-btob-approval-workflow)**
+**詳細記事: [EC-CUBE 4でBtoB EC機能を実装する - 承認ワークフローと企業アカウント管理](https://zenn.dev/kurozumi/articles/eccube-btob-approval-workflow)**
 
 ---
 
@@ -55,7 +55,7 @@ BtoC ECでは購入者本人が即座に購入を決定しますが、BtoB ECで
 
 この記事では概要のみを紹介しました。詳細な解説やコード例は、Zennの記事をご覧ください。
 
-**[EC-CUBE 4でBtoB EC機能を実装する - 承認ワークフローと企業アカウント管理](https://zenn.dev/and_and/articles/eccube-btob-approval-workflow)**
+**[EC-CUBE 4でBtoB EC機能を実装する - 承認ワークフローと企業アカウント管理](https://zenn.dev/kurozumi/articles/eccube-btob-approval-workflow)**
 
 ---
 

@@ -1,9 +1,9 @@
 ---
-title: EC-CUBE 4でカスタムルートを作成するとエラーになる原因と対処法
+title: 'EC-CUBE 4でカスタムルートを作成するとエラーになる原因と対処法'
 tags:
+  - EC-CUBE
   - PHP
   - Symfony
-  - EC-CUBE
 private: false
 updated_at: '2026-03-17T22:47:07+09:00'
 id: c8107abfe8873753f830
@@ -16,7 +16,7 @@ ignorePublish: false
 この記事はZennに投稿した記事の要約です。詳細は以下のリンクからご覧ください。
 :::
 
-**詳細記事: [EC-CUBE 4でカスタムルートを作成するとエラーになる原因と対処法](https://zenn.dev/and_and/articles/eccube-custom-route-dtb-page-error)**
+**詳細記事: [EC-CUBE 4でカスタムルートを作成するとエラーになる原因と対処法](https://zenn.dev/kurozumi/articles/eccube-custom-route-dtb-page-error)**
 
 ---
 
@@ -66,7 +66,7 @@ class HomeController extends AbstractController
 
 この記事では概要のみを紹介しました。詳細な解説やコード例は、Zennの記事をご覧ください。
 
-**[EC-CUBE 4でカスタムルートを作成するとエラーになる原因と対処法](https://zenn.dev/and_and/articles/eccube-custom-route-dtb-page-error)**
+**[EC-CUBE 4でカスタムルートを作成するとエラーになる原因と対処法](https://zenn.dev/kurozumi/articles/eccube-custom-route-dtb-page-error)**
 
 ---
 

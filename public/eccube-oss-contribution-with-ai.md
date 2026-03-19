@@ -1,10 +1,10 @@
 ---
-title: Claude CodeでEC-CUBEのissueを解決してPRを送る方法
+title: 'Claude CodeでEC-CUBEのissueを解決してPRを送る方法'
 tags:
-  - PHP
   - EC-CUBE
-  - AI
+  - PHP
   - OSS
+  - ai
 private: false
 updated_at: '2026-03-18T22:06:04+09:00'
 id: 80c23f62a9da8a7f93c4
@@ -17,7 +17,7 @@ ignorePublish: false
 この記事はZennに投稿した記事の要約です。詳細は以下のリンクからご覧ください。
 :::
 
-**詳細記事: [Claude CodeでEC-CUBEのissueを解決してPRを送る方法](https://zenn.dev/and_and/articles/eccube-oss-contribution-with-ai)**
+**詳細記事: [Claude CodeでEC-CUBEのissueを解決してPRを送る方法](https://zenn.dev/kurozumi/articles/eccube-oss-contribution-with-ai)**
 
 ---
 
@@ -74,7 +74,7 @@ gh auth status
 
 この記事では概要のみを紹介しました。詳細な解説やコード例は、Zennの記事をご覧ください。
 
-**[Claude CodeでEC-CUBEのissueを解決してPRを送る方法](https://zenn.dev/and_and/articles/eccube-oss-contribution-with-ai)**
+**[Claude CodeでEC-CUBEのissueを解決してPRを送る方法](https://zenn.dev/kurozumi/articles/eccube-oss-contribution-with-ai)**
 
 ---
 

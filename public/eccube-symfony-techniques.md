@@ -1,9 +1,9 @@
 ---
-title: EC-CUBEプラグインで使えるSymfonyの技術10選
+title: 'EC-CUBEプラグインで使えるSymfonyの技術10選'
 tags:
+  - EC-CUBE
   - PHP
   - Symfony
-  - EC-CUBE
 private: false
 updated_at: '2026-03-17T22:47:07+09:00'
 id: 29391614825540b1a049
@@ -16,7 +16,7 @@ ignorePublish: false
 この記事はZennに投稿した記事の要約です。詳細は以下のリンクからご覧ください。
 :::
 
-**詳細記事: [EC-CUBEプラグインで使えるSymfonyの技術10選](https://zenn.dev/and_and/articles/eccube-symfony-techniques)**
+**詳細記事: [EC-CUBEプラグインで使えるSymfonyの技術10選](https://zenn.dev/kurozumi/articles/eccube-symfony-techniques)**
 
 ---
 
@@ -197,7 +197,7 @@ class OrderEventSubscriber implements EventSubscriberInterface
 
 この記事では概要のみを紹介しました。詳細な解説やコード例は、Zennの記事をご覧ください。
 
-**[EC-CUBEプラグインで使えるSymfonyの技術10選](https://zenn.dev/and_and/articles/eccube-symfony-techniques)**
+**[EC-CUBEプラグインで使えるSymfonyの技術10選](https://zenn.dev/kurozumi/articles/eccube-symfony-techniques)**
 
 ---
 

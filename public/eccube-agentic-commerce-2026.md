@@ -1,9 +1,9 @@
 ---
-title: 「任せるEC」の時代到来 - EC-CUBEサイトをAIエージェント対応にする
+title: '「任せるEC」の時代到来 - EC-CUBEサイトをAIエージェント対応にする'
 tags:
-  - ec
   - EC-CUBE
-  - AI
+  - ai
+  - ec
   - ビジネス
 private: false
 updated_at: '2026-03-18T22:06:04+09:00'
@@ -17,7 +17,7 @@ ignorePublish: false
 この記事はZennに投稿した記事の要約です。詳細は以下のリンクからご覧ください。
 :::
 
-**詳細記事: [「任せるEC」の時代到来 - EC-CUBEサイトをAIエージェント対応にする](https://zenn.dev/and_and/articles/eccube-agentic-commerce-2026)**
+**詳細記事: [「任せるEC」の時代到来 - EC-CUBEサイトをAIエージェント対応にする](https://zenn.dev/kurozumi/articles/eccube-agentic-commerce-2026)**
 
 ---
 
@@ -55,7 +55,7 @@ ignorePublish: false
 
 この記事では概要のみを紹介しました。詳細な解説やコード例は、Zennの記事をご覧ください。
 
-**[「任せるEC」の時代到来 - EC-CUBEサイトをAIエージェント対応にする](https://zenn.dev/and_and/articles/eccube-agentic-commerce-2026)**
+**[「任せるEC」の時代到来 - EC-CUBEサイトをAIエージェント対応にする](https://zenn.dev/kurozumi/articles/eccube-agentic-commerce-2026)**
 
 ---
 

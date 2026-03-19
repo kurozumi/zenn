@@ -74,7 +74,7 @@ function convertTopicsToTags(topics) {
  */
 function getZennArticleUrl(filename) {
   const slug = path.basename(filename, '.md');
-  return `https://zenn.dev/and_and/articles/${slug}`;
+  return `https://zenn.dev/kurozumi/articles/${slug}`;
 }
 
 /**

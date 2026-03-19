@@ -1,10 +1,10 @@
 ---
-title: EC-CUBE 4のPurchaseFlowを理解する - ストラテジーパターンで実現する柔軟な購入フロー
+title: 'EC-CUBE 4のPurchaseFlowを理解する - ストラテジーパターンで実現する柔軟な購入フロー'
 tags:
+  - EC-CUBE
   - PHP
   - Symfony
   - デザインパターン
-  - EC-CUBE
 private: false
 updated_at: '2026-03-17T22:47:07+09:00'
 id: c4227c8b8ce211cb788e
@@ -17,7 +17,7 @@ ignorePublish: false
 この記事はZennに投稿した記事の要約です。詳細は以下のリンクからご覧ください。
 :::
 
-**詳細記事: [EC-CUBE 4のPurchaseFlowを理解する - ストラテジーパターンで実現する柔軟な購入フロー](https://zenn.dev/and_and/articles/eccube-purchase-flow-strategy)**
+**詳細記事: [EC-CUBE 4のPurchaseFlowを理解する - ストラテジーパターンで実現する柔軟な購入フロー](https://zenn.dev/kurozumi/articles/eccube-purchase-flow-strategy)**
 
 ---
 
@@ -141,7 +141,7 @@ PurchaseFlow
 
 この記事では概要のみを紹介しました。詳細な解説やコード例は、Zennの記事をご覧ください。
 
-**[EC-CUBE 4のPurchaseFlowを理解する - ストラテジーパターンで実現する柔軟な購入フロー](https://zenn.dev/and_and/articles/eccube-purchase-flow-strategy)**
+**[EC-CUBE 4のPurchaseFlowを理解する - ストラテジーパターンで実現する柔軟な購入フロー](https://zenn.dev/kurozumi/articles/eccube-purchase-flow-strategy)**
 
 ---
 

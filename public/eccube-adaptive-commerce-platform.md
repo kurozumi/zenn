@@ -1,5 +1,5 @@
 ---
-title: EC-CUBEの「業務適応型コマース基盤」への転換と、私たちが考えるべきこと
+title: 'EC-CUBEの「業務適応型コマース基盤」への転換と、私たちが考えるべきこと'
 tags:
   - EC-CUBE
   - OSS
@@ -16,7 +16,7 @@ ignorePublish: false
 この記事はZennに投稿した記事の要約です。詳細は以下のリンクからご覧ください。
 :::
 
-**詳細記事: [EC-CUBEの「業務適応型コマース基盤」への転換と、私たちが考えるべきこと](https://zenn.dev/and_and/articles/eccube-adaptive-commerce-platform)**
+**詳細記事: [EC-CUBEの「業務適応型コマース基盤」への転換と、私たちが考えるべきこと](https://zenn.dev/kurozumi/articles/eccube-adaptive-commerce-platform)**
 
 ---
 
@@ -54,7 +54,7 @@ OSS版のEC-CUBEは基盤機能に集中し、業種特化の高度な機能はE
 
 この記事では概要のみを紹介しました。詳細な解説やコード例は、Zennの記事をご覧ください。
 
-**[EC-CUBEの「業務適応型コマース基盤」への転換と、私たちが考えるべきこと](https://zenn.dev/and_and/articles/eccube-adaptive-commerce-platform)**
+**[EC-CUBEの「業務適応型コマース基盤」への転換と、私たちが考えるべきこと](https://zenn.dev/kurozumi/articles/eccube-adaptive-commerce-platform)**
 
 ---
 

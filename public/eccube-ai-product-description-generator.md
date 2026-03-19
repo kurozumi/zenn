@@ -1,10 +1,10 @@
 ---
-title: EC-CUBE 4で商品説明文をAIで自動生成するプラグインを作る
+title: 'EC-CUBE 4で商品説明文をAIで自動生成するプラグインを作る'
 tags:
-  - PHP
   - EC-CUBE
-  - AI
-  - OpenAI
+  - PHP
+  - openai
+  - ai
 private: false
 updated_at: '2026-03-18T22:06:04+09:00'
 id: 6fa54e702390ccc0e295
@@ -17,7 +17,7 @@ ignorePublish: false
 この記事はZennに投稿した記事の要約です。詳細は以下のリンクからご覧ください。
 :::
 
-**詳細記事: [EC-CUBE 4で商品説明文をAIで自動生成するプラグインを作る](https://zenn.dev/and_and/articles/eccube-ai-product-description-generator)**
+**詳細記事: [EC-CUBE 4で商品説明文をAIで自動生成するプラグインを作る](https://zenn.dev/kurozumi/articles/eccube-ai-product-description-generator)**
 
 ---
 
@@ -47,7 +47,7 @@ ECサイト運営で地味に時間がかかるのが**商品説明文の作成*
 
 この記事では概要のみを紹介しました。詳細な解説やコード例は、Zennの記事をご覧ください。
 
-**[EC-CUBE 4で商品説明文をAIで自動生成するプラグインを作る](https://zenn.dev/and_and/articles/eccube-ai-product-description-generator)**
+**[EC-CUBE 4で商品説明文をAIで自動生成するプラグインを作る](https://zenn.dev/kurozumi/articles/eccube-ai-product-description-generator)**
 
 ---
 

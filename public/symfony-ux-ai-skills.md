@@ -1,10 +1,10 @@
 ---
-title: Symfony UX AI Skills - AIがWeb開発の「正しいやり方」を学べる仕組み
+title: 'Symfony UX AI Skills - AIがWeb開発の「正しいやり方」を学べる仕組み'
 tags:
-  - PHP
   - Symfony
-  - EC-CUBE
   - AI
+  - EC-CUBE
+  - PHP
 private: false
 updated_at: '2026-03-18T22:01:12+09:00'
 id: 372ac4e0d125b18df86b
@@ -17,7 +17,7 @@ ignorePublish: false
 この記事はZennに投稿した記事の要約です。詳細は以下のリンクからご覧ください。
 :::
 
-**詳細記事: [Symfony UX AI Skills - AIがWeb開発の「正しいやり方」を学べる仕組み](https://zenn.dev/and_and/articles/symfony-ux-ai-skills)**
+**詳細記事: [Symfony UX AI Skills - AIがWeb開発の「正しいやり方」を学べる仕組み](https://zenn.dev/kurozumi/articles/symfony-ux-ai-skills)**
 
 ---
 
@@ -49,7 +49,7 @@ Symfonyには複数の方法があります。
 
 この記事では概要のみを紹介しました。詳細な解説やコード例は、Zennの記事をご覧ください。
 
-**[Symfony UX AI Skills - AIがWeb開発の「正しいやり方」を学べる仕組み](https://zenn.dev/and_and/articles/symfony-ux-ai-skills)**
+**[Symfony UX AI Skills - AIがWeb開発の「正しいやり方」を学べる仕組み](https://zenn.dev/kurozumi/articles/symfony-ux-ai-skills)**
 
 ---
 

@@ -1,8 +1,8 @@
 ---
-title: EC-CUBEプラグインが売れなくなった理由を考察する【2026年】
+title: 'EC-CUBEプラグインが売れなくなった理由を考察する【2026年】'
 tags:
-  - ec
   - EC-CUBE
+  - ec
   - ビジネス
 private: false
 updated_at: '2026-03-17T22:47:07+09:00'
@@ -16,7 +16,7 @@ ignorePublish: false
 この記事はZennに投稿した記事の要約です。詳細は以下のリンクからご覧ください。
 :::
 
-**詳細記事: [EC-CUBEプラグインが売れなくなった理由を考察する【2026年】](https://zenn.dev/and_and/articles/eccube-plugin-sales-decline-2026)**
+**詳細記事: [EC-CUBEプラグインが売れなくなった理由を考察する【2026年】](https://zenn.dev/kurozumi/articles/eccube-plugin-sales-decline-2026)**
 
 ---
 
@@ -102,7 +102,7 @@ EC-CUBEは「月商1000万円以上で利用されているカートシステム
 
 この記事では概要のみを紹介しました。詳細な解説やコード例は、Zennの記事をご覧ください。
 
-**[EC-CUBEプラグインが売れなくなった理由を考察する【2026年】](https://zenn.dev/and_and/articles/eccube-plugin-sales-decline-2026)**
+**[EC-CUBEプラグインが売れなくなった理由を考察する【2026年】](https://zenn.dev/kurozumi/articles/eccube-plugin-sales-decline-2026)**
 
 ---
 

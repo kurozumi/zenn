@@ -1,8 +1,8 @@
 ---
-title: EC-CUBE大量商品サイトの高速化テクニック10選
+title: 'EC-CUBE大量商品サイトの高速化テクニック10選'
 tags:
-  - PHP
   - EC-CUBE
+  - PHP
   - performance
 private: false
 updated_at: '2026-03-17T22:47:07+09:00'
@@ -16,7 +16,7 @@ ignorePublish: false
 この記事はZennに投稿した記事の要約です。詳細は以下のリンクからご覧ください。
 :::
 
-**詳細記事: [EC-CUBE大量商品サイトの高速化テクニック10選](https://zenn.dev/and_and/articles/eccube-performance-tuning)**
+**詳細記事: [EC-CUBE大量商品サイトの高速化テクニック10選](https://zenn.dev/kurozumi/articles/eccube-performance-tuning)**
 
 ---
 
@@ -120,7 +120,7 @@ class OptimizedProductRepository
 
 この記事では概要のみを紹介しました。詳細な解説やコード例は、Zennの記事をご覧ください。
 
-**[EC-CUBE大量商品サイトの高速化テクニック10選](https://zenn.dev/and_and/articles/eccube-performance-tuning)**
+**[EC-CUBE大量商品サイトの高速化テクニック10選](https://zenn.dev/kurozumi/articles/eccube-performance-tuning)**
 
 ---
 

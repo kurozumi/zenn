@@ -1,10 +1,10 @@
 ---
-title: EC-CUBEプラグイン開発をAIで効率化してみた
+title: 'EC-CUBEプラグイン開発をAIで効率化してみた'
 tags:
+  - EC-CUBE
   - PHP
   - Symfony
-  - EC-CUBE
-  - AI
+  - ai
 private: false
 updated_at: '2026-03-18T22:06:04+09:00'
 id: eb5fcd85c626fd55c6ca
@@ -17,7 +17,7 @@ ignorePublish: false
 この記事はZennに投稿した記事の要約です。詳細は以下のリンクからご覧ください。
 :::
 
-**詳細記事: [EC-CUBEプラグイン開発をAIで効率化してみた](https://zenn.dev/and_and/articles/eccube-plugin-dev-with-ai)**
+**詳細記事: [EC-CUBEプラグイン開発をAIで効率化してみた](https://zenn.dev/kurozumi/articles/eccube-plugin-dev-with-ai)**
 
 ---
 
@@ -72,7 +72,7 @@ Plugin/
 
 この記事では概要のみを紹介しました。詳細な解説やコード例は、Zennの記事をご覧ください。
 
-**[EC-CUBEプラグイン開発をAIで効率化してみた](https://zenn.dev/and_and/articles/eccube-plugin-dev-with-ai)**
+**[EC-CUBEプラグイン開発をAIで効率化してみた](https://zenn.dev/kurozumi/articles/eccube-plugin-dev-with-ai)**
 
 ---
 
