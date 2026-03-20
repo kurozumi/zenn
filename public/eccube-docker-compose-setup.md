@@ -5,7 +5,7 @@ tags:
   - EC-CUBE
   - ClaudeCode
 private: false
-updated_at: '2026-03-19T15:13:06+09:00'
+updated_at: '2026-03-21T00:00:50+09:00'
 id: 38e91ce6bb86fd51cf1f
 organization_url_name: null
 slide: false
