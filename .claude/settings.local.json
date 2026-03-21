@@ -18,7 +18,19 @@
       "WebFetch(domain:github.com)",
       "Bash(gh api:*)",
       "Bash(gh run:*)",
-      "Bash(git rebase:*)"
+      "Bash(git rebase:*)",
+      "Bash(git stash:*)",
+      "Bash(grep:*)",
+      "Bash(xargs:*)",
+      "Bash(ls:*)",
+      "Bash(node scripts/zenn-to-qiita.js:*)",
+      "Bash(gh workflow run:*)",
+      "WebSearch",
+      "Bash(git branch:*)",
+      "Bash(npx qiita pull:*)",
+      "Bash(git -C /Users/kurozumi/zenn status --porcelain)",
+      "WebFetch(domain:twig.symfony.com)",
+      "Bash(npm audit:*)"
     ]
   }
 }
