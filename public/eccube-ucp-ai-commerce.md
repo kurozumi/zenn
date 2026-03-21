@@ -6,7 +6,7 @@ tags:
   - AI
   - Ecommerce
 private: false
-updated_at: '2026-03-21T00:03:51+09:00'
+updated_at: '2026-03-21T14:50:44+09:00'
 id: 60a083e71b265fa4bd88
 organization_url_name: null
 slide: false
