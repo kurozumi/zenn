@@ -376,6 +376,107 @@ public function buildFormFlow(FormFlowBuilderInterface $builder, array $options)
 | 戻る機能 | リダイレクト制御が必要 | ボタン1つで完了 |
 | テスト | セッションのモックが必要 | フォームテストで完結 |
 
+## EC-CUBEのPurchaseFlowとの組み合わせ
+
+**「Form FlowsはPurchaseFlowを置き換えるの？」**
+
+いいえ、**両者は異なる層を担当**しており、**組み合わせて使う**のが正解です。
+
+### 役割の違い
+
+| 層 | Form Flows | PurchaseFlow |
+|----|------------|--------------|
+| **担当** | UI/UX（フォーム遷移） | ビジネスロジック（集計・在庫・決済） |
+| **処理内容** | ステップ管理、入力値の保持 | 金額計算、在庫チェック、ポイント処理 |
+| **メソッド** | `addStep()`, `isFinished()` | `calculateAll()`, `commit()`, `rollback()` |
+
+### PurchaseFlowの構造（おさらい）
+
+EC-CUBEのPurchaseFlowは、集計処理とバリデーションを統一的に管理するフレームワークです。
+
+```
+PurchaseFlow
+├── ItemValidator（明細単位の検証：価格変更、公開ステータス）
+├── ItemHolderValidator（全体検証：在庫、販売制限数）
+├── ItemHolderPreprocessor（送料・手数料追加）
+├── DiscountProcessor（値引き処理）
+├── ItemHolderPostValidator（最終検証：マイナスチェック）
+└── PurchaseProcessor（在庫・ポイント更新）
+```
+
+### 組み合わせた実装例
+
+Form FlowsでUI遷移を管理し、各ステップでPurchaseFlowを呼び出します。
+
+```php
+namespace Customize\Controller;
+
+use Eccube\Service\PurchaseFlow\PurchaseContext;
+use Eccube\Service\PurchaseFlow\PurchaseFlow;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+class CheckoutController extends AbstractController
+{
+    public function __construct(
+        private PurchaseFlow $cartPurchaseFlow,
+    ) {}
+
+    #[Route('/checkout', name: 'checkout')]
+    public function __invoke(Request $request, Cart $cart): Response
+    {
+        $checkoutData = new CheckoutData();
+
+        // Form Flowsでフォーム遷移を管理
+        $flow = $this->createForm(CheckoutFlowType::class, $checkoutData)
+            ->handleRequest($request);
+
+        // 各ステップでPurchaseFlowの集計処理を実行
+        if ($flow->isSubmitted() && $flow->isValid()) {
+            $context = new PurchaseContext($cart, $this->getUser());
+            $result = $this->cartPurchaseFlow->validate($cart, $context);
+
+            if ($result->hasError()) {
+                // PurchaseFlowのエラーをフォームに追加
+                foreach ($result->getErrors() as $error) {
+                    $this->addFlash('eccube.front.error', $error->getMessage());
+                }
+                return $this->redirectToRoute('cart');
+            }
+        }
+
+        // 全ステップ完了時：注文確定
+        if ($flow->isFinished()) {
+            // PurchaseFlowで確定処理
+            $this->cartPurchaseFlow->commit($cart, $context);
+
+            return $this->redirectToRoute('checkout_complete');
+        }
+
+        return $this->render('checkout/flow.html.twig', [
+            'form' => $flow->getStepForm(),
+            'Cart' => $cart,
+        ]);
+    }
+}
+```
+
+### 各ステップでの処理分担
+
+| ステップ | Form Flowsの役割 | PurchaseFlowの役割 |
+|---------|-----------------|-------------------|
+| **お届け先** | 住所入力フォームの表示・バリデーション | 送料の再計算 |
+| **支払い方法** | 支払い選択フォームの表示 | 手数料の追加、支払い方法の妥当性検証 |
+| **確認** | 入力内容の表示 | 最終的な金額集計、在庫の最終チェック |
+| **完了** | 完了画面へリダイレクト | `commit()`で在庫減算、ポイント付与 |
+
+:::message
+**ポイント**
+Form FlowsはEC-CUBEの**セッション管理とリダイレクト制御を置き換える**もので、**PurchaseFlowのビジネスロジックはそのまま活用**します。
+:::
+
 ## セキュリティに関する補足
 
 :::message
@@ -424,6 +525,7 @@ Form Flowsについて、こんな疑問はありませんか？
 - [New in Symfony 7.4: Multi-Step Forms](https://symfony.com/blog/new-in-symfony-7-4-multi-step-forms)
 - [FormFlow Demo](https://github.com/yceruto/formflow-demo)
 - [FormFlow: Build Stunning Multistep Forms (Speaker Deck)](https://speakerdeck.com/yceruto/formflow-build-stunning-multistep-forms)
+- [購入フローのカスタマイズ - EC-CUBE 4 Developers](https://doc4.ec-cube.net/customize_service)
 
 ---
 
