@@ -1,9 +1,9 @@
 ---
-title: "「任せるEC」の時代到来 - EC-CUBEサイトをAIエージェント対応にする"
+title: "Shopifyは準備完了、EC-CUBEは未対応。2026年AIエージェント決済を生き残る方法"
 emoji: "🤖"
 type: "tech"
-topics: ["eccube", "eccube4", "ai", "ec", "ビジネス"]
-published: true
+topics: ["eccube", "eccube4", "php", "ai"]
+published: false
 ---
 
 :::message
@@ -11,126 +11,303 @@ published: true
 また、[Claude Code](https://claude.ai/claude-code) を使って書かれています。内容に誤りがある場合はコメントでお知らせください。
 :::
 
-## はじめに
+## 結論から言います
 
-2026年、ECの世界に大きな変化が起きています。
+**EC-CUBEは、2026年以降の「エージェント決済」時代に対応できていません。**
 
-**「検索して、比較して、カートに入れて、決済する」**
+Shopifyはすでに「Checkout Kit」と「Universal Commerce Protocol」で準備完了。EC-CUBEは未対応。このまま何もしなければ、顧客を奪われる可能性があります。
 
-この当たり前だった購買行動が、根本から変わろうとしています。
+でも、**今から準備すれば間に合います**。
 
-新しい購買体験は **「AIに任せる」** です。
+---
 
-この記事では、「エージェンティックコマース」と呼ばれる新しい潮流と、EC-CUBEサイトがどう対応すべきかを解説します。
+**EC-CUBE開発者への質問:**
+- 商品検索APIはありますか？
+- AIが決済を完了できるAPIはありますか？
+- schema.org形式の構造化データは出力していますか？
 
-## エージェンティックコマースとは
+3つともNoなら、この記事を読む価値があります。
 
-**エージェンティックコマース（Agentic Commerce）** とは、AIエージェントが消費者に代わって購買行動を行う商取引形態です。
+## 2026年、AIエージェントが購買を変える
 
-従来のEC:
+**「この条件なら買っていいよ」**
+
+ユーザーがAIにそう伝えるだけで、商品の検索から比較、決済まで自動で完了する。そんな時代が2026年に本格到来します。
+
+これを**エージェント決済**（Agentic Commerce）と呼びます。
+
+McKinseyの予測では、このチャネルは2030年までに**3〜5兆ドル規模**に成長するとされています。また、Gartnerは2026年末までに企業ソフトウェア購入の**25%**がAIエージェントを介すると予測しています。
+
+> **「人間はECサイトを見ない。AIがAPIを叩く。」**
+> これが2026年以降の購買体験です。
+
+## エージェント決済とは何か
+
+### 従来のEC vs エージェント決済
+
+| 項目 | 従来のEC | エージェント決済 |
+|------|---------|----------------|
+| **購買者** | 人間がブラウザで操作 | AIエージェントが代行 |
+| **商品発見** | 検索、カテゴリ、広告 | API経由で構造化データを取得 |
+| **比較検討** | ユーザーが複数サイトを閲覧 | AIがリアルタイムで最適解を算出 |
+| **決済** | ユーザーがフォーム入力 | AIが条件内で自動完了 |
+
+### 具体的なシナリオ
+
 ```
-人間 → ECサイトを訪問 → 検索 → 比較 → カート → 決済
-```
+ユーザー: 「ランニングシューズ、2万円以下で評価4以上のやつ、
+          在庫があったら買っておいて」
 
-エージェンティックコマース:
-```
-人間 → AIに依頼 → AIが検索・比較・選択・決済を代行
-```
-
-マッキンゼーの予測によると、2020年代末には **米小売りに1兆ドルの売上** をもたらし、オンライン売上高全体の **約3分の1** を占める可能性があるとされています。
-
-## 何が起きているのか
-
-### OpenAI「Instant Checkout」
-
-2025年9月、OpenAIは「Instant Checkout」を発表しました。ChatGPT内で会話しながら商品を探し、**チャットから離れずに購入が完結** します。
-
-```
-ユーザー: 「30代男性向けのビジネスカジュアルな靴を探して」
-ChatGPT: 「〇〇がおすすめです。サイズと色を選んで購入しますか？」
-ユーザー: 「黒の27cmで」
-ChatGPT: 「注文が完了しました」
-```
-
-### Google「Shop with AI Mode」
-
-Googleも対話型ショッピング機能を展開中です。写真をアップロードして試着シミュレーション（Virtual Try-On）も可能で、将来的には購入代行機能も予定されています。
-
-### Universal Commerce Protocol（UCP）
-
-Google、Shopify、Walmart、Targetなど大手企業が **「UCP」** という共通プロトコルを策定中です。
-
-参加企業:
-- **主導**: Google, Shopify, Etsy, Wayfair, Target, Walmart
-- **賛同**: American Express, Best Buy, Macy's, Mastercard, PayPal, Stripe, Visa など20社以上
-
-UCPにより、AIエージェントはどの店舗でも統一ルールで商取引を実行できるようになります。
-
-## EC事業者への影響
-
-### 「人間が訪問しないECサイト」の時代
-
-衝撃的ですが、**人間がECサイトを訪問しなくなる** 可能性があります。
-
-AIエージェントが:
-1. 商品情報を取得
-2. 在庫を確認
-3. 価格を比較
-4. 注文・決済を実行
-
-すべてをAPIやデータフィードで処理するため、「きれいなデザイン」や「使いやすいUI」は **AIには関係ない** のです。
-
-### AIが見るのは「データ」
-
-AIは感情ではなくデータで判断します。
-
-**AIに伝わらない例:**
-```
-「涼しくて着心地の良い夏向けシャツ」
+AIエージェント:
+  1. 複数ECサイトのAPIを叩いて商品を検索
+  2. 条件に合う商品を比較
+  3. 最適な商品を選定
+  4. 自動で決済を完了
+  5. ユーザーに結果を報告
 ```
 
-**AIに伝わる例:**
+**人間はECサイトを見ない。AIがAPIを叩く。**
+
+これが2026年以降の購買体験です。
+
+## 2大プロトコルの登場
+
+### Google UCP（Universal Commerce Protocol）
+
+2026年1月に発表。Walmart、Target、Shopify、Etsy など20社以上がパートナー。
+
+- オープンプロトコル
+- インテントベースの商品発見
+- 構造化データによる商品情報提供
+
+### OpenAI ACP（Agentic Commerce Protocol）
+
+ChatGPT Instant Checkout を支える基盤。Stripe決済と連携。
+
+- オープンスタンダード
+- 会話ベースの商品発見
+- リアルタイムの状態管理
+
 ```
-素材: リネン100%
-重量: 180g
-対応季節: 春夏
-サイズ: S/M/L/XL
-JANコード: 4901234567890
+// ACPの基本的な流れ
+1. エージェントが商品を検索（API）
+2. チェックアウトを作成（API）
+3. 状態を確認：incomplete / requires_escalation / ready_for_complete
+4. 決済を完了（API）
 ```
 
-## EC-CUBEサイトがすべき対応
+## EC-CUBEの現状と課題
 
-### 1. 構造化データの整備
+### 現状：人間向けに最適化されている
 
-EC-CUBEの商品情報を **構造化データ（JSON-LD）** として出力することが重要です。
+EC-CUBEは優れたECパッケージですが、**人間がブラウザで操作する**ことを前提に設計されています。
+
+```
+現在のEC-CUBEの構造
+├── フロント画面（Twig）← 人間が見る
+├── 管理画面（Twig）← 人間が操作
+├── Controller（HTTP）← ブラウザからのリクエスト
+└── API（限定的）← 外部連携用
+```
+
+### 課題1: APIファーストではない
+
+エージェント決済では、AIは**HTMLを解析しない**。APIで構造化データを取得します。
 
 ```php
-// app/Customize/EventListener/StructuredDataListener.php
+// AIエージェントが求めるもの
+GET /api/products?price_max=20000&rating_min=4&in_stock=true
 
-namespace Customize\EventListener;
-
-use Eccube\Entity\Product;
-use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Component\HttpKernel\Event\ResponseEvent;
-use Symfony\Component\HttpKernel\KernelEvents;
-
-class StructuredDataListener implements EventSubscriberInterface
+// 返ってくるべきもの
 {
-    public static function getSubscribedEvents(): array
+  "products": [
     {
-        return [
-            KernelEvents::RESPONSE => 'onResponse',
-        ];
+      "id": "123",
+      "name": "ランニングシューズ Pro",
+      "price": 18000,
+      "currency": "JPY",
+      "rating": 4.5,
+      "stock": 10,
+      "checkout_url": "https://..."
     }
+  ]
+}
+```
 
-    public function onResponse(ResponseEvent $event): void
+EC-CUBEの現在のAPIはここまで整備されていません。
+
+### 課題2: チェックアウトAPIがない
+
+Shopifyには「Checkout Kit」があり、AIエージェントがプログラマティックに決済を完了できます。
+
+```
+Shopifyのチェックアウト状態
+├── incomplete（情報不足 → APIで解決試行）
+├── requires_escalation（人間の介入が必要 → ブラウザにハンドオフ）
+└── ready_for_complete（完了可能 → APIで決済実行）
+```
+
+EC-CUBEには、このような**ステートマシンとしてのチェックアウトAPI**がありません。
+
+### 課題3: 構造化データの不足
+
+AIエージェントは、schema.org形式の構造化データを重視します。
+
+```html
+<!-- 必要な構造化データ -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": "ランニングシューズ Pro",
+  "offers": {
+    "@type": "Offer",
+    "price": "18000",
+    "priceCurrency": "JPY",
+    "availability": "https://schema.org/InStock"
+  }
+}
+</script>
+```
+
+EC-CUBEのデフォルトテンプレートには、これが十分に含まれていません。
+
+## EC-CUBEが生き残るために必要なこと
+
+### 1. Product Feed APIの整備
+
+AIエージェントが商品を検索できるAPIが必要です。
+
+```php
+namespace Customize\Controller\Api;
+
+use Eccube\Entity\Master\ProductStatus;
+use Eccube\Repository\ProductRepository;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\Attribute\Route;
+
+class ProductFeedController extends AbstractController
+{
+    public function __construct(
+        private ProductRepository $productRepository,
+    ) {}
+
+    #[Route('/api/v1/products', name: 'api_products', methods: ['GET'])]
+    public function index(Request $request): JsonResponse
     {
-        // 商品詳細ページでJSON-LDを追加する処理
+        // 入力値のバリデーション
+        $priceMax = $request->query->get('price_max');
+        $priceMin = $request->query->get('price_min');
+
+        if ($priceMax !== null && !ctype_digit($priceMax)) {
+            return $this->json(['error' => 'Invalid price_max'], 400);
+        }
+
+        // QueryBuilderで商品を検索
+        $qb = $this->productRepository->createQueryBuilder('p')
+            ->innerJoin('p.ProductClasses', 'pc')
+            ->where('p.Status = :status')
+            ->setParameter('status', ProductStatus::DISPLAY_SHOW);
+
+        if ($priceMax !== null) {
+            $qb->andWhere('pc.price02 <= :price_max')
+               ->setParameter('price_max', (int) $priceMax);
+        }
+        if ($priceMin !== null) {
+            $qb->andWhere('pc.price02 >= :price_min')
+               ->setParameter('price_min', (int) $priceMin);
+        }
+        if ($request->query->getBoolean('in_stock')) {
+            $qb->andWhere('pc.stock > 0 OR pc.stock_unlimited = true');
+        }
+
+        $products = $qb->getQuery()->getResult();
+
+        return $this->json([
+            'products' => array_map(fn($p) => [
+                'id' => $p->getId(),
+                'name' => $p->getName(),
+                'price' => $p->getPrice02IncTaxMin(),
+                'currency' => 'JPY',
+                'stock' => $p->getStockMin(),
+                'url' => $this->generateUrl('product_detail', ['id' => $p->getId()]),
+                'image' => $p->getMainListImage(),
+            ], $products),
+        ]);
     }
 }
 ```
 
-Twigテンプレートで直接出力する方法:
+:::message alert
+**セキュリティ上の重要な注意**
+上記は概念実装です。本番環境では以下を必ず実装してください：
+- **API認証**: OAuth 2.0 / JWT / APIキー認証
+- **レート制限**: DoS攻撃対策（例: 100リクエスト/分）
+- **CORS設定**: 許可するオリジンの制限
+- **監査ログ**: 全APIリクエストの記録
+:::
+
+### 2. Checkout APIの実装
+
+AIエージェントが決済を完了できるAPIが必要です。
+
+```php
+namespace Customize\Controller\Api;
+
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\Routing\Attribute\Route;
+
+class CheckoutApiController extends AbstractController
+{
+    #[Route('/api/v1/checkout', name: 'api_checkout_create', methods: ['POST'])]
+    public function create(Request $request): JsonResponse
+    {
+        // カートを作成し、チェックアウトセッションを開始
+        $checkout = $this->checkoutService->create($request->toArray());
+
+        return $this->json([
+            'checkout_id' => $checkout->getId(),
+            'status' => $checkout->getStatus(), // incomplete, requires_escalation, ready
+            'total' => $checkout->getTotal(),
+            'currency' => 'JPY',
+            'required_fields' => $checkout->getMissingFields(),
+            'continue_url' => $checkout->getContinueUrl(), // 人間にハンドオフする場合
+        ]);
+    }
+
+    #[Route('/api/v1/checkout/{id}', name: 'api_checkout_update', methods: ['PATCH'])]
+    public function update(string $id, Request $request): JsonResponse
+    {
+        // 住所、支払い方法などを更新
+        $checkout = $this->checkoutService->update($id, $request->toArray());
+
+        return $this->json([
+            'checkout_id' => $checkout->getId(),
+            'status' => $checkout->getStatus(),
+            'required_fields' => $checkout->getMissingFields(),
+        ]);
+    }
+
+    #[Route('/api/v1/checkout/{id}/complete', name: 'api_checkout_complete', methods: ['POST'])]
+    public function complete(string $id): JsonResponse
+    {
+        // 決済を完了
+        $order = $this->checkoutService->complete($id);
+
+        return $this->json([
+            'order_id' => $order->getId(),
+            'status' => 'completed',
+            'total' => $order->getPaymentTotal(),
+        ]);
+    }
+}
+```
+
+### 3. 構造化データの自動出力
+
+商品詳細ページに構造化データを追加するカスタマイズです。
 
 ```twig
 {# app/template/default/Product/detail.twig #}
@@ -138,269 +315,97 @@ Twigテンプレートで直接出力する方法:
 {% block json_ld %}
 <script type="application/ld+json">
 {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    "name": "{{ Product.name }}",
-    "description": "{{ Product.description_detail | striptags }}",
-    "sku": "{{ Product.code_min }}",
-    "brand": {
-        "@type": "Brand",
-        "name": "あなたのブランド名"
-    },
-    "offers": {
-        "@type": "Offer",
-        "url": "{{ url('product_detail', {id: Product.id}) }}",
-        "priceCurrency": "JPY",
-        "price": "{{ Product.getPrice02IncTaxMin }}",
-        "availability": "{% if Product.stock_find %}https://schema.org/InStock{% else %}https://schema.org/OutOfStock{% endif %}",
-        "seller": {
-            "@type": "Organization",
-            "name": "あなたのショップ名"
-        }
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": "{{ Product.name }}",
+  "description": "{{ Product.description_detail|striptags|slice(0, 500) }}",
+  "image": "{{ asset(Product.MainListImage|no_image_product, 'save_image') }}",
+  "sku": "{{ Product.code_min }}",
+  "brand": {
+    "@type": "Brand",
+    "name": "{{ BaseInfo.shop_name }}"
+  },
+  "offers": {
+    "@type": "Offer",
+    "url": "{{ url('product_detail', {id: Product.id}) }}",
+    "price": "{{ Product.getPrice02IncTaxMin }}",
+    "priceCurrency": "JPY",
+    "availability": "{{ Product.StockMin > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock' }}",
+    "seller": {
+      "@type": "Organization",
+      "name": "{{ BaseInfo.shop_name }}"
     }
-    {% if Product.ProductImage | length > 0 %},
-    "image": [
-        {% for img in Product.ProductImage %}"{{ asset(img, 'save_image') }}"{% if not loop.last %},{% endif %}{% endfor %}
-    ]
-    {% endif %}
+  }
 }
 </script>
 {% endblock %}
 ```
 
-### 2. 商品データの充実
+### 4. MCP（Model Context Protocol）対応
 
-AIが判断するために必要な情報を **項目として** 登録します。
+Shopifyは「Shopify MCP Server」を提供し、AIエージェントとの標準化されたインターフェースを実現しています。EC-CUBEも同様の対応が必要かもしれません。
 
-EC-CUBEの規格や自由項目を活用:
+## 現実的なロードマップ
 
-| 項目 | 例 |
-|------|-----|
-| 素材 | コットン100% |
-| 重量 | 250g |
-| サイズ詳細 | 着丈70cm, 身幅52cm |
-| JANコード | 4901234567890 |
-| 原産国 | 日本 |
-| 対象年齢 | 20-40代 |
+### Phase 1: 構造化データの整備（今すぐ）
 
-```php
-// 商品の自由項目を追加する Trait
-// app/Customize/Entity/ProductTrait.php
+- 商品ページにschema.org形式のJSON-LDを追加
+- Google Merchant Centerへの商品フィード連携
+- サイトマップの最適化
 
-namespace Customize\Entity;
+### Phase 2: 読み取り専用APIの実装（短期）
 
-use Doctrine\ORM\Mapping as ORM;
-use Eccube\Annotation\EntityExtension;
+- 商品検索API
+- 在庫確認API
+- 価格取得API
 
-/**
- * @EntityExtension("Eccube\Entity\Product")
- */
-trait ProductTrait
-{
-    /**
-     * @ORM\Column(type="string", length=255, nullable=true)
-     */
-    private ?string $material = null;
+### Phase 3: チェックアウトAPIの実装（中期）
 
-    /**
-     * @ORM\Column(type="integer", nullable=true)
-     */
-    private ?int $weight = null;
+- カート作成API
+- 配送先設定API
+- 決済完了API
+- Webhookによる注文通知
 
-    /**
-     * @ORM\Column(type="string", length=13, nullable=true)
-     */
-    private ?string $jan_code = null;
+### Phase 4: プロトコル対応（長期）
 
-    // getter/setter...
-}
-```
+- Google UCP対応
+- OpenAI ACP対応
+- MCP Server実装
 
-### 3. 在庫データのリアルタイム性
+## EC-CUBEコミュニティへの提言
 
-AIは **「注文後の欠品」を強く避けます** 。在庫データの信頼性がショップの評価に直結します。
+エージェント決済は「いつか来る未来」ではありません。Gartnerの予測では**2026年末までに企業ソフトウェア購入の25%**がAIエージェント経由になるとされています。
 
-```php
-// 在庫をリアルタイムで返すAPI
-// app/Customize/Controller/Api/StockController.php
+EC-CUBEが生き残るためには：
 
-namespace Customize\Controller\Api;
+1. **APIファースト設計への転換**が必要
+2. **プラグインとしてのエージェント対応**が現実的な第一歩
+3. **コミュニティでの議論**を今すぐ始めるべき
 
-use Eccube\Repository\ProductClassRepository;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\Routing\Annotation\Route;
+Shopifyはすでに対応を完了しています。EC-CUBEが同じ土俵に立つには、今から準備を始める必要があります。
 
-class StockController extends AbstractController
-{
-    public function __construct(
-        private ProductClassRepository $productClassRepository
-    ) {
-    }
+## あなたはどちら派？
 
-    /**
-     * @Route("/api/stock/{code}", name="api_stock", methods={"GET"})
-     */
-    public function getStock(string $code): JsonResponse
-    {
-        $productClass = $this->productClassRepository->findOneBy([
-            'code' => $code,
-        ]);
+**本体派:** EC-CUBE本体でAPIファースト設計に転換すべき
+**プラグイン派:** プラグインで対応すればいい、本体は現状維持
 
-        if (!$productClass) {
-            return $this->json(['error' => 'Product not found'], 404);
-        }
+この選択は、EC-CUBEの今後5年を決める重要な分岐点です。
 
-        return $this->json([
-            'sku' => $productClass->getCode(),
-            'stock' => $productClass->getStock(),
-            'unlimited' => $productClass->isStockUnlimited(),
-            'updated_at' => (new \DateTime())->format('c'),
-        ]);
-    }
-}
-```
+また、こんな疑問もあるでしょう：
 
-### 4. 商品フィード（データフィード）の提供
+- 日本市場でエージェント決済は本当に普及するのか？
+- Shopifyに勝てないなら、EC-CUBEの存在意義は何になるのか？
+- 小規模ECサイトにAPIファースト設計は必要か？
 
-AIエージェントやGoogle Merchant Centerが取得できる **XMLフィード** を提供します。
-
-```php
-// app/Customize/Controller/Feed/ProductFeedController.php
-
-namespace Customize\Controller\Feed;
-
-use Eccube\Repository\ProductRepository;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
-
-class ProductFeedController extends AbstractController
-{
-    public function __construct(
-        private ProductRepository $productRepository
-    ) {
-    }
-
-    /**
-     * @Route("/feed/products.xml", name="product_feed")
-     */
-    public function index(): Response
-    {
-        $products = $this->productRepository->findBy([
-            'Status' => 1, // 公開中
-        ]);
-
-        $response = $this->render('Feed/products.xml.twig', [
-            'products' => $products,
-        ]);
-
-        $response->headers->set('Content-Type', 'application/xml');
-
-        return $response;
-    }
-}
-```
-
-```xml
-{# app/template/default/Feed/products.xml.twig #}
-<?xml version="1.0" encoding="UTF-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"
-      xmlns:g="http://base.google.com/ns/1.0">
-    <title>商品フィード</title>
-    <link href="{{ url('homepage') }}"/>
-    <updated>{{ 'now' | date('c') }}</updated>
-
-    {% for product in products %}
-    <entry>
-        <g:id>{{ product.id }}</g:id>
-        <g:title>{{ product.name }}</g:title>
-        <g:description>{{ product.description_detail | striptags }}</g:description>
-        <g:link>{{ url('product_detail', {id: product.id}) }}</g:link>
-        <g:price>{{ product.getPrice02IncTaxMin }} JPY</g:price>
-        <g:availability>{% if product.stock_find %}in stock{% else %}out of stock{% endif %}</g:availability>
-        <g:condition>new</g:condition>
-    </entry>
-    {% endfor %}
-</feed>
-```
-
-#### プラグインで簡単に実装する
-
-自作が面倒な場合は、**商品データフィードプラグイン** を使うと簡単です。
-
-https://www.ec-cube.net/products/detail.php?product_id=3209
-
-**商品データフィードプラグイン（Google/Meta/LINE/TikTok対応）** は、以下のプラットフォーム向けのフィードを管理画面から簡単に生成できます。
-
-| 対応サービス | 用途 |
-|-------------|------|
-| Google Merchant Center | Google ショッピング広告、無料リスティング |
-| Meta（Facebook/Instagram） | Facebook/Instagramショップ |
-| LINE | LINE広告 |
-| TikTok | TikTok広告 |
-
-Google Merchant Centerの商品データ仕様とEC-CUBEのデータ項目の対応表も用意されており、GMC対応に必要な項目（GTIN、商品カテゴリ、状態、送料など）をEC-CUBEの管理画面から設定できます。
-
-AIエージェント時代に備えて、まずはGoogle Merchant Centerへの登録から始めるのがおすすめです。
-
-### 5. 会話型コマースへの対応
-
-将来的には、EC-CUBEサイト自体にチャットボットを組み込むことも検討できます。
-
-```javascript
-// チャットウィジェットの組み込み例（OpenAI API使用）
-// 注: 実際の実装ではセキュリティに十分注意してください
-
-async function chat(message) {
-    const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message })
-    });
-    return response.json();
-}
-```
-
-## 中小EC事業者のチャンス
-
-この変化は **脅威ではなくチャンス** です。
-
-### なぜチャンスなのか
-
-1. **広告費競争からの解放**: AIは広告ではなくデータで判断
-2. **商品力の正当な評価**: 良い商品を正確に記述すれば選ばれる
-3. **大手との差別化**: ニッチな商品はAIに「発見」されやすい
-
-### 今すぐできること
-
-| 優先度 | アクション |
-|--------|-----------|
-| 高 | 商品情報の構造化（素材、サイズ、重量等） |
-| 高 | JSON-LD構造化データの実装 |
-| 中 | 在庫データのリアルタイム同期 |
-| 中 | 商品フィードの提供 |
-| 低 | UCP対応の動向ウォッチ |
-
-## まとめ
-
-「任せるEC」の時代が到来しています。
-
-- **AIエージェントが購買を代行** する時代へ
-- **人間ではなくAIに選ばれる** ECサイトが勝つ
-- EC-CUBEサイトは **構造化データと在庫精度** で勝負
-
-ECサイトの役割は「人間に商品を見せる場所」から「AIに商品情報を提供する場所」へと変化しつつあります。
-
-今のうちに準備を始めましょう。
+ぜひコメントで議論しましょう。**EC-CUBEの未来を一緒に考えませんか？**
 
 ## 参考リンク
 
-- [2026年ネット通販のトレンド10選](https://netshop.impress.co.jp/e/2026/01/08/15390)
-- [エージェンティックコマースとは](https://next-engine.net/ec-blog/agentic-commerce/)
-- [Universal Commerce Protocol（UCP）](https://www.publickey1.jp/blog/26/ecaiuniversal_commerce_protocolucp.html)
-- [2026年の新EC戦略｜生成AIショッピング](https://omokaji-web.co.jp/strategy/ec-ai-shopping-2026/)
-- [会話型コマース市場規模](https://www.gii.co.jp/report/moi1934914-conversational-commerce-market-share-analysis.html)
+- [2026年はエージェント決済元年？（ECzine）](https://eczine.jp/article/detail/17683)
+- [Agentic Commerce Protocol - OpenAI](https://developers.openai.com/commerce)
+- [Shopify Agentic Commerce](https://shopify.dev/docs/agents)
+- [Building the Universal Commerce Protocol - Shopify Engineering](https://shopify.engineering/ucp)
+- [The rise of agentic commerce（nshift）](https://nshift.com/blog/agentic-commerce-ai-shopping-agents-2026)
 
 ---
 
