@@ -3,7 +3,7 @@ title: "もう$request->headers->get()は書かない。Symfony 8.1 #[MapRequest
 emoji: "📨"
 type: "tech"
 topics: ["eccube", "eccube4", "php", "symfony"]
-published: false
+published: true
 ---
 
 :::message
