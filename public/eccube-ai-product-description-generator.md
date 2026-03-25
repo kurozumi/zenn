@@ -6,7 +6,7 @@ tags:
   - AI
   - OpenAI
 private: false
-updated_at: '2026-03-21T14:50:44+09:00'
+updated_at: '2026-03-21T14:52:03+09:00'
 id: 6fa54e702390ccc0e295
 organization_url_name: null
 slide: false
