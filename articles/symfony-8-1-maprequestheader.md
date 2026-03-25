@@ -1,5 +1,5 @@
 ---
-title: "「$request->headers->get()」はもう書かない。Symfony 8.1の#[MapRequestHeader]が便利すぎる"
+title: "もう$request->headers->get()は書かない。Symfony 8.1 #[MapRequestHeader]"
 emoji: "📨"
 type: "tech"
 topics: ["eccube", "eccube4", "php", "symfony"]
