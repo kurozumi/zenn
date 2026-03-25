@@ -6,7 +6,7 @@ tags:
   - EC-CUBE
   - GitHubActions
 private: false
-updated_at: '2026-03-21T14:52:03+09:00'
+updated_at: '2026-03-25T15:45:34+09:00'
 id: 34b07e91339d93839f3c
 organization_url_name: null
 slide: false

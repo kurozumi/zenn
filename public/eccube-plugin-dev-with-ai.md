@@ -6,7 +6,7 @@ tags:
   - EC-CUBE
   - AI
 private: false
-updated_at: '2026-03-21T14:52:03+09:00'
+updated_at: '2026-03-25T15:45:35+09:00'
 id: eb5fcd85c626fd55c6ca
 organization_url_name: null
 slide: false
