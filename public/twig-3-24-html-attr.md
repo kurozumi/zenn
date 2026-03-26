@@ -1,10 +1,10 @@
 ---
-title: 'Twig 3.24の新機能html_attrが便利すぎる - HTML属性の記述が劇的に簡単に'
+title: Twig 3.24の新機能html_attrが便利すぎる - HTML属性の記述が劇的に簡単に
 tags:
   - PHP
   - Symfony
-  - EC-CUBE
   - twig
+  - EC-CUBE
 private: false
 updated_at: '2026-03-21T00:03:51+09:00'
 id: 8a4d17aa2416c0ab7686

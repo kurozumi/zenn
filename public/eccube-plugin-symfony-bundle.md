@@ -1,9 +1,9 @@
 ---
-title: 'EC-CUBE 4プラグインでSymfonyバンドルを登録する方法'
+title: EC-CUBE 4プラグインでSymfonyバンドルを登録する方法
 tags:
-  - EC-CUBE
   - PHP
   - Symfony
+  - EC-CUBE
 private: false
 updated_at: '2026-03-19T15:13:05+09:00'
 id: 969cea8648375cb14ca8
