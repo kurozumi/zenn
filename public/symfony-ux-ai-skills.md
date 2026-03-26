@@ -1,10 +1,10 @@
 ---
-title: Symfony UX AI Skills - AIがWeb開発の「正しいやり方」を学べる仕組み
+title: 'Symfony UX AI Skills - AIがWeb開発の「正しいやり方」を学べる仕組み'
 tags:
-  - PHP
   - Symfony
-  - EC-CUBE
   - AI
+  - EC-CUBE
+  - PHP
 private: false
 updated_at: '2026-03-19T15:13:05+09:00'
 id: 372ac4e0d125b18df86b

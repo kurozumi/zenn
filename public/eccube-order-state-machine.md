@@ -1,9 +1,9 @@
 ---
-title: EC-CUBE 4のOrderStateMachineを理解する - Symfony Workflowで実現する受注ステータス管理
+title: 'EC-CUBE 4のOrderStateMachineを理解する - Symfony Workflowで実現する受注ステータス管理'
 tags:
+  - EC-CUBE
   - PHP
   - Symfony
-  - EC-CUBE
 private: false
 updated_at: '2026-03-19T15:13:06+09:00'
 id: 147381d54d59ead48369

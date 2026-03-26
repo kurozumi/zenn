@@ -1,9 +1,9 @@
 ---
-title: EC-CUBE 4でBtoB EC機能を実装する - 承認ワークフローと企業アカウント管理
+title: 'EC-CUBE 4でBtoB EC機能を実装する - 承認ワークフローと企業アカウント管理'
 tags:
+  - EC-CUBE
   - PHP
   - Symfony
-  - EC-CUBE
   - BtoB
 private: false
 updated_at: '2026-03-19T15:13:05+09:00'

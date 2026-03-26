@@ -1,0 +1,64 @@
+---
+title: '100行のセッション管理が3行に。Symfony 7.4 Form FlowsでEC-CUBEの購入フローが変わる'
+tags:
+  - EC-CUBE
+  - PHP
+  - Symfony
+private: false
+updated_at: '2026-03-25T13:47:10+09:00'
+id: 14b7773bb5f4ae577ff4
+organization_url_name: null
+slide: false
+ignorePublish: false
+---
+
+:::note info
+この記事はZennに投稿した記事の要約です。詳細は以下のリンクからご覧ください。
+:::
+
+**詳細記事: [100行のセッション管理が3行に。Symfony 7.4 Form FlowsでEC-CUBEの購入フローが変わる](https://zenn.dev/kurozumi/articles/symfony-7-4-form-flows-eccube)**
+
+---
+
+## 結論：100行のセッション管理コードが、3行になった
+
+**「あなたのEC-CUBEプロジェクトに、こんなコードはありませんか？」**
+
+- セッションに一時データを保存
+- ステップごとにリダイレクト制御
+- 戻るボタンの状態復元
+- バリデーションエラー時の再表示...
+
+**これ、全部いらなくなります。**
+
+Symfony 7.4で導入された**Form Flows**を使えば、上記の処理がすべて自動化されます。
+
+```php
+// Before: セッションに保存、リダイレクト、状態管理...約100行
+// After: たった3行
+$builder->addStep('shipping', ShippingType::class);
+$builder->addStep('payment', PaymentType::class);
+$builder->addStep('confirm', ConfirmType::class);
+```
+
+**これだけです。**
+
+## 前提条件
+
+- PHP 8.2以上
+- Symfony 7.4以上
+- EC-CUBE 4.3以上（将来的にSymfony 7.x対応時に利用可能）
+
+---
+
+## 続きはZennで
+
+この記事では概要のみを紹介しました。詳細な解説やコード例は、Zennの記事をご覧ください。
+
+**[100行のセッション管理が3行に。Symfony 7.4 Form FlowsでEC-CUBEの購入フローが変わる](https://zenn.dev/kurozumi/articles/symfony-7-4-form-flows-eccube)**
+
+---
+
+:::note
+EC-CUBEのカスタマイズや開発のご相談は、お気軽にお問い合わせください。
+:::

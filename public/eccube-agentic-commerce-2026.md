@@ -1,9 +1,9 @@
 ---
-title: Shopifyは準備完了、EC-CUBEは未対応。2026年AIエージェント決済を生き残る方法
+title: 'Shopifyは準備完了、EC-CUBEは未対応。2026年AIエージェント決済を生き残る方法'
 tags:
-  - PHP
   - EC-CUBE
-  - AI
+  - PHP
+  - ai
 private: false
 updated_at: '2026-03-26T18:44:14+09:00'
 id: 763a600141a6207f7a3a

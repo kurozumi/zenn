@@ -15,6 +15,8 @@ const path = require('path');
 const ZENN_ARTICLES_DIR = path.join(__dirname, '..', 'articles');
 // Qiitaの記事ディレクトリ
 const QIITA_PUBLIC_DIR = path.join(__dirname, '..', 'public');
+// Qiitaからpullした記事ディレクトリ
+const QIITA_REMOTE_DIR = path.join(__dirname, '..', 'public', '.remote');
 
 // トピック名の変換マップ（Zenn → Qiita）
 const TOPIC_MAP = {
@@ -105,9 +107,54 @@ function extractSummary(body) {
 }
 
 /**
+ * .remote/ディレクトリからZennスラッグとQiita IDのマッピングを構築
+ */
+function buildRemoteIdMap() {
+  const map = {};
+  if (!fs.existsSync(QIITA_REMOTE_DIR)) {
+    return map;
+  }
+
+  const files = fs.readdirSync(QIITA_REMOTE_DIR).filter(f => f.endsWith('.md'));
+  for (const file of files) {
+    const content = fs.readFileSync(path.join(QIITA_REMOTE_DIR, file), 'utf-8');
+
+    // ZennのURLからスラッグを抽出
+    const zennUrlMatch = content.match(/https:\/\/zenn\.dev\/kurozumi\/articles\/([a-z0-9-]+)/);
+    if (zennUrlMatch) {
+      const zennSlug = zennUrlMatch[1];
+      const qiitaId = path.basename(file, '.md');
+
+      // フロントマターからupdated_atを取得
+      const parsed = parseZennFrontmatter(content);
+      const updated_at = parsed?.frontmatter?.updated_at?.replace(/^['"]|['"]$/g, '') || '';
+
+      map[zennSlug] = { id: qiitaId, updated_at };
+    }
+  }
+  return map;
+}
+
+// グローバルにマッピングをキャッシュ
+let remoteIdMap = null;
+
+/**
  * 既存のQiita記事からフロントマターを取得
  */
 function getExistingQiitaFrontmatter(filename) {
+  const slug = path.basename(filename, '.md');
+
+  // まず.remote/ディレクトリのマッピングを確認
+  if (!remoteIdMap) {
+    remoteIdMap = buildRemoteIdMap();
+  }
+
+  if (remoteIdMap[slug]) {
+    console.log(`  Found existing Qiita ID from .remote: ${remoteIdMap[slug].id}`);
+    return remoteIdMap[slug];
+  }
+
+  // 次にpublic/ディレクトリの既存ファイルを確認
   const existingPath = path.join(QIITA_PUBLIC_DIR, filename);
   if (!fs.existsSync(existingPath)) {
     return { id: null, updated_at: '' };

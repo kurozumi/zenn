@@ -1,10 +1,10 @@
 ---
-title: Claude CodeでEC-CUBEプラグインを爆速開発する方法
+title: 'Claude CodeでEC-CUBEプラグインを爆速開発する方法'
 tags:
-  - PHP
   - EC-CUBE
-  - AI
-  - ClaudeCode
+  - claudecode
+  - ai
+  - PHP
 private: false
 updated_at: '2026-03-26T18:44:14+09:00'
 id: 9ac0db90a1b1324ab43a
