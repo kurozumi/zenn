@@ -165,6 +165,13 @@ gh repo create my-eccube --private --clone
 cd my-eccube
 ```
 
+| オプション | 意味 |
+|---|---|
+| `--private` | リポジトリを非公開（プライベート）にする |
+| `--clone` | 作成後にローカルへ自動でクローンする |
+
+このコマンド1つで「リポジトリ作成 → プライベート設定 → ローカルにクローン」を同時に行います。`--clone` がない場合は別途 `git clone` が必要です。
+
 **Step 2: EC-CUBE本家を `upstream` リモートとして追加する**
 
 ```bash
