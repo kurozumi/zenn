@@ -145,7 +145,15 @@ aws configure
 
 ### 3. Docker
 
-EC-CUBEをコンテナ化するためにDockerが必要です。
+デプロイスキルはローカルマシンで `docker build`（イメージのビルド）と `docker push`（ECRへのアップロード）を実行します。そのためローカルマシンへのDockerインストールが必要です。
+
+```
+ローカルマシン（docker build / docker push）
+        ↓
+    AWS ECR（イメージを保存）
+        ↓
+    AWS ECS Fargate（コンテナとして実行）
+```
 
 **macOS / Windows:**
 
