@@ -1,5 +1,5 @@
 ---
-title: "EC-CUBEのAWSデプロイ、毎回ドキュメント見ていませんか？Claude Codeカスタムスキルで1コマンドに圧縮した"
+title: "【概念解説】Claude CodeカスタムスキルでEC-CUBEのAWSデプロイを1コマンド化するアイデア"
 emoji: "🚀"
 type: "tech"
 topics: ["eccube", "eccube4", "aws", "claudecode", "ecs"]
@@ -9,6 +9,20 @@ published: false
 :::message
 この記事は EC-CUBE 4.3 以上を対象としています。
 また、[Claude Code](https://claude.ai/claude-code) を使って書かれています。内容に誤りがある場合はコメントでお知らせください。
+:::
+
+:::message alert
+**この記事はClaude Codeのスキル機能を使ったデプロイ自動化の概念と設計を解説したものです。**
+
+実際に運用するには以下が別途必要です。この記事だけをそのまま本番環境に適用しないでください。
+
+- VPC・サブネット・セキュリティグループ等のネットワーク設定
+- ECSタスク定義の作成（CPU・メモリ・環境変数・ログ設定等）
+- ECSサービスの作成
+- ALB（ロードバランサー）の設定
+- RDS（データベース）の構築
+- Apacheの設定（EC-CUBEのDocumentRoot等）
+- デプロイ失敗時のロールバック手順
 :::
 
 ## はじめに
