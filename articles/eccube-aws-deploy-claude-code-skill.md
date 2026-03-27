@@ -478,9 +478,12 @@ echo "ECS_SERVICE:         ${ECS_SERVICE:-未設定}"
 
 ## Step 3: ECRにログイン
 
+`ECR_REPOSITORY_URI` からレジストリのエンドポイント部分（アカウントID.dkr.ecr.リージョン.amazonaws.com）を取り出してログインする。
+
 ```bash
+ECR_REGISTRY=$(echo ${ECR_REPOSITORY_URI} | cut -d/ -f1)
 aws ecr get-login-password --region ${AWS_REGION} | \
-  docker login --username AWS --password-stdin ${ECR_REPOSITORY_URI}
+  docker login --username AWS --password-stdin ${ECR_REGISTRY}
 ```
 
 ## Step 4: Dockerイメージのビルドとタグ付け
