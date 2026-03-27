@@ -204,11 +204,16 @@ git remote add upstream https://github.com/EC-CUBE/ec-cube.git
 git fetch upstream
 
 # EC-CUBE 4.3の内容をローカルmainブランチにマージ
+# --allow-unrelated-histories: 共通の親を持たない履歴同士をマージするために必要（初回のみ）
 git merge upstream/4.3 --allow-unrelated-histories
 
 # 自分のリモート（origin）にプッシュ
 git push -u origin main
 ```
+
+:::message
+`--allow-unrelated-histories` が必要なのは**初回の1回だけ**です。`my-eccube`（空リポジトリ）と `upstream/4.3`（EC-CUBE本家）は共通の親コミットを持たないため、このオプションなしだと `fatal: refusing to merge unrelated histories` というエラーになります。一度マージすると共通の親ができるので、次回以降は不要です。
+:::
 
 **Step 3: 本家の更新を取り込む（アップデート時）**
 
