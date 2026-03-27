@@ -621,6 +621,28 @@ gh pr create --title "$ARGUMENTS" --body "## 変更内容\n\n"
 ただし、スキルによる制限はあくまで **Claude Codeの操作制限** です。本質的な防衛線は **AWS IAM** にあります。メンバーのIAMユーザーにはECR/ECSの権限を付与しないことが、本当の意味での安全策です。スキルとIAMの両方で二重に制限することを推奨します。
 :::
 
+### メンバーの参加方法
+
+チームリポジトリ（`my-eccube`）はメンバー全員が書き込み権限を持っているので、**forkは不要**です。直接クローンしてブランチを切るだけです。
+
+| 対象 | 方法 | 理由 |
+|---|---|---|
+| EC-CUBE本家 | upstream リモートで追従 | 書き込み権限がないため |
+| チームの `my-eccube` | 直接クローン＆ブランチ | 書き込み権限があるため |
+
+```bash
+# メンバーの参加手順
+git clone https://github.com/yourteam/my-eccube.git
+cd my-eccube
+
+# 作業ブランチを切る
+git checkout -b feature/my-feature
+
+# 作業してPRを送る（/pr-eccube スキルを使うと便利）
+git push origin feature/my-feature
+gh pr create
+```
+
 ### スキルをGitで管理する
 
 スキルをプロジェクトの `.claude/skills/` に配置してGitで管理することで、チームメンバー全員が同じスキルを使えるようになります。
