@@ -242,9 +242,9 @@ aws ecs create-cluster \
   --region ap-northeast-1
 ```
 
-### Dockerfile の準備
+### 本番用 Dockerfile の準備
 
-EC-CUBEのプロジェクトルートに `Dockerfile` を作成します。
+AWS ECS（Fargate）はDockerコンテナで動作します。EC-CUBEのプロジェクトルートに本番用の `Dockerfile` を作成します。
 
 ```dockerfile
 FROM php:8.3-apache
@@ -304,6 +304,55 @@ tests/
 :::message alert
 `.env` には `DATABASE_URL` や `APP_SECRET` などの機密情報が含まれます。必ず `.dockerignore` に追加してください。ECRにプッシュしたイメージに認証情報が含まれるのは深刻なセキュリティリスクです。
 :::
+
+### 機密情報はAWSで管理する
+
+`.env` をコンテナに含めない代わりに、AWS上の機密情報管理サービスを使います。
+
+| サービス | 用途 |
+|---|---|
+| **AWS Systems Manager Parameter Store** | `DATABASE_URL`、`APP_SECRET`、`MAILER_DSN` などの設定値 |
+| **AWS Secrets Manager** | 自動ローテーションが必要なDBパスワードやAPIキー |
+| **IAM Role（ECS Task Role）** | S3へのファイルアップロードなどAWSリソースへのアクセス権限 |
+
+ECSタスク定義でParameter StoreやSecrets Managerの値を参照することで、コンテナ起動時に自動で環境変数として注入されます。
+
+```json
+{
+  "containerDefinitions": [
+    {
+      "name": "eccube",
+      "secrets": [
+        {
+          "name": "DATABASE_URL",
+          "valueFrom": "arn:aws:ssm:ap-northeast-1:123456789012:parameter/eccube/DATABASE_URL"
+        },
+        {
+          "name": "APP_SECRET",
+          "valueFrom": "arn:aws:ssm:ap-northeast-1:123456789012:parameter/eccube/APP_SECRET"
+        }
+      ]
+    }
+  ]
+}
+```
+
+Parameter Storeへの登録は以下のコマンドで行います。
+
+```bash
+# SecureString（暗号化）で登録
+aws ssm put-parameter \
+  --name "/eccube/DATABASE_URL" \
+  --value "mysql://user:password@rds-endpoint:3306/eccube" \
+  --type SecureString \
+  --region ap-northeast-1
+
+aws ssm put-parameter \
+  --name "/eccube/APP_SECRET" \
+  --value "your-app-secret" \
+  --type SecureString \
+  --region ap-northeast-1
+```
 
 ### IAM ポリシーの設定
 
