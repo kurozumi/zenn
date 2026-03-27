@@ -563,17 +563,69 @@ Claude Codeが以下を自動で実行します。
 
 ## チームで共有する場合
 
-デプロイスキルをチーム全員で使う場合は、プロジェクトの `.claude/skills/` に配置してGitで管理します。
+### 役割でスキルを分ける
+
+チーム運用では、**本番デプロイはマネージャーのみ**が行うのが基本です。メンバーが誤って本番に反映してしまうリスクを防ぐために、役割ごとにスキルを分けましょう。
+
+| 役割 | スキル | できること |
+|---|---|---|
+| メンバー | `/pr-eccube` | ブランチ作成・コミット・PR作成のみ |
+| マネージャー | `/deploy-eccube` | ECRプッシュ・ECSデプロイまで |
+
+**メンバー用スキル** `.claude/skills/pr-eccube/SKILL.md`:
+
+```yaml
+---
+name: pr-eccube
+description: EC-CUBEの変更をPull Requestとして提出する
+disable-model-invocation: true
+allowed-tools: Bash(git *), Bash(gh pr *)
+---
+
+# EC-CUBE PR 提出スキル
+
+以下の手順で変更をPull Requestとして提出してください。
+
+## Step 1: 作業ブランチの作成
 
 ```bash
-mkdir -p .claude/skills/deploy-eccube
-# SKILL.md をコピーまたは作成
-git add .claude/skills/
-git commit -m "Add EC-CUBE deploy skill"
-git push origin main
+git checkout -b feature/$ARGUMENTS
 ```
 
-これでチームメンバー全員が同じデプロイ手順を使えるようになります。
+## Step 2: 変更のコミット
+
+```bash
+git add .
+git status
+git commit -m "feat: $ARGUMENTS"
+```
+
+## Step 3: PRの作成
+
+```bash
+git push -u origin HEAD
+gh pr create --title "$ARGUMENTS" --body "## 変更内容\n\n"
+```
+```
+
+`allowed-tools` に `Bash(aws *)` や `Bash(docker *)` を含めないことで、メンバーがAWS操作系のコマンドを実行できないよう制限できます。
+
+:::message alert
+ただし、スキルによる制限はあくまで **Claude Codeの操作制限** です。本質的な防衛線は **AWS IAM** にあります。メンバーのIAMユーザーにはECR/ECSの権限を付与しないことが、本当の意味での安全策です。スキルとIAMの両方で二重に制限することを推奨します。
+:::
+
+### スキルをGitで管理する
+
+スキルをプロジェクトの `.claude/skills/` に配置してGitで管理することで、チームメンバー全員が同じスキルを使えるようになります。
+
+```bash
+mkdir -p .claude/skills/pr-eccube
+mkdir -p .claude/skills/deploy-eccube
+# 各 SKILL.md を配置
+git add .claude/skills/
+git commit -m "Add EC-CUBE team skills"
+git push origin main
+```
 
 ## まとめ
 
