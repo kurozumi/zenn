@@ -3,7 +3,7 @@ title: "【概念解説】Claude CodeカスタムスキルでEC-CUBEのAWSデプ
 emoji: "🚀"
 type: "tech"
 topics: ["eccube", "eccube4", "aws", "claudecode", "ecs"]
-published: false
+published: true
 ---
 
 :::message
