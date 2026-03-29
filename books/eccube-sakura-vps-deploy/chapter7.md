@@ -113,25 +113,119 @@ sudo certbot renew --dry-run
 
 ## EC-CUBEのアップデート
 
-EC-CUBEの新バージョンがリリースされたら以下の手順でアップデートします。
+### Step 1: アップデート前にプラグインの互換性を確認する
+
+EC-CUBE をアップデートする前に、インストール済みのプラグインが新バージョンに対応しているか確認します。対応していないプラグインがあるとアップデート後にエラーになります。
 
 ```bash
-# バックアップを取ってから実行
-mysqldump -u eccube_user -p eccube | gzip > backup_before_update.sql.gz
+cd /var/www/eccube
 
-# 本家の更新を取り込む
+# インストール済みのプラグインを一覧表示
+php bin/console eccube:plugin:list
+```
+
+各プラグインについて、以下のいずれかで互換性を確認します。
+
+- **EC-CUBE オーナーズストア**: プラグインのページに対応バージョンが記載されています
+- **composer.json を確認**: プラグインディレクトリの `composer.json` の `require` に対応する EC-CUBE バージョンが書かれています
+
+```bash
+# プラグインの composer.json を確認する例（例: Foo というプラグイン）
+cat app/Plugin/Foo/composer.json | grep ec-cube
+```
+
+対応バージョン外のプラグインがある場合は、**プラグインのアップデートが出るまでEC-CUBEのアップデートを見送る**のが安全です。
+
+:::message alert
+プラグインが新バージョン非対応のまま EC-CUBE をアップデートすると、管理画面が開けなくなったり、注文処理が止まったりする可能性があります。必ず事前確認を行ってください。
+:::
+
+### Step 2: バックアップを取る（必須）
+
+アップデート失敗時に確実に戻せるよう、コードとDBの両方をバックアップします。
+
+```bash
+cd /var/www/eccube
+
+# DBバックアップ（~/.my.cnf の認証情報を使用）
+mysqldump eccube | gzip > ~/backup_before_update_$(date +%Y%m%d).sql.gz
+
+# アップデート前のコミットハッシュを記録しておく
+git log --oneline -1
+```
+
+表示されたコミットハッシュ（例: `a1b2c3d`）をメモしておきます。ロールバック時に使います。
+
+### Step 3: アップデートを実行する
+
+```bash
+# 本家の更新を取り込む（ローカル作業）
 git fetch upstream
 git merge upstream/4.3
 
-# 依存関係を更新
-composer install --no-dev --optimize-autoloader
+# チームリポジトリへプッシュ
+git push origin main
+
+# サーバーにデプロイ
+ssh eccube-admin@<サーバーのIPアドレス>
+cd /var/www/eccube && ./deploy.sh
 
 # マイグレーションがある場合
 php bin/console doctrine:migrations:migrate --env=prod
+```
 
-# キャッシュをクリア
+### Step 4: アップデート後の動作確認
+
+```bash
+# ログにエラーがないか確認
+tail -50 /var/www/eccube/var/log/prod.log
+tail -20 /var/log/nginx/eccube_error.log
+```
+
+- [ ] フロントのトップページが表示される
+- [ ] 管理画面にログインできる
+- [ ] 使用中のプラグインが正常に動作する
+- [ ] 決済など重要な機能が動作する
+
+### ロールバック手順（アップデートに失敗した場合）
+
+アップデート後に重大な不具合が発生した場合、以下の手順で元に戻します。
+
+#### コードを戻す
+
+```bash
+cd /var/www/eccube
+
+# メモしておいたコミットハッシュで元に戻す
+git reset --hard <アップデート前のコミットハッシュ>
+
+# チームリポジトリも戻す（強制プッシュが必要）
+git push --force origin main
+```
+
+:::message alert
+`git push --force` は他のメンバーの作業を上書きする可能性があります。ロールバック時はチームに周知した上で実行してください。
+:::
+
+#### 依存関係を戻す
+
+```bash
+composer install --no-dev --optimize-autoloader
 php bin/console cache:clear --env=prod --no-debug
 ```
+
+#### DBを戻す（マイグレーションを実行した場合のみ）
+
+マイグレーションを実行していた場合は、バックアップからDBを復元します。
+
+```bash
+# バックアップから復元（本番データが上書きされるため慎重に）
+gunzip < ~/backup_before_update_$(date +%Y%m%d).sql.gz | mysql -u eccube_user -p eccube
+```
+
+:::message alert
+DB復元はアップデート後に発生した注文・会員登録などのデータが**すべて消えます**。マイグレーションを伴うアップデートは必ずメンテナンス時間帯に行い、復元前にその旨をチームで確認してください。
+:::
 
 ## サーバーのセキュリティアップデート
 
@@ -226,4 +320,4 @@ sudo certbot renew --force-renewal
 | ディスク使用量確認 | 週1回 | `df -h` |
 | fail2ban確認 | 月1回 | `fail2ban-client status sshd` |
 | SSL証明書確認 | 月1回 | `certbot certificates` |
-| EC-CUBEアップデート | リリース時 | 上記アップデート手順 |
+| EC-CUBEアップデート | リリース時 | プラグイン互換性確認 → バックアップ → 上記手順 |
