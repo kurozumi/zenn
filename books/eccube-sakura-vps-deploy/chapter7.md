@@ -120,18 +120,21 @@ EC-CUBE をアップデートする前に、インストール済みのプラグ
 ```bash
 cd /var/www/eccube
 
-# インストール済みのプラグインを一覧表示
-php bin/console eccube:plugin:list
+# インストール済みのプラグインディレクトリを確認
+ls app/Plugin/
+
+# Composer で管理されているプラグインパッケージを確認
+composer show | grep ec-cube
 ```
 
 各プラグインについて、以下のいずれかで互換性を確認します。
 
 - **EC-CUBE オーナーズストア**: プラグインのページに対応バージョンが記載されています
-- **composer.json を確認**: プラグインディレクトリの `composer.json` の `require` に対応する EC-CUBE バージョンが書かれています
+- **プラグインの composer.json を確認**: `require` に対応する EC-CUBE バージョンが書かれています
 
 ```bash
 # プラグインの composer.json を確認する例（例: Foo というプラグイン）
-cat app/Plugin/Foo/composer.json | grep ec-cube
+cat app/Plugin/Foo/composer.json | grep eccube
 ```
 
 対応バージョン外のプラグインがある場合は、**プラグインのアップデートが出るまでEC-CUBEのアップデートを見送る**のが安全です。
