@@ -7,12 +7,14 @@ title: "チームでの安全な運用"
 個人開発とチーム開発ではデプロイの考え方が変わります。
 
 ```
-メンバー: feature ブランチで開発 → PR作成
-                ↓
-マネージャー: PRレビュー → mainマージ
-                ↓
-サーバー: ./deploy.sh（git pull → キャッシュクリア）
+EC-CUBE公式 (upstream)
+        ↓ git fetch upstream && git merge upstream/4.3（アップデート時）
+チームリポジトリ (origin) ← メンバーが feature ブランチで開発 → PR作成
+        ↓                      マネージャーがレビュー → main にマージ
+本番サーバー: ./deploy.sh（git reset --hard origin/main → キャッシュクリア）
 ```
+
+この章では、このフローを実現するためのリポジトリ設定とチーム運用ルールを説明します。
 
 ## リポジトリのセットアップ
 
@@ -60,6 +62,35 @@ git push origin main
 :::message alert
 `git push upstream` は絶対に実行しないでください。本家リポジトリへの直接プッシュを試みることになります。
 :::
+
+### サーバーの origin をチームリポジトリに切り替える
+
+Chapter 4/5 でサーバーに EC-CUBE を直接 clone したため、サーバーの `origin` は EC-CUBE 公式リポジトリになっています。チームの変更をデプロイできるよう、`origin` をチームリポジトリに切り替えます。
+
+```bash
+ssh eccube-admin@<サーバーのIPアドレス>
+cd /var/www/eccube
+
+# origin をチームリポジトリに変更
+git remote set-url origin https://github.com/yourteam/my-eccube.git
+
+# EC-CUBE公式を upstream として追加（サーバー側でも追跡できるようにする）
+git remote add upstream https://github.com/EC-CUBE/ec-cube.git
+
+# 設定確認
+git remote -v
+```
+
+正しく設定されると以下のように表示されます。
+
+```
+origin    https://github.com/yourteam/my-eccube.git (fetch)
+origin    https://github.com/yourteam/my-eccube.git (push)
+upstream  https://github.com/EC-CUBE/ec-cube.git (fetch)
+upstream  https://github.com/EC-CUBE/ec-cube.git (push)
+```
+
+この設定後、`deploy.sh` の `git reset --hard origin/main` がチームリポジトリの main ブランチを反映するようになります。
 
 ## メンバーの参加方法
 
@@ -129,8 +160,8 @@ cd /var/www/eccube && ./deploy.sh
 マイグレーションが絡む場合は失敗するとメンテナンスモードが残り続けるリスクがあります。
 
 ```bash
-# 必ずバックアップを取ってから実行
-mysqldump -u eccube_user -p eccube > backup_$(date +%Y%m%d).sql
+# 必ずバックアップを取ってから実行（~/.my.cnf の認証情報を使用）
+mysqldump eccube | gzip > backup_$(date +%Y%m%d).sql.gz
 php bin/console doctrine:migrations:migrate --env=prod
 ```
 :::
