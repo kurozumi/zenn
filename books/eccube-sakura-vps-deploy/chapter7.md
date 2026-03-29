@@ -15,18 +15,34 @@ mysqldump -u eccube_user -p eccube | gzip > backup_$(date +%Y%m%d_%H%M%S).sql.gz
 
 ### 自動バックアップ（cronで毎日実行）
 
+cron でパスワードをコマンドラインに直接書くと `ps aux` などで他のユーザーに見えてしまいます。MySQL の認証情報ファイル（`~/.my.cnf`）に分離します。
+
 ```bash
+nano ~/.my.cnf
+```
+
+```ini
+[mysqldump]
+user=eccube_user
+password=your-strong-password
+```
+
+```bash
+# 自分だけ読めるようにパーミッションを制限（必須）
+chmod 600 ~/.my.cnf
+```
+
+これでパスワードなしで `mysqldump` を実行できます。
+
+```bash
+sudo mkdir -p /var/backups/eccube
+sudo chown eccube-admin:eccube-admin /var/backups/eccube
 sudo nano /etc/cron.d/eccube-backup
 ```
 
 ```cron
 # 毎日午前3時にバックアップを取得（30日分保持）
-0 3 * * * eccube-admin mysqldump -u eccube_user -p'your-password' eccube | gzip > /var/backups/eccube/eccube_$(date +\%Y\%m\%d).sql.gz && find /var/backups/eccube/ -mtime +30 -delete
-```
-
-```bash
-sudo mkdir -p /var/backups/eccube
-sudo chown eccube-admin:eccube-admin /var/backups/eccube
+0 3 * * * eccube-admin mysqldump eccube | gzip > /var/backups/eccube/eccube_$(date +\%Y\%m\%d).sql.gz && find /var/backups/eccube/ -mtime +30 -delete
 ```
 
 :::message alert
@@ -56,6 +72,31 @@ tail -f /var/www/eccube/var/log/prod.log
 ```bash
 sudo fail2ban-client status sshd
 sudo zgrep "Ban" /var/log/fail2ban.log
+```
+
+## ログローテーションの設定
+
+Nginxのログは Ubuntu 標準の logrotate で自動的にローテーションされますが、EC-CUBE のアプリケーションログは設定が必要です。放置するとディスクが枯渇します。
+
+```bash
+sudo nano /etc/logrotate.d/eccube
+```
+
+```
+/var/www/eccube/var/log/*.log {
+    daily
+    missingok
+    rotate 30
+    compress
+    delaycompress
+    notifempty
+    create 664 eccube-admin www-data
+}
+```
+
+```bash
+# 設定の動作確認（--debug で実際には実行しない）
+sudo logrotate --debug /etc/logrotate.d/eccube
 ```
 
 ## SSL証明書の更新
@@ -182,6 +223,7 @@ sudo certbot renew --force-renewal
 | バックアップ確認 | 毎日（自動） | `ls -la /var/backups/eccube/` |
 | セキュリティアップデート | 週1回 | `apt update && apt upgrade -y` |
 | ログ確認 | 異常時 | `tail -f /var/log/nginx/eccube_error.log` |
+| ディスク使用量確認 | 週1回 | `df -h` |
 | fail2ban確認 | 月1回 | `fail2ban-client status sshd` |
 | SSL証明書確認 | 月1回 | `certbot certificates` |
 | EC-CUBEアップデート | リリース時 | 上記アップデート手順 |
