@@ -34,13 +34,25 @@ allowed-tools: Bash(ssh *), Bash(ssh-copy-id *)
 
 ## Step 0: セットアップ情報の確認
 
-ユーザーに以下の情報を確認してください。
+ユーザーに以下の情報を確認してください。確認できたら、後続のステップで使う変数として記憶してください。
 
-- **VPSのIPアドレス**（例: 192.0.2.1）
-- **作成するユーザー名**（例: eccube-admin）
-- **ドメイン名**（例: shop.example.com）
-- **DBパスワード**（強力なパスワード）
-- **管理画面パス**（例: my-secret-admin）
+| 変数名 | 説明 | 例 |
+|---|---|---|
+| `VPS_IP` | VPSのIPアドレス | `192.0.2.1` |
+| `USERNAME` | 作成するユーザー名 | `eccube-admin` |
+| `DOMAIN` | ドメイン名 | `shop.example.com` |
+| `DB_PASSWORD` | DBパスワード（強力なものを） | `Str0ng!Pass#2024` |
+| `ADMIN_ROUTE` | 管理画面のURLパス | `my-secret-admin` |
+
+確認後、以下のコマンドで変数をセットしてから各ステップを実行してください。
+
+```bash
+export VPS_IP="確認したIPアドレス"
+export USERNAME="eccube-admin"
+export DOMAIN="shop.example.com"
+export DB_PASSWORD="設定するDBパスワード"
+export ADMIN_ROUTE="my-secret-admin"
+```
 
 ---
 

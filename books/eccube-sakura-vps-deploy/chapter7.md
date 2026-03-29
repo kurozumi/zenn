@@ -9,11 +9,8 @@ title: "本番運用のベストプラクティス"
 ### 手動バックアップ
 
 ```bash
-# バックアップ取得
-mysqldump -u eccube_user -p eccube > backup_$(date +%Y%m%d_%H%M%S).sql.gz
-
-# 圧縮して保存
-mysqldump -u eccube_user -p eccube | gzip > backup_$(date +%Y%m%d).sql.gz
+# gzip圧縮してバックアップ取得
+mysqldump -u eccube_user -p eccube | gzip > backup_$(date +%Y%m%d_%H%M%S).sql.gz
 ```
 
 ### 自動バックアップ（cronで毎日実行）
