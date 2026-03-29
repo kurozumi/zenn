@@ -2,7 +2,7 @@
 title: "【コピペで完成】さくらVPS + EC-CUBE 4.3 本番環境を2時間で構築するセキュリティ設定付き手順書"
 emoji: "🛡️"
 type: "tech"
-topics: ["eccube", "eccube4", "vps", "ubuntu", "linux"]
+topics: ["eccube", "eccube4", "vps", "ubuntu", "claudecode"]
 published: false
 ---
 
@@ -17,15 +17,15 @@ published: false
 
 セキュリティ設定なしでデプロイしたサーバーは、公開直後から攻撃を受けます。SSH総当たり攻撃、rootへの不正アクセス試行——VPSを立ち上げた瞬間から始まっています。
 
-この記事では「とりあえず動いた」で終わらず、本番で安全に運用できる環境を一度で構築します。**コマンドはすべてコピペ可能です。**
+この記事では Claude Code の**カスタムスキル**を使い、複雑なVPS初期設定からEC-CUBEのデプロイまでを `/setup-eccube-vps` の**1コマンドで自動化**します。
 
-**この記事を読み終えると、以下がすべて完成しています:**
+**このスキルが自動化すること:**
 
 - SSH鍵認証 + rootログイン禁止（パスワード攻撃を無力化）
 - ufw + fail2ban（不正アクセスを自動ブロック）
 - PHP 8.3 + Nginx + MySQL によるEC-CUBE 4.3動作環境
 - Let's Encrypt SSL（無料HTTPS化）
-- git pullベースのデプロイスクリプト（次回以降は1コマンドでデプロイ完了）
+- git resetベースのデプロイスクリプト設置
 
 **動作環境:**
 
@@ -37,17 +37,13 @@ published: false
 | データベース | MySQL 8.0 |
 | EC-CUBE | 4.3 |
 
-:::message alert
-**この記事はVPS初期設定から本番デプロイまでの流れを解説したものです。** 本番運用にはバックアップ設定、監視設定、DBチューニングなど追加の設定が必要になる場合があります。
-:::
+## 事前準備（ローカルマシンで実施）
 
-## 1. さくらVPSの契約と初期設定
+スキルを実行する前に、ローカルマシンで以下を完了させてください。
 
-### 1-1. VPSの契約
+### 1. さくらVPSの契約
 
-[さくらのVPS](https://vps.sakura.ad.jp/) にアクセスして契約します。EC-CUBEの本番環境には **2GB以上のメモリ** を推奨します。
-
-プランの目安：
+[さくらのVPS](https://vps.sakura.ad.jp/) で **Ubuntu 24.04 LTS** を選択して契約します。EC-CUBEの本番環境には **2GB以上のメモリ** を推奨します。
 
 | 月額 | メモリ | CPU | 推奨用途 |
 |---|---|---|---|
@@ -55,76 +51,7 @@ published: false
 | 979円〜 | 2GB | 3コア | 小規模本番 |
 | 1,979円〜 | 4GB | 4コア | 中規模本番 |
 
-OSは **Ubuntu 24.04 LTS** を選択してください。
-
-### 1-2. コントロールパネルにログイン
-
-契約後、さくらインターネットの会員メニューからVPSコントロールパネルにアクセスします。サーバーのIPアドレスを確認しておきましょう。
-
-### 1-3. 最初のSSH接続（rootで）
-
-初回のみrootでログインします。
-
-```bash
-# ローカルマシンのターミナルで実行
-ssh root@<サーバーのIPアドレス>
-```
-
-パスワードは契約時に設定したものを入力します。
-
-## 2. セキュリティの初期設定
-
-:::message alert
-この章の設定は**必ず順番通りに**行ってください。SSH鍵の設定が完了する前にパスワード認証を無効にすると、サーバーに入れなくなります。万が一ロックアウトした場合はさくらVPSのコントロールパネルからVNCコンソールで復旧できます。
-:::
-
-### 2-1. システムを最新に更新する
-
-```bash
-apt update && apt upgrade -y
-```
-
-### 2-2. 一般ユーザーを作成する
-
-rootで常時作業するのは危険です。一般ユーザーを作成してsudo権限を付与します。
-
-```bash
-# ユーザーを作成（例：eccube-admin）
-adduser eccube-admin
-```
-
-`adduser` を実行すると対話式でパスワードの設定を求められます。
-
-```
-Enter new UNIX password:       ← パスワードを入力
-Retype new UNIX password:      ← 確認用に再入力
-passwd: password updated successfully
-Full Name []:                  ← 空欄でEnterでOK
-Room Number []:
-Work Phone []:
-Home Phone []:
-Other []:
-Is the information correct? [Y/n]: Y
-```
-
-```bash
-# sudo権限を付与
-usermod -aG sudo eccube-admin
-```
-
-作成したユーザーでログインできることを確認します（**ターミナルを新しく開いて試す**）。
-
-```bash
-# 別のターミナルで確認
-ssh eccube-admin@<サーバーのIPアドレス>
-sudo whoami  # rootと表示されればOK
-```
-
-### 2-3. SSH鍵認証を設定する
-
-パスワード認証より安全なSSH鍵認証に切り替えます。
-
-**ローカルマシンで鍵ペアを生成する:**
+### 2. SSH鍵ペアの生成
 
 ```bash
 # ローカルのターミナルで実行
@@ -133,109 +60,116 @@ ssh-keygen -t ed25519 -C "eccube-vps"
 # パスフレーズ: 設定することを推奨
 ```
 
-**公開鍵をサーバーにコピーする:**
+### 3. rootでVPSに接続
 
 ```bash
-# ローカルのターミナルで実行
-ssh-copy-id -i ~/.ssh/id_ed25519.pub eccube-admin@<サーバーのIPアドレス>
+ssh root@<サーバーのIPアドレス>
 ```
 
-**鍵でログインできることを確認する:**
+接続できたらスキルを実行する準備完了です。
+
+## Claude Codeデプロイスキルの作成
+
+### スキルファイルの作成
+
+ローカルマシンで以下のディレクトリとファイルを作成します。
 
 ```bash
-ssh -i ~/.ssh/id_ed25519 eccube-admin@<サーバーのIPアドレス>
+mkdir -p ~/.claude/skills/setup-eccube-vps
 ```
 
-ログインできたら次のステップに進みます。
+`~/.claude/skills/setup-eccube-vps/SKILL.md` を以下の内容で作成します。
 
-### 2-4. SSHの設定を強化する
+````markdown
+---
+name: setup-eccube-vps
+description: さくらVPS（Ubuntu 24.04）にEC-CUBE 4.3をセキュアにセットアップする
+disable-model-invocation: true
+allowed-tools: Bash(ssh *), Bash(ssh-copy-id *)
+---
 
-サーバー上で以下を実行します。
+# EC-CUBE VPS セットアップスキル
+
+さくらVPS（Ubuntu 24.04）にEC-CUBE 4.3をセットアップします。
+実行前に root で VPS に SSH 接続済みであることを確認してください。
+
+## Step 0: セットアップ情報の確認
+
+ユーザーに以下の情報を確認してください。
+
+- **VPSのIPアドレス** (例: 192.0.2.1)
+- **作成するユーザー名** (例: eccube-admin)
+- **ドメイン名** (例: shop.example.com)
+- **DBパスワード** (強力なパスワードを設定すること)
+- **管理画面パス** (例: my-secret-admin ← デフォルトの /admin から変更)
+
+すべての情報が揃ったら以下を実行してください。
+
+---
+
+## Step 1: システムの更新
 
 ```bash
-sudo nano /etc/ssh/sshd_config
+ssh root@${VPS_IP} "apt update && apt upgrade -y"
 ```
 
-以下の項目を変更します（`#` がついている行はコメントを外す）。
-
-```
-# rootログインを禁止
-PermitRootLogin no
-
-# パスワード認証を無効化（鍵認証のみに）
-PasswordAuthentication no
-
-# 鍵認証を明示的に有効化
-PubkeyAuthentication yes
-
-# PAM経由のパスワード認証も無効化（Ubuntu 22.04以降）
-KbdInteractiveAuthentication no
-
-# 接続を許可するユーザーをホワイトリストで指定
-AllowUsers eccube-admin
-```
-
-設定を反映します。
+## Step 2: 一般ユーザーの作成
 
 ```bash
-sudo systemctl restart sshd
+ssh root@${VPS_IP} "
+  # ユーザー作成（パスワードなし・鍵認証専用）
+  adduser --disabled-password --gecos '' ${USERNAME}
+  usermod -aG sudo ${USERNAME}
+  echo '${USERNAME} ALL=(ALL) NOPASSWD: /usr/bin/composer, /var/www/eccube/deploy.sh' >> /etc/sudoers.d/eccube
+"
 ```
 
-**別のターミナルから新しい設定でログインできることを必ず確認してください。**
-
-### 2-5. ファイアウォール（ufw）を設定する
-
-必要なポートだけ開けて、それ以外はすべてブロックします。
+## Step 3: SSH公開鍵をサーバーにコピー
 
 ```bash
-# デフォルトで全拒否
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-
-# SSH（22番）を許可
-sudo ufw allow 22/tcp
-
-# HTTP・HTTPSを許可
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-
-# ufwを有効化
-sudo ufw enable
-
-# 設定確認
-sudo ufw status verbose
+ssh-copy-id -i ~/.ssh/id_ed25519.pub ${USERNAME}@${VPS_IP}
 ```
 
-:::message
-MySQLのポート（3306番）は `deny incoming` のデフォルト設定により外部からブロックされています。`ufw allow 3306` は絶対に実行しないでください。また、MySQLがlocalhostのみをリッスンしていることを確認しましょう。
+コピー後、鍵でログインできることを確認します。
 
 ```bash
-sudo ss -tlnp | grep 3306
-# 127.0.0.1:3306 と表示されればOK
-# 0.0.0.0:3306 が表示された場合は /etc/mysql/mysql.conf.d/mysqld.cnf の
-# bind-address = 127.0.0.1 を確認してください
+ssh -i ~/.ssh/id_ed25519 ${USERNAME}@${VPS_IP} "echo 'SSH key login OK'"
 ```
-:::
 
-### 2-6. fail2banで不正アクセスを防ぐ
-
-fail2banは、繰り返しログイン失敗したIPアドレスを自動的にブロックするツールです。
+## Step 4: SSHの設定強化
 
 ```bash
-sudo apt install fail2ban python3-systemd -y
+ssh root@${VPS_IP} "
+  sed -i 's/#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+  sed -i 's/#PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+  sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
+  echo 'PubkeyAuthentication yes' >> /etc/ssh/sshd_config
+  echo 'KbdInteractiveAuthentication no' >> /etc/ssh/sshd_config
+  echo 'AllowUsers ${USERNAME}' >> /etc/ssh/sshd_config
+  systemctl restart sshd
+"
 ```
 
-設定ファイルを作成します（元のファイルは変更しない）。
+## Step 5: ファイアウォール設定
 
 ```bash
-sudo nano /etc/fail2ban/jail.local
+ssh root@${VPS_IP} "
+  ufw default deny incoming
+  ufw default allow outgoing
+  ufw allow 22/tcp
+  ufw allow 80/tcp
+  ufw allow 443/tcp
+  ufw --force enable
+"
 ```
 
-以下を記述します。
+## Step 6: fail2banのインストール
 
-```ini
+```bash
+ssh root@${VPS_IP} "
+  apt install fail2ban python3-systemd -y
+  cat > /etc/fail2ban/jail.local << 'EOF'
 [DEFAULT]
-# 10分以内に5回失敗したら1時間ブロック
 bantime  = 1h
 findtime = 10m
 maxretry = 5
@@ -244,256 +178,150 @@ backend  = systemd
 [sshd]
 enabled = true
 port    = ssh
+EOF
+  systemctl enable fail2ban
+  systemctl start fail2ban
+"
 ```
 
-fail2banを起動します。
+## Step 7: PHP 8.3 + Nginx + MySQLのインストール
 
 ```bash
-sudo systemctl enable fail2ban
-sudo systemctl start fail2ban
+ssh root@${VPS_IP} "
+  # Nginx
+  apt install nginx -y
+  systemctl enable nginx
 
-# 動作確認
-sudo fail2ban-client status sshd
-```
-
-## 3. Webサーバー環境の構築
-
-### 3-1. Nginxのインストール
-
-```bash
-sudo apt install nginx -y
-sudo systemctl enable nginx
-sudo systemctl start nginx
-```
-
-ブラウザで `http://<サーバーのIPアドレス>` にアクセスして「Welcome to nginx!」が表示されれば成功です。
-
-### 3-2. PHPのインストール
-
-EC-CUBE 4.3はPHP 8.1〜8.3をサポートしています。Ubuntu 24.04はPHP 8.3をデフォルトリポジトリに含んでいますが、最新のマイナーバージョンを利用するためにPPAを追加します。
-
-```bash
-# PPAリポジトリを追加（最新マイナーバージョンを利用する場合）
-sudo apt install software-properties-common -y
-sudo add-apt-repository ppa:ondrej/php -y
-sudo apt update
-
-# PHP 8.3と必要な拡張をインストール
-sudo apt install php8.3 php8.3-fpm php8.3-cli \
+  # PHP 8.3
+  apt install software-properties-common -y
+  add-apt-repository ppa:ondrej/php -y
+  apt update
+  apt install php8.3 php8.3-fpm php8.3-cli \
     php8.3-mysql php8.3-mbstring \
     php8.3-xml php8.3-zip php8.3-curl php8.3-gd \
     php8.3-intl php8.3-sodium php8.3-bcmath -y
+
+  # MySQL
+  apt install mysql-server -y
+  systemctl enable mysql
+"
 ```
 
-インストール確認します。
+## Step 8: MySQLのセットアップ
 
 ```bash
-php -v
-# PHP 8.3.x と表示されればOK
-```
-
-### 3-3. MySQLのインストール
-
-```bash
-sudo apt install mysql-server -y
-sudo systemctl enable mysql
-sudo systemctl start mysql
-```
-
-セキュリティ設定を行います。
-
-```bash
-sudo mysql_secure_installation
-```
-
-対話式で以下を設定します。
-
-- VALIDATE PASSWORD component: `Y`（パスワード強度チェックを有効化）
-- Password strength: `2`（STRONG）
-- Remove anonymous users: `Y`
-- Disallow root login remotely: `Y`
-- Remove test database: `Y`
-- Reload privilege tables: `Y`
-
-EC-CUBE用のデータベースとユーザーを作成します。
-
-:::message
-Ubuntu 24.04のMySQL 8.0はデフォルトで `auth_socket` 認証を使用します。そのため `root` はパスワードなしでログインできます。
-:::
-
-```bash
-sudo mysql
-```
-
-```sql
--- データベースを作成
+ssh root@${VPS_IP} "
+  mysql -u root << 'EOF'
 CREATE DATABASE eccube CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- 専用ユーザーを作成（パスワードは必ず変更すること）
-CREATE USER 'eccube_user'@'localhost' IDENTIFIED BY 'your-strong-password';
-
--- 必要最小限の権限のみ付与
+CREATE USER 'eccube_user'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';
 GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER,
       CREATE TEMPORARY TABLES, LOCK TABLES
       ON eccube.* TO 'eccube_user'@'localhost';
 FLUSH PRIVILEGES;
-EXIT;
+EOF
+"
 ```
 
-:::message alert
-`GRANT ALL PRIVILEGES` は使わず、必要な権限のみを付与します。SQLインジェクション攻撃が発生した場合の被害を最小限に抑えるためです。
-:::
-
-### 3-4. Composerのインストール
-
-セキュリティのためハッシュ検証付きでインストールします。
+## Step 9: Composerのインストール
 
 ```bash
-php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-php -r "if (hash_file('sha384', 'composer-setup.php') === file_get_contents('https://composer.github.io/installer.sig')) { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;"
-php composer-setup.php
-php -r "unlink('composer-setup.php');"
-sudo mv composer.phar /usr/local/bin/composer
-composer --version
+ssh root@${VPS_IP} "
+  php -r \"copy('https://getcomposer.org/installer', 'composer-setup.php');\"
+  php -r \"if (hash_file('sha384', 'composer-setup.php') === file_get_contents('https://composer.github.io/installer.sig')) { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;\"
+  php composer-setup.php
+  php -r \"unlink('composer-setup.php');\"
+  mv composer.phar /usr/local/bin/composer
+"
 ```
 
-## 4. EC-CUBEのデプロイ
-
-### 4-1. ディレクトリの準備
+## Step 10: EC-CUBEのデプロイ
 
 ```bash
-sudo mkdir -p /var/www/eccube
-sudo chown eccube-admin:www-data /var/www/eccube
-sudo chmod 775 /var/www/eccube
+ssh root@${VPS_IP} "
+  mkdir -p /var/www/eccube
+  chown ${USERNAME}:www-data /var/www/eccube
+  chmod 775 /var/www/eccube
+"
+
+ssh ${USERNAME}@${VPS_IP} "
+  cd /var/www/eccube
+  git clone https://github.com/EC-CUBE/ec-cube.git .
+  git checkout \$(git tag -l '4.3.*' | sort -V | tail -1)
+  composer install --no-dev --optimize-autoloader
+
+  # .envの設定
+  cp .env.dist .env
+  sed -i 's/APP_ENV=.*/APP_ENV=prod/' .env
+  sed -i 's/APP_DEBUG=.*/APP_DEBUG=0/' .env
+  sed -i 's|DATABASE_URL=.*|DATABASE_URL=mysql://eccube_user:${DB_PASSWORD}@127.0.0.1:3306/eccube|' .env
+  sed -i 's/DATABASE_SERVER_VERSION=.*/DATABASE_SERVER_VERSION=8.0/' .env
+  AUTH_MAGIC=\$(openssl rand -base64 32)
+  echo \"ECCUBE_AUTH_MAGIC=\${AUTH_MAGIC}\" >> .env
+  echo 'ECCUBE_ADMIN_ROUTE=${ADMIN_ROUTE}' >> .env
+  chmod 600 .env
+  chown \${USER}:\${USER} .env
+"
 ```
 
-### 4-2. EC-CUBEのインストール
+## Step 11: パーミッションの設定とEC-CUBEインストール
 
 ```bash
-cd /var/www/eccube
+ssh root@${VPS_IP} "
+  chown -R ${USERNAME}:www-data /var/www/eccube
+  find /var/www/eccube -type d -exec chmod 755 {} \;
+  find /var/www/eccube -type f -exec chmod 644 {} \;
+  chmod -R 775 /var/www/eccube/var
+  chmod -R 775 /var/www/eccube/html
+  chmod -R 775 /var/www/eccube/app/Plugin
+  chmod -R 775 /var/www/eccube/app/PluginData
+  chmod -R 775 /var/www/eccube/app/proxy
+  chmod -R 775 /var/www/eccube/app/template
+  chmod -R 775 /var/www/eccube/vendor
+  chmod 664 /var/www/eccube/composer.json
+  chmod 664 /var/www/eccube/composer.lock
+"
 
-# GitHubからEC-CUBEを取得
-git clone https://github.com/EC-CUBE/ec-cube.git .
-
-# 本番環境では最新リリースタグを指定する（開発継続中のブランチより安定）
-git checkout $(git tag -l "4.3.*" | sort -V | tail -1)
-
-# 依存関係のインストール
-composer install --no-dev --optimize-autoloader
+ssh ${USERNAME}@${VPS_IP} "
+  cd /var/www/eccube
+  php bin/console eccube:install --no-interaction
+"
 ```
 
-### 4-3. 環境設定ファイルの作成
+## Step 12: Nginxの設定
 
 ```bash
-cp .env.dist .env
-nano .env
-```
-
-以下の項目を設定します。
-
-```bash
-APP_ENV=prod
-APP_DEBUG=0
-DATABASE_URL=mysql://eccube_user:your-strong-password@127.0.0.1:3306/eccube
-DATABASE_SERVER_VERSION=8.0
-ECCUBE_AUTH_MAGIC=your-random-32-char-string
-# 管理画面URLを変更してスキャン攻撃を防ぐ（推奨）
-ECCUBE_ADMIN_ROUTE=your-secret-admin-path
-```
-
-:::message alert
-`ECCUBE_AUTH_MAGIC` にはランダムな文字列を設定してください。以下のコマンドで生成できます。
-```bash
-openssl rand -base64 32
-```
-
-`ECCUBE_ADMIN_ROUTE` を変更すると管理画面URLが `/your-secret-admin-path` になります。デフォルトの `/admin` は攻撃ターゲットになりやすいため変更を推奨します。
-:::
-
-`.env` をWebから見えないよう保護します。
-
-```bash
-chmod 600 .env
-chown eccube-admin:eccube-admin .env
-```
-
-:::message
-本番環境では `.env` に機密情報を書くより `.env.local`（`.gitignore` 対象）に書くパターンも有効です。`.env.local` は `.env` より優先されます。
-:::
-
-### 4-4. パーミッションの設定
-
-```bash
-sudo chown -R eccube-admin:www-data /var/www/eccube
-
-# ディレクトリは755、ファイルは644を基本に設定
-sudo find /var/www/eccube -type d -exec chmod 755 {} \;
-sudo find /var/www/eccube -type f -exec chmod 644 {} \;
-
-# Webサーバーが書き込む必要があるディレクトリを緩める
-sudo chmod -R 775 /var/www/eccube/var
-sudo chmod -R 775 /var/www/eccube/html
-sudo chmod -R 775 /var/www/eccube/app/Plugin
-sudo chmod -R 775 /var/www/eccube/app/PluginData
-sudo chmod -R 775 /var/www/eccube/app/proxy
-sudo chmod -R 775 /var/www/eccube/app/template
-# プラグインインストール時に必要
-sudo chmod -R 775 /var/www/eccube/vendor
-sudo chmod 664 /var/www/eccube/composer.json
-sudo chmod 664 /var/www/eccube/composer.lock
-```
-
-### 4-5. データベースのセットアップ
-
-```bash
-cd /var/www/eccube
-php bin/console eccube:install --no-interaction
-```
-
-## 5. NginxのVhost設定
-
-### 5-1. Nginx設定ファイルの作成
-
-```bash
-sudo nano /etc/nginx/sites-available/eccube
-```
-
-以下を記述します（`your-domain.com` を実際のドメインに変更）。
-
-```nginx
+ssh root@${VPS_IP} "
+cat > /etc/nginx/sites-available/eccube << 'NGINX'
 server {
     listen 80;
-    server_name your-domain.com;
+    server_name ${DOMAIN};
     root /var/www/eccube/html;
     index index.php;
 
     client_max_body_size 32M;
 
-    # セキュリティヘッダー
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header X-Frame-Options 'SAMEORIGIN' always;
+    add_header X-Content-Type-Options 'nosniff' always;
+    add_header X-XSS-Protection '1; mode=block' always;
+    add_header Referrer-Policy 'strict-origin-when-cross-origin' always;
 
     location / {
-        try_files $uri /index.php$is_args$args;
+        try_files \$uri /index.php\$is_args\$args;
     }
 
     location ~ ^/index\.php(/|$) {
         fastcgi_pass unix:/run/php/php8.3-fpm.sock;
         fastcgi_split_path_info ^(.+\.php)(/.*)$;
         include fastcgi_params;
-        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
-        fastcgi_param DOCUMENT_ROOT $realpath_root;
+        fastcgi_param SCRIPT_FILENAME \$realpath_root\$fastcgi_script_name;
+        fastcgi_param DOCUMENT_ROOT \$realpath_root;
         internal;
     }
 
-    # ドットファイル全般をブロック（.well-knownはLet's Encrypt用に除外）
     location ~ /\.(?!well-known) {
         deny all;
     }
 
-    # index.php以外のPHPファイルへの直接アクセスを禁止
     location ~ \.php$ {
         return 404;
     }
@@ -501,132 +329,121 @@ server {
     error_log /var/log/nginx/eccube_error.log;
     access_log /var/log/nginx/eccube_access.log;
 }
+NGINX
+  ln -sf /etc/nginx/sites-available/eccube /etc/nginx/sites-enabled/
+  nginx -t && systemctl reload nginx
+"
 ```
 
-設定を有効化します。
+## Step 13: SSL証明書の取得
+
+ドメインのDNSがVPSのIPアドレスに向いていることを確認してから実行してください。
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/eccube /etc/nginx/sites-enabled/
-sudo nginx -t  # 設定ファイルのチェック
-sudo systemctl reload nginx
+ssh root@${VPS_IP} "
+  apt install certbot python3-certbot-nginx -y
+  certbot --nginx -d ${DOMAIN} --non-interactive --agree-tos -m admin@${DOMAIN}
+"
 ```
 
-## 6. SSL証明書の設定（Let's Encrypt）
-
-無料のSSL証明書を設定します。ドメインが取得済みで、DNSがサーバーのIPアドレスに向いていることを確認してから実行してください。
+## Step 14: デプロイスクリプトの設置
 
 ```bash
-sudo apt install certbot python3-certbot-nginx -y
-
-sudo certbot --nginx -d your-domain.com
-```
-
-対話式でメールアドレス等を入力します。成功するとNginxの設定が自動でHTTPS対応に更新されます。
-
-証明書の自動更新を確認します。
-
-```bash
-sudo certbot renew --dry-run
-```
-
-## 7. チームでの安全なデプロイフロー
-
-### 基本的な流れ
-
-```
-ローカル: 開発 → git push → GitHub（PRレビュー）→ mainマージ
-                                                        ↓
-サーバー:                                          ./deploy.sh
-```
-
-### デプロイスクリプトの作成
-
-```bash
-nano /var/www/eccube/deploy.sh
-```
-
-```bash
+ssh root@${VPS_IP} "
+cat > /var/www/eccube/deploy.sh << 'DEPLOY'
 #!/bin/bash
 set -euo pipefail
-
-echo "=== EC-CUBE デプロイ開始 ==="
-
-APP_DIR="/var/www/eccube"
-cd "$APP_DIR"
-
-# 最新のコードを取得（マージコミットを作らない）
-echo "コードを更新中..."
+APP_DIR='/var/www/eccube'
+cd \"\$APP_DIR\"
+echo '=== デプロイ開始 ==='
 git fetch origin
 git reset --hard origin/main
-
-# 依存関係を更新
-echo "依存関係を更新中..."
 composer install --no-dev --optimize-autoloader
-
-# キャッシュをクリア
-echo "キャッシュをクリア中..."
 php bin/console cache:clear --env=prod --no-debug
-
-# varディレクトリのパーミッションを修正
-chmod -R 775 "$APP_DIR/var"
-
-echo "=== デプロイ完了！ ==="
+chmod -R 775 \"\$APP_DIR/var\"
+echo '=== デプロイ完了！ ==='
+DEPLOY
+  chmod +x /var/www/eccube/deploy.sh
+  chown ${USERNAME}:www-data /var/www/eccube/deploy.sh
+"
 ```
 
-実行権限を付与します。
+## Step 15: 完了確認
 
 ```bash
-chmod +x /var/www/eccube/deploy.sh
+ssh ${USERNAME}@${VPS_IP} "
+  echo '=== セットアップ完了確認 ==='
+  sudo ufw status
+  sudo fail2ban-client status sshd
+  php -v
+  nginx -v
+  mysql --version
+  echo ''
+  echo '=== EC-CUBE動作確認 ==='
+  curl -s -o /dev/null -w '%{http_code}' http://${DOMAIN}/
+"
 ```
 
-以降のデプロイは以下のコマンドだけで完了します。
+すべて完了したら以下のURLにアクセスして動作を確認してください。
+
+- ショップ: https://${DOMAIN}/
+- 管理画面: https://${DOMAIN}/${ADMIN_ROUTE}/
+````
+
+## スキルの使い方
+
+スキルを作成したら、VPSにrootでSSH接続した状態でClaude Codeを開き、以下を実行します。
+
+```
+/setup-eccube-vps
+```
+
+Claude Codeが以下を確認してから自動で実行します。
+
+1. VPSのIPアドレス・ユーザー名・ドメイン・DBパスワード・管理画面パスを確認
+2. システム更新
+3. ユーザー作成 + SSH鍵認証設定
+4. ufw + fail2ban設定
+5. PHP 8.3 + Nginx + MySQL インストール
+6. EC-CUBE 4.3 デプロイ
+7. Nginx + SSL設定
+8. デプロイスクリプト設置
+9. 動作確認
+
+## 次回以降のデプロイ
+
+初回セットアップ後は、サーバー上でデプロイスクリプトを実行するだけです。
 
 ```bash
+ssh eccube-admin@<サーバーのIPアドレス>
 cd /var/www/eccube && ./deploy.sh
 ```
-
-### デプロイ時の注意点
 
 :::message alert
 **スキーマ変更（マイグレーション）がある場合は、別途手動での対応が必要です。**
 
 ```bash
-# マイグレーション実行（スキーマ変更がある場合のみ）
 php bin/console doctrine:migrations:migrate --env=prod
 ```
 
 マイグレーション実行前にデータベースのバックアップを取ることを強く推奨します。
 :::
 
-## 8. 動作確認チェックリスト
+## このスキルの限界
 
-デプロイ完了後、以下を確認してください。
-
-- [ ] `https://your-domain.com` でEC-CUBEのトップページが表示される
-- [ ] `https://your-domain.com/<ECCUBE_ADMIN_ROUTE>` で管理画面にログインできる
-- [ ] `.env` ファイルにブラウザからアクセスできない（403が返る）
-- [ ] HTTP（80番）にアクセスするとHTTPS（443番）にリダイレクトされる
-- [ ] `APP_DEBUG=0` になっていることを確認（`.env` を確認）
-- [ ] `sudo ufw status` でファイアウォールが有効になっている
-- [ ] `sudo fail2ban-client status sshd` でfail2banが動作している
-- [ ] rootユーザーでSSHログインできないことを確認
+- **インタラクティブなコマンドは自動化できない**: `mysql_secure_installation` 等は手動対応が必要
+- **DNS設定は手動**: Let's EncryptはDNSがVPSに向いていないと失敗します
+- **完全な本番運用にはさらに設定が必要**: バックアップ、監視、DBチューニング等
 
 ## まとめ
 
-この記事で行ったセキュリティ設定をまとめます。
+Claude Codeのカスタムスキルを使うことで、複雑なVPS初期設定からEC-CUBEのデプロイまでを `/setup-eccube-vps` の1コマンドで自動化できます。
 
-| 設定 | 目的 |
+| 従来の方法 | スキルを使った場合 |
 |---|---|
-| 一般ユーザー作成 | root権限の常時使用を避ける |
-| SSH鍵認証 + `AllowUsers` | パスワード攻撃・不正ユーザーのログインを防ぐ |
-| rootログイン禁止 | rootへの直接攻撃を防ぐ |
-| パスワード認証・KbdInteractive無効 | 総当たり攻撃を防ぐ |
-| ufw | 不要なポートへのアクセスをブロック |
-| fail2ban | 繰り返し失敗するIPを自動ブロック |
-| MySQLの最小権限 | SQLインジェクション時の被害を最小化 |
-| Let's Encrypt | 通信の暗号化 |
-| Nginxセキュリティヘッダー | クリックジャッキング・MIMEスニッフィング対策 |
-| 管理画面URLの変更 | スキャン攻撃のターゲットになりにくくする |
+| 手順書を見ながら1コマンドずつ実行 | 1コマンドで全自動 |
+| 手順の抜け漏れが起きやすい | 毎回同じ手順で確実に実行 |
+| チームメンバーによって手順がバラバラ | SKILL.mdを共有して標準化 |
 
 ---
 
