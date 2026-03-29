@@ -91,7 +91,23 @@ rootで常時作業するのは危険です。一般ユーザーを作成してs
 ```bash
 # ユーザーを作成（例：eccube-admin）
 adduser eccube-admin
+```
 
+`adduser` を実行すると対話式でパスワードの設定を求められます。
+
+```
+Enter new UNIX password:       ← パスワードを入力
+Retype new UNIX password:      ← 確認用に再入力
+passwd: password updated successfully
+Full Name []:                  ← 空欄でEnterでOK
+Room Number []:
+Work Phone []:
+Home Phone []:
+Other []:
+Is the information correct? [Y/n]: Y
+```
+
+```bash
 # sudo権限を付与
 usermod -aG sudo eccube-admin
 ```
