@@ -27,33 +27,54 @@ composer install --no-dev --optimize-autoloader
 `git checkout 4.3` ではなく最新リリースタグを指定します。`4.3` ブランチは開発が継続されているため、予期しない変更が含まれる場合があります。
 :::
 
-## 環境設定ファイルの作成
+## インストールウィザードの実行
+
+`bin/console e:i` コマンドを実行すると、データベース接続情報や管理者アカウントをウィザード形式で設定できます。
 
 ```bash
 cp .env.dist .env
+php bin/console e:i
+```
+
+ウィザードでは以下の項目を順番に入力します。
+
+```
+データベースの種類: mysql
+データベースのホスト: 127.0.0.1
+データベースのポート: 3306
+データベース名: eccube
+ユーザー名: eccube_user
+パスワード: （Chapter 3 で設定したDBパスワード）
+管理者メールアドレス: （任意）
+管理者パスワード: （任意）
+```
+
+ウィザードが完了すると `.env` のデータベース設定が自動で書き込まれます。
+
+### セキュリティ設定を追加する
+
+ウィザードでは設定されない以下の2項目を手動で追加します。
+
+```bash
 nano .env
 ```
 
-以下の項目を設定します。
-
 ```bash
-APP_ENV=prod
-APP_DEBUG=0
-DATABASE_URL=mysql://eccube_user:your-strong-password@127.0.0.1:3306/eccube
-DATABASE_SERVER_VERSION=8.0
-ECCUBE_AUTH_MAGIC=your-random-32-char-string
-# 管理画面URLを変更してスキャン攻撃を防ぐ
+# 管理画面URLを変更してスキャン攻撃を防ぐ（デフォルトの /admin は危険）
 ECCUBE_ADMIN_ROUTE=your-secret-admin-path
+
+# 認証用のランダム文字列（以下のコマンドで生成）
+ECCUBE_AUTH_MAGIC=your-random-32-char-string
 ```
 
 :::message alert
-**`ECCUBE_AUTH_MAGIC`** にはランダムな文字列を設定してください。
+**`ECCUBE_AUTH_MAGIC`** は以下のコマンドで生成したランダム文字列を使用してください。
 
 ```bash
 openssl rand -base64 32
 ```
 
-**`ECCUBE_ADMIN_ROUTE`** を変更すると管理画面URLが `/your-secret-admin-path` になります。デフォルトの `/admin` は攻撃ターゲットになりやすいため変更を推奨します。
+**`ECCUBE_ADMIN_ROUTE`** を変更すると管理画面URLが `/your-secret-admin-path` になります。デフォルトの `/admin` は攻撃ターゲットになりやすいため必ず変更してください。
 :::
 
 ### .envのアクセス権限を設定する
@@ -89,13 +110,6 @@ sudo chmod -R 775 /var/www/eccube/app/template
 sudo chmod -R 775 /var/www/eccube/vendor
 sudo chmod 664 /var/www/eccube/composer.json
 sudo chmod 664 /var/www/eccube/composer.lock
-```
-
-## データベースのセットアップ
-
-```bash
-cd /var/www/eccube
-php bin/console eccube:install --no-interaction
 ```
 
 ## Nginxの設定
