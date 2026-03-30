@@ -48,19 +48,24 @@ php bin/console e:i
 
 ### 管理画面URLを変更する
 
-`ECCUBE_ADMIN_ROUTE` はウィザードでは設定されず、デフォルトの `admin` のままになります。デフォルトの `/admin` は攻撃ターゲットになりやすいため、**必ず変更してください**。
+デフォルトの `/admin` は攻撃ターゲットになりやすいため、**必ず変更してください**。変更方法は2つあります。
+
+**方法1: 管理画面から変更する（簡単）**
+
+インストール後に管理画面（`https://your-domain.com/admin`）にログインし、「コンテンツ管理」→「セキュリティ管理」から変更できます。
+
+**方法2: `.env` を直接編集する**
 
 ```bash
 nano .env
 ```
 
 ```bash
-# 管理画面URLを変更してスキャン攻撃を防ぐ
 ECCUBE_ADMIN_ROUTE=your-secret-admin-path
 ```
 
 :::message alert
-`ECCUBE_ADMIN_ROUTE` を設定すると管理画面のURLが `https://your-domain.com/your-secret-admin-path` になります。推測されにくいランダムな文字列を設定してください。
+推測されにくいランダムな文字列を設定してください。変更後は新しいURLでしか管理画面にアクセスできなくなります。
 :::
 
 ### .envのアクセス権限を設定する
