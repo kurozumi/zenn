@@ -29,51 +29,38 @@ composer install --no-dev --optimize-autoloader
 
 ## インストールウィザードの実行
 
-`bin/console e:i` コマンドを実行すると、データベース接続情報や管理者アカウントをウィザード形式で設定できます。
+`bin/console e:i` コマンドを実行すると、ウィザード形式でインストールできます。`.env` は自動で生成されます。
 
 ```bash
 php bin/console e:i
 ```
 
-ウィザードでは以下の項目を順番に入力します。
+ウィザードでは以下の項目を入力します。
 
-```
-データベースの種類: mysql
-データベースのホスト: 127.0.0.1
-データベースのポート: 3306
-データベース名: eccube
-ユーザー名: eccube_user
-パスワード: （Chapter 3 で設定したDBパスワード）
-管理者メールアドレス: （任意）
-管理者パスワード: （任意）
-```
+| 項目 | 入力値 |
+|---|---|
+| Trusted Hosts | そのまま Enter（デフォルトのまま） |
+| Database URL | `mysql://eccube_user:パスワード@127.0.0.1:3306/eccube` |
+| Mailer DSN | そのまま Enter（デフォルトのまま） |
+| Auth Magic | そのまま Enter（ランダム値が自動生成される） |
 
-ウィザードが完了すると `.env` のデータベース設定が自動で書き込まれます。
+ウィザードが完了すると、データベースの初期化（テーブル作成・初期データ投入）まで自動で行われます。
 
-### セキュリティ設定を追加する
+### 管理画面URLを変更する
 
-ウィザードでは設定されない以下の2項目を手動で追加します。
+`ECCUBE_ADMIN_ROUTE` はウィザードでは設定されず、デフォルトの `admin` のままになります。デフォルトの `/admin` は攻撃ターゲットになりやすいため、**必ず変更してください**。
 
 ```bash
 nano .env
 ```
 
 ```bash
-# 管理画面URLを変更してスキャン攻撃を防ぐ（デフォルトの /admin は危険）
+# 管理画面URLを変更してスキャン攻撃を防ぐ
 ECCUBE_ADMIN_ROUTE=your-secret-admin-path
-
-# 認証用のランダム文字列（以下のコマンドで生成）
-ECCUBE_AUTH_MAGIC=your-random-32-char-string
 ```
 
 :::message alert
-**`ECCUBE_AUTH_MAGIC`** は以下のコマンドで生成したランダム文字列を使用してください。
-
-```bash
-openssl rand -base64 32
-```
-
-**`ECCUBE_ADMIN_ROUTE`** を変更すると管理画面URLが `/your-secret-admin-path` になります。デフォルトの `/admin` は攻撃ターゲットになりやすいため必ず変更してください。
+`ECCUBE_ADMIN_ROUTE` を設定すると管理画面のURLが `https://your-domain.com/your-secret-admin-path` になります。推測されにくいランダムな文字列を設定してください。
 :::
 
 ### .envのアクセス権限を設定する
