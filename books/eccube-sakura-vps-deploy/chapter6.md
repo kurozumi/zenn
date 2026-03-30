@@ -238,7 +238,8 @@ cd /var/www/eccube && ./deploy.sh
 マイグレーションが絡む場合は失敗するとメンテナンスモードが残り続けるリスクがあります。
 
 ```bash
-# 必ずバックアップを取ってから実行（~/.my.cnf の認証情報を使用）
+# 必ずバックアップを取ってから実行
+# ※ ~/.my.cnf が未設定の場合は Chapter 7「MySQL認証情報ファイルの設定」を先に実施してください
 mysqldump eccube | gzip > backup_$(date +%Y%m%d).sql.gz
 php bin/console doctrine:migrations:migrate --env=prod
 ```

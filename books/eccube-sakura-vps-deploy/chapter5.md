@@ -154,6 +154,21 @@ EOF
 "
 ```
 
+## Step 8-2: MySQL認証情報ファイルの設定
+
+バックアップコマンドをパスワードなしで実行できるよう、`~/.my.cnf` を設定します。
+
+```bash
+ssh ${USERNAME}@${VPS_IP} "
+  cat > ~/.my.cnf << EOF
+[client]
+user=eccube_user
+password=${DB_PASSWORD}
+EOF
+  chmod 600 ~/.my.cnf
+"
+```
+
 ## Step 9: Composerのインストール
 
 ```bash
