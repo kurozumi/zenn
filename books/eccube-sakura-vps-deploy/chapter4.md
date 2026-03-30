@@ -70,9 +70,13 @@ ECCUBE_ADMIN_ROUTE=your-secret-admin-path
 
 ### .envのアクセス権限を設定する
 
+`.env` にはDBパスワードなどの機密情報が含まれるため、所有者だけが読めるように制限します。
+
 ```bash
 chmod 600 .env
 ```
+
+本番環境（`APP_ENV=prod`）では Symfony がキャッシュ生成時に `.env` の値を内部ファイルに展開するため、`600` にしても PHP-FPM は正常に動作します。
 
 :::message
 本番環境では `.env` に機密情報を書くより `.env.local`（`.gitignore` 対象）に書くパターンも有効です。`.env.local` は `.env` より優先されます。
