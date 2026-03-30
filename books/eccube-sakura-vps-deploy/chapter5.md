@@ -179,14 +179,6 @@ ssh ${USERNAME}@${VPS_IP} "
   git clone https://github.com/EC-CUBE/ec-cube.git .
   git checkout \$(git tag -l '4.3.*' | sort -V | tail -1)
   composer install --no-dev --optimize-autoloader
-  cp .env.dist .env
-  sed -i 's/APP_ENV=.*/APP_ENV=prod/' .env
-  sed -i 's/APP_DEBUG=.*/APP_DEBUG=0/' .env
-  sed -i 's|DATABASE_URL=.*|DATABASE_URL=mysql://eccube_user:${DB_PASSWORD}@127.0.0.1:3306/eccube|' .env
-  sed -i 's/DATABASE_SERVER_VERSION=.*/DATABASE_SERVER_VERSION=8.0/' .env
-  echo \"ECCUBE_AUTH_MAGIC=\$(openssl rand -base64 32)\" >> .env
-  echo 'ECCUBE_ADMIN_ROUTE=${ADMIN_ROUTE}' >> .env
-  chmod 600 .env && chown \${USER}:\${USER} .env
 "
 ```
 
@@ -203,7 +195,14 @@ ssh root@${VPS_IP} "
     /var/www/eccube/vendor
   chmod 664 /var/www/eccube/composer.json /var/www/eccube/composer.lock
 "
-ssh ${USERNAME}@${VPS_IP} "cd /var/www/eccube && php bin/console eccube:install --no-interaction"
+
+ssh ${USERNAME}@${VPS_IP} "
+  cd /var/www/eccube
+  DATABASE_URL='mysql://eccube_user:${DB_PASSWORD}@127.0.0.1:3306/eccube' \
+  ECCUBE_ADMIN_ROUTE='${ADMIN_ROUTE}' \
+  php bin/console eccube:install --no-interaction
+  chmod 600 .env
+"
 ```
 
 ## Step 12: Nginx設定・SSL取得・デプロイスクリプト設置
@@ -219,6 +218,7 @@ server {
     client_max_body_size 32M;
     add_header X-Frame-Options 'SAMEORIGIN' always;
     add_header X-Content-Type-Options 'nosniff' always;
+    add_header Referrer-Policy 'strict-origin-when-cross-origin' always;
     location / { try_files \$uri /index.php\$is_args\$args; }
     location ~ ^/index\.php(/|$) {
         fastcgi_pass unix:/run/php/php8.3-fpm.sock;
