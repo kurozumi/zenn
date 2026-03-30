@@ -84,7 +84,17 @@ chmod 600 .env
 
 ## パーミッションの設定
 
-EC-CUBEはWebサーバー（`www-data`）がいくつかのディレクトリに書き込む必要があります。
+### www-data とは
+
+`www-data` は Nginx や PHP-FPM が動作する際に使うシステムユーザーです。ブラウザからのリクエストは最終的にこのユーザーとして処理されます。
+
+```
+ブラウザ → Nginx（www-dataで動作）→ PHP-FPM（www-dataで動作）→ EC-CUBEのファイル
+```
+
+EC-CUBE が画像のアップロードやキャッシュの生成でファイルを書き込む際も、この `www-data` ユーザーが実際に書き込みます。そのため、書き込みが必要なディレクトリには `www-data` の権限を付与する必要があります。
+
+### 権限を設定する
 
 ```bash
 sudo chown -R eccube-admin:www-data /var/www/eccube
