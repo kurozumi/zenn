@@ -72,7 +72,6 @@ ECCUBE_ADMIN_ROUTE=your-secret-admin-path
 
 ```bash
 chmod 600 .env
-chown eccube-admin:eccube-admin .env
 ```
 
 :::message
