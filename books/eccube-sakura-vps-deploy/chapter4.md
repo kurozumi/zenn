@@ -32,7 +32,6 @@ composer install --no-dev --optimize-autoloader
 `bin/console e:i` コマンドを実行すると、データベース接続情報や管理者アカウントをウィザード形式で設定できます。
 
 ```bash
-cp .env.dist .env
 php bin/console e:i
 ```
 
