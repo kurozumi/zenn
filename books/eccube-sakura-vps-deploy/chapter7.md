@@ -6,23 +6,16 @@ title: "本番運用のベストプラクティス"
 
 本番環境では定期的なバックアップが必須です。障害発生時にバックアップがなければ、データを復元できません。
 
-### 手動バックアップ
+### MySQL認証情報ファイルの設定
 
-```bash
-# gzip圧縮してバックアップ取得
-mysqldump -u eccube_user -p eccube | gzip > backup_$(date +%Y%m%d_%H%M%S).sql.gz
-```
-
-### 自動バックアップ（cronで毎日実行）
-
-cron でパスワードをコマンドラインに直接書くと `ps aux` などで他のユーザーに見えてしまいます。MySQL の認証情報ファイル（`~/.my.cnf`）に分離します。
+パスワードをコマンドラインに直接書くと `ps aux` などで他のユーザーに見えてしまいます。MySQL の認証情報ファイル（`~/.my.cnf`）に分離しておくと、手動・自動どちらのバックアップでもパスワード入力なしで実行できます。
 
 ```bash
 nano ~/.my.cnf
 ```
 
 ```ini
-[mysqldump]
+[client]
 user=eccube_user
 password=your-strong-password
 ```
@@ -32,7 +25,14 @@ password=your-strong-password
 chmod 600 ~/.my.cnf
 ```
 
-これでパスワードなしで `mysqldump` を実行できます。
+### 手動バックアップ
+
+```bash
+# gzip圧縮してバックアップ取得（~/.my.cnf の認証情報を使用）
+mysqldump eccube | gzip > backup_$(date +%Y%m%d_%H%M%S).sql.gz
+```
+
+### 自動バックアップ（cronで毎日実行）
 
 ```bash
 sudo mkdir -p /var/backups/eccube
@@ -218,7 +218,7 @@ php bin/console cache:clear --env=prod --no-debug
 
 ```bash
 # バックアップから復元（本番データが上書きされるため慎重に）
-gunzip < ~/backup_before_update_$(date +%Y%m%d).sql.gz | mysql -u eccube_user -p eccube
+gunzip < ~/backup_before_update_$(date +%Y%m%d).sql.gz | mysql eccube
 ```
 
 :::message alert
