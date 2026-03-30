@@ -102,6 +102,48 @@ cd my-eccube
 git checkout -b feature/my-feature
 ```
 
+## メンバーが抜けたときの対応
+
+チームメンバーが退出した場合、**GitHubとサーバーの両方**からアクセスを削除する必要があります。どちらか一方だけでは不完全です。
+
+### 1. GitHubリポジトリから削除する
+
+GitHubの「Settings」→「Collaborators」から対象メンバーを削除します。削除後、そのメンバーはリポジトリへのアクセスができなくなります。
+
+### 2. サーバーのSSH公開鍵を削除する
+
+メンバーがサーバーにSSHできる場合、`~/.ssh/authorized_keys` から該当の公開鍵を削除します。
+
+```bash
+ssh eccube-admin@<サーバーのIPアドレス>
+nano ~/.ssh/authorized_keys
+```
+
+該当メンバーの公開鍵の行を削除して保存します。1行が1つの公開鍵です。
+
+```bash
+# 削除後、残っている鍵を確認
+cat ~/.ssh/authorized_keys
+```
+
+### 3. 機密情報をローテーションする（状況に応じて）
+
+メンバーがDBパスワードや `.env` の内容を知っていた場合は、以下も変更してください。
+
+```bash
+# DBパスワードの変更
+sudo mysql
+ALTER USER 'eccube_user'@'localhost' IDENTIFIED BY '新しいパスワード';
+FLUSH PRIVILEGES;
+
+# .envのDATABASE_URLを新しいパスワードで更新
+nano /var/www/eccube/.env
+```
+
+:::message alert
+特にマネージャー権限を持っていたメンバーが抜ける場合は、DBパスワードと `ECCUBE_ADMIN_ROUTE` の変更を強く推奨します。
+:::
+
 ## 役割でスキルを分ける
 
 本番デプロイはマネージャーのみが行うのが基本です。Claude Codeスキルで役割を分けましょう。
