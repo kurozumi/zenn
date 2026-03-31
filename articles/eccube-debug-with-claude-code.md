@@ -3,7 +3,7 @@ title: "EC-CUBEデバッグに費やす時間を9割削減した話——Claude 
 emoji: "🔍"
 type: "tech"
 topics: ["eccube", "eccube4", "claudecode", "php", "debug"]
-published: false
+published: true
 ---
 
 :::message
