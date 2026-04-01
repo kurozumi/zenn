@@ -178,6 +178,58 @@ public function install(array $meta, ContainerInterface $container): void
 
 ---
 
+## EC-CUBEのSymfony 7.4移行が進行中（PR #6686）
+
+実は、EC-CUBE本体でも大規模なアップグレードが進んでいます。
+
+**[EC-CUBE PR #6686: Upgrade to Symfony 7.4 / Doctrine ORM 3.6 / DBAL 4.4](https://github.com/EC-CUBE/ec-cube/pull/6686)**
+
+| 対象 | 現在 | アップグレード後 |
+|---|---|---|
+| Symfony | 6.4 | **7.4 LTS**（PHP 8.2+必須） |
+| Doctrine ORM | 2.x | **3.6** |
+| Doctrine DBAL | 3.x | **4.4** |
+| Monolog | 2.x | 3.x |
+
+### `getName()` はDBAL 4.4で完全に削除される
+
+前述のコード例で触れた `getName()` メソッドは、DBAL 3.x では非推奨でしたが、**DBAL 4.4では削除されます**。EC-CUBE PR #6686 がマージされると、`getName()` を実装しているカスタムタイプはエラーになります。
+
+既存プラグインのカスタムDoctrineタイプを持っている場合、`getName()` を削除する対応が必要になります。
+
+```php
+// DBAL 4.x 対応後は getName() を削除する
+// （タイプ名はTypeRegistryで管理されるため不要）
+final class MoneyType extends Type
+{
+    public function getSQLDeclaration(array $column, AbstractPlatform $platform): string
+    {
+        return 'DECIMAL(10, 2)';
+    }
+
+    // getName() は不要（削除する）
+}
+```
+
+### 既存プラグインの互換性
+
+PR #6686 では**4つの互換レイヤー**が実装されており、`@ORM` アノテーション記法のプラグインも当面は動作するよう設計されています。
+
+| 互換レイヤー | 対応内容 |
+|---|---|
+| `HybridMappingDriver` | `@ORM` アノテーションと属性の両方に対応 |
+| `HybridAnnotationClassLoader` | `@Route` アノテーション互換 |
+| `TemplateAnnotationListener` | `@Template` アノテーション互換 |
+| `PluginReturnTypeCompatLoader` | プラグインメソッドへの戻り値型を自動補完 |
+
+ただし、長期的にはアノテーション記法から**PHP 8属性**への移行が推奨されます。
+
+:::message
+PR #6686 は2026年3月時点でオープン中で、`4.3-symfony7` ブランチで開発中です。正式リリース時期は未確定ですが、プラグイン開発者は今から対応を意識しておくと安心です。
+:::
+
+---
+
 ## まとめ
 
 | 比較軸 | 現在（Symfony 6.4） | PR #63774後（Symfony 8.1〜） |
