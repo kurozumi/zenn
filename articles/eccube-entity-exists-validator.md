@@ -68,6 +68,10 @@ class ProductImportDto
 
 EC-CUBE 4.3 は Symfony 6.4 を使用しているため、`EntityExists` は使えません。ただし Symfony の `ConstraintValidator` を継承すれば同等機能を実装できます。
 
+:::message
+将来 EC-CUBE が Symfony 8.1 以降に対応した場合は、今回実装するカスタム Validator を削除し、公式の `Symfony\Bridge\Doctrine\Validator\Constraints\EntityExists` に置き換えるだけで移行できます。属性の引数名も同じ設計にしているため、移行コストは最小限です。
+:::
+
 EC-CUBE のコアコードでも `src/Eccube/Form/Validator/Email.php` と `EmailValidator.php` のペアで同じパターンが使われています。
 
 ### ディレクトリ構成（プラグイン例）
