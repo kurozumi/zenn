@@ -3,7 +3,7 @@ title: "EC-CUBEプラグインで `isValid()` が「常にtrue」を返す罠—
 emoji: "✅"
 type: "tech"
 topics: ["eccube", "eccube4", "symfony", "php", "form"]
-published: false
+published: true
 ---
 
 :::message
