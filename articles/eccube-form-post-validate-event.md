@@ -1,5 +1,5 @@
 ---
-title: "EC-CUBEプラグインで `isValid()` が「常にtrue」を返す罠——POST_SUBMITの落とし穴と正しい回避策"
+title: "EC-CUBEプラグインでisValid()が常にtrueを返す罠——POST_SUBMITの落とし穴"
 emoji: "✅"
 type: "tech"
 topics: ["eccube", "eccube4", "symfony", "php", "form"]
