@@ -1,5 +1,5 @@
 ---
-title: "EC-CUBEプラグインで「ブロックごとに異なるフォーム」を実装する：Symfony CollectionTypeの進化【PR #63487】"
+title: "EC-CUBEプラグインで「ブロックごとに異なるフォーム」をCollectionTypeで実装する"
 emoji: "📋"
 type: "tech"
 topics: ["eccube", "eccube4", "symfony", "php", "form"]
