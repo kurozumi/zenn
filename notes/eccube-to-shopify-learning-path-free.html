@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>EC-CUBE一本で大丈夫？Shopify開発者への転向ロードマップ【6ヶ月】</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h1>EC-CUBE一本で大丈夫？Shopify開発者への転向ロードマップ【6ヶ月】</h1>
+<blockquote>
+<p>この記事は EC-CUBE 4.3 以上を対象としています。<br />
+また、<a href="https://claude.ai/claude-code">Claude Code</a> を使って書かれています。内容に誤りがある場合はコメントでお知らせください。</p>
+</blockquote>
+<h2>結論：EC-CUBEの経験は7割活きる。残り3割を埋めれば両刀使いになれる</h2>
+<p><strong>正直に言います。EC-CUBE案件、減っていませんか？</strong></p>
+<p>D2Cブランドの台頭で「とりあえずShopifyで」という声が増えています。クライアントから「EC-CUBEじゃなくてShopifyでお願いしたい」と言われた経験、あなたにもあるのではないでしょうか。</p>
+<p><strong>でも、焦る必要はありません。</strong></p>
+<p>EC-CUBEで培ったスキルの<strong>7割はShopify開発でも活きます</strong>。残りの3割を埋めれば、「EC-CUBE + Shopify」の両刀使いとして市場価値を大幅に上げられます。</p>
+<blockquote>
+<p><strong>EC-CUBEとShopify、両方できるエンジニアは希少。今がスキルを広げるチャンス。</strong></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>EC-CUBE</th>
+<th>Shopify</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>サーバーを自分で管理</td>
+<td>Shopifyが管理（SaaS）</td>
+</tr>
+<tr>
+<td>PHPでカスタマイズ</td>
+<td>Liquid + JavaScript</td>
+</tr>
+<tr>
+<td>何でもできる自由度</td>
+<td>制約の中で最適化</td>
+</tr>
+<tr>
+<td>フルスクラッチ開発</td>
+<td>テーマ/アプリの組み合わせ</td>
+</tr>
+</tbody>
+</table>
+<p>この記事では、EC-CUBEエンジニアが<strong>最短でShopify開発者になるための学習ロードマップ</strong>を紹介します。</p>
+<h2>EC-CUBEとShopifyの根本的な違い</h2>
+<h3>アーキテクチャの違い</h3>
+<pre><code>EC-CUBE（オンプレミス/クラウド）
+├── サーバー管理：自分で行う
+├── データベース：直接アクセス可能
+├── コード：PHP/Symfony/Twig
+└── カスタマイズ：ソースレベルで自由
+
+Shopify（SaaS）
+├── サーバー管理：Shopifyが行う
+├── データベース：API経由のみ
+├── コード：Liquid/JavaScript/React
+└── カスタマイズ：テーマとアプリで拡張
+</code></pre>
+<h3>EC-CUBEエンジニアの強み</h3>
+<p>EC-CUBEで培った以下のスキルは、Shopify開発でも活きます：</p>
+<ul>
+<li><strong>ECの業務知識</strong>: 受注、在庫、配送、決済の流れ</li>
+<li><strong>テンプレートエンジンの経験</strong>: Twig → Liquid は類似点が多い</li>
+<li><strong>API連携の経験</strong>: REST/GraphQL APIの概念</li>
+<li><strong>フロントエンド</strong>: HTML/CSS/JavaScriptの基礎</li>
+</ul>
+<h3>学習が必要な領域</h3>
+<p>一方、以下は新しく学ぶ必要があります：</p>
+<ul>
+<li><strong>Liquid</strong>: Shopify独自のテンプレート言語</li>
+<li><strong>React/Remix</strong>: アプリ開発で必須</li>
+<li><strong>GraphQL</strong>: Shopify Admin APIはGraphQL</li>
+<li><strong>Shopifyエコシステム</strong>: Polaris、App Bridge、Hydrogen</li>
+</ul>
+</body>
+</html>

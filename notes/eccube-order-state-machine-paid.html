@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>note 変換プレビュー</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h2>ステータス遷移図</h2>
+<p>EC-CUBEで定義されているステータス遷移は以下の通りです。</p>
+<pre><code>                    ┌──────────────┐
+                    │   新規受付   │
+                    │    (NEW)     │
+                    └──────┬───────┘
+                           │
+          ┌────────────────┼────────────────┐
+          │                │                │
+          ▼                ▼                ▼
+    ┌──────────┐    ┌──────────┐    ┌──────────┐
+    │ 入金済み │    │  対応中  │    │ 注文取消 │
+    │  (PAID)  │    │(PROGRESS)│◄───│ (CANCEL) │
+    └────┬─────┘    └────┬─────┘    └──────────┘
+         │               │                ▲
+         └───────┬───────┘                │
+                 │                        │
+                 ▼                        │
+          ┌──────────┐                    │
+          │ 発送済み │────────────────────┘
+          │(DELIVERED)
+          └────┬─────┘
+               │
+               ▼
+          ┌──────────┐
+          │   返品   │
+          │(RETURNED)│
+          └──────────┘
+</code></pre>
+<h2>OrderStateMachineの設定</h2>
+<p>EC-CUBEでは、<code>app/config/eccube/packages/order_state_machine.php</code> でステータス遷移を定義しています。</p>
+<pre><code class="language-php">&lt;?php
+
+use Eccube\Entity\Master\OrderStatus as Status;
+use Eccube\Service\OrderStateMachineContext;
+
+$container-&gt;loadFromExtension('framework', [
+    'workflows' =&gt; [
+        'order' =&gt; [
+            'type' =&gt; 'state_machine',
+            'marking_store' =&gt; [
+                'type' =&gt; 'method',
+            ],
+            'supports' =&gt; [
+                OrderStateMachineContext::class,
+            ],
+            'initial_marking' =&gt; (string) Status::NEW,
+            'places' =&gt; [
+                (string) Status::NEW,
+                (string) Status::CANCEL,
+                (string) Status::IN_PROGRESS,
+                (string) Status::DELIVERED,
+                (string) Status::PAID,
+                (string) Status::PENDING,
+                (string) Status::PROCESSING,
+                (string) Status::RETURNED,
+            ],
+            'transitions' =&gt; [
+                // 入金処理
+                'pay' =&gt; [
+                    'from' =&gt; (string) Status::NEW,
+                    'to' =&gt; (string) Status::PAID,
+                ],
+                // 発送準備開始
+                'packing' =&gt; [
+                    'from' =&gt; [(string) Status::NEW, (string) Status::PAID],
+                    'to' =&gt; (string) Status::IN_PROGRESS,
+                ],
+                // 注文キャンセル
+                'cancel' =&gt; [
+                    'from' =&gt; [(string) Status::NEW, (string) Status::IN_PROGRESS, (string) Status::PAID],
+                    'to' =&gt; (string) Status::CANCEL,
+                ],
+                // キャンセル取消し
+                'back_to_in_progress' =&gt; [
+                    'from' =&gt; (string) Status::CANCEL,
+                    'to' =&gt; (string) Status::IN_PROGRESS,
+                ],
+                // 発送
+                'ship' =&gt; [
+                    'from' =&gt; [(string) Status::NEW, (string) Status::PAID, (string) Status::IN_PROGRESS],
+                    'to' =&gt; [(string) Status::DELIVERED],
+                ],
+                // 返品
+                'return' =&gt; [
+                    'from' =&gt; (string) Status::DELIVERED,
+                    'to' =&gt; (string) Status::RETURNED,
+                ],
+                // 返品取消し
+                'cancel_return' =&gt; [
+                    'from' =&gt; (string) Status::RETURNED,
+                    'to' =&gt; (string) Status::DELIVERED,
+                ],
+            ],
+        ],
+    ],
+]);
+</code></pre>
+<h3>設定の解説</h3>
+<table>
+<thead>
+<tr>
+<th>キー</th>
+<th>説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>type</code></td>
+<td><code>state_machine</code>（1つの状態のみ持てる）</td>
+</tr>
+<tr>
+<td><code>marking_store</code></td>
+<td>状態を保存/取得する方法</td>
+</tr>
+<tr>
+<td><code>supports</code></td>
+<td>このワークフローが適用されるクラス</td>
+</tr>
+<tr>
+<td><code>initial_marking</code></td>
+<td>初期状態</td>
+</tr>
+<tr>
+<td><code>places</code></td>
+<td>取りうるすべての状態</td>
+</tr>
+<tr>
+<td><code>transitions</code></td>
+<td>状態遷移の定義</td>
+</tr>
+</tbody>
+</table>
+<h2>OrderStateMachineサービス</h2>
+<p><code>OrderStateMachine</code>サービスは、受注ステータスの遷移を管理します。</p>
+<h3>主要なメソッド</h3>
+<pre><code class="language-php">// 指定ステータスに遷移できるか判定
+$canCancel = $orderStateMachine-&gt;can($Order, $CancelStatus);
+
+// ステータスを遷移
+$orderStateMachine-&gt;apply($Order, $CancelStatus);
+</code></pre>
+<h3>遷移時のイベント処理</h3>
+<p><code>OrderStateMachine</code>は<code>EventSubscriberInterface</code>を実装しており、遷移時に自動的に処理が実行されます。</p>
+<pre><code class="language-php">public static function getSubscribedEvents()
+{
+    return [
+        // 遷移完了時
+        'workflow.order.completed' =&gt; ['onCompleted'],
+        // 入金処理時
+        'workflow.order.transition.pay' =&gt; ['updatePaymentDate'],
+        // キャンセル時
+        'workflow.order.transition.cancel' =&gt; [['rollbackStock'], ['rollbackUsePoint']],
+        // キャンセル取消し時
+        'workflow.order.transition.back_to_in_progress' =&gt; [['commitStock'], ['commitUsePoint']],
+        // 発送時
+        'workflow.order.transition.ship' =&gt; [['commitAddPoint']],
+        // 返品時
+        'workflow.order.transition.return' =&gt; [['rollbackUsePoint'], ['rollbackAddPoint']],
+        // 返品取消し時
+        'workflow.order.transition.cancel_return' =&gt; [['commitUsePoint'], ['commitAddPoint']],
+    ];
+}
+</code></pre>
+<h3>遷移ごとの処理内容</h3>
+<table>
+<thead>
+<tr>
+<th>遷移</th>
+<th>処理内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pay</code></td>
+<td>入金日を設定</td>
+</tr>
+<tr>
+<td><code>cancel</code></td>
+<td>在庫を戻す、利用ポイントを戻す</td>
+</tr>
+<tr>
+<td><code>back_to_in_progress</code></td>
+<td>在庫を減らす、利用ポイントを減らす</td>
+</tr>
+<tr>
+<td><code>ship</code></td>
+<td>加算ポイントを付与</td>
+</tr>
+<tr>
+<td><code>return</code></td>
+<td>利用ポイントを戻す、加算ポイントを取り消す</td>
+</tr>
+<tr>
+<td><code>cancel_return</code></td>
+<td>利用ポイントを減らす、加算ポイントを再付与</td>
+</tr>
+</tbody>
+</table>
+<h2>プラグインでの活用</h2>
+<h3>1. 遷移イベントをフックする</h3>
+<p>特定のステータス遷移時に独自の処理を追加できます。</p>
+<pre><code class="language-php">&lt;?php
+// app/Plugin/MyPlugin/EventSubscriber/OrderStateMachineSubscriber.php
+
+namespace Plugin\MyPlugin\EventSubscriber;
+
+use Eccube\Service\OrderStateMachineContext;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\Workflow\Event\Event;
+
+class OrderStateMachineSubscriber implements EventSubscriberInterface
+{
+    public static function getSubscribedEvents()
+    {
+        return [
+            // 発送時にメール送信
+            'workflow.order.transition.ship' =&gt; 'onShip',
+            // キャンセル時に外部APIへ通知
+            'workflow.order.transition.cancel' =&gt; 'onCancel',
+            // 任意の遷移完了時
+            'workflow.order.completed' =&gt; 'onCompleted',
+        ];
+    }
+
+    public function onShip(Event $event)
+    {
+        /** @var OrderStateMachineContext $context */
+        $context = $event-&gt;getSubject();
+        $Order = $context-&gt;getOrder();
+
+        // 発送完了メールを送信するなど
+        $this-&gt;sendShippingNotification($Order);
+    }
+
+    public function onCancel(Event $event)
+    {
+        /** @var OrderStateMachineContext $context */
+        $context = $event-&gt;getSubject();
+        $Order = $context-&gt;getOrder();
+
+        // 外部システムにキャンセル通知
+        $this-&gt;notifyExternalSystem($Order, 'cancelled');
+    }
+
+    public function onCompleted(Event $event)
+    {
+        /** @var OrderStateMachineContext $context */
+        $context = $event-&gt;getSubject();
+        $Order = $context-&gt;getOrder();
+
+        // ステータス変更をログに記録
+        $this-&gt;logStatusChange($Order, $context-&gt;getStatus());
+    }
+}
+</code></pre>
+<h3>2. 遷移前の検証（Guard）</h3>
+<p>遷移を許可するかどうかを動的に制御できます。</p>
+<pre><code class="language-php">&lt;?php
+// app/Plugin/MyPlugin/EventSubscriber/OrderStateMachineGuard.php
+
+namespace Plugin\MyPlugin\EventSubscriber;
+
+use Eccube\Service\OrderStateMachineContext;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\Workflow\Event\GuardEvent;
+
+class OrderStateMachineGuard implements EventSubscriberInterface
+{
+    public static function getSubscribedEvents()
+    {
+        return [
+            // ship遷移のガード
+            'workflow.order.guard.ship' =&gt; 'guardShip',
+        ];
+    }
+
+    public function guardShip(GuardEvent $event)
+    {
+        /** @var OrderStateMachineContext $context */
+        $context = $event-&gt;getSubject();
+        $Order = $context-&gt;getOrder();
+
+        // 支払いが完了していない場合は発送を禁止
+        if ($Order-&gt;getPaymentDate() === null) {
+            $event-&gt;setBlocked(true, '入金が確認されていません');
+        }
+
+        // 配送先が未設定の場合は発送を禁止
+        if ($Order-&gt;getShippings()-&gt;isEmpty()) {
+            $event-&gt;setBlocked(true, '配送先が設定されていません');
+        }
+    }
+}
+</code></pre>
+<h3>3. カスタムステータスと遷移の追加</h3>
+<p>プラグインで独自のステータスと遷移を追加する例です。</p>
+<h4>マイグレーションでステータスを追加</h4>
+<pre><code class="language-php">&lt;?php
+// app/Plugin/MyPlugin/DoctrineMigrations/Version20240101000000.php
+
+namespace Plugin\MyPlugin\DoctrineMigrations;
+
+use Doctrine\DBAL\Schema\Schema;
+use Doctrine\Migrations\AbstractMigration;
+
+final class Version20240101000000 extends AbstractMigration
+{
+    public function up(Schema $schema): void
+    {
+        // 「審査中」ステータスを追加（ID: 10）
+        $this-&gt;addSql(&quot;INSERT INTO mtb_order_status (id, name, sort_no, discriminator_type) VALUES (10, '審査中', 10, 'orderstatus')&quot;);
+    }
+
+    public function down(Schema $schema): void
+    {
+        $this-&gt;addSql(&quot;DELETE FROM mtb_order_status WHERE id = 10&quot;);
+    }
+}
+</code></pre>
+<h4>遷移の追加（services.yamlで拡張）</h4>
+<pre><code class="language-yaml"># app/Plugin/MyPlugin/Resource/config/services.yaml
+
+# ワークフローの遷移を拡張
+framework:
+    workflows:
+        order:
+            transitions:
+                # 審査開始
+                start_review:
+                    from: '1'  # NEW
+                    to: '10'   # 審査中（カスタム）
+                # 審査完了
+                complete_review:
+                    from: '10' # 審査中
+                    to: '4'    # IN_PROGRESS
+                # 審査却下
+                reject_review:
+                    from: '10' # 審査中
+                    to: '3'    # CANCEL
+</code></pre>
+<h3>4. Controllerでの使用例</h3>
+<pre><code class="language-php">&lt;?php
+
+namespace Plugin\MyPlugin\Controller\Admin;
+
+use Eccube\Controller\AbstractController;
+use Eccube\Entity\Master\OrderStatus;
+use Eccube\Entity\Order;
+use Eccube\Service\OrderStateMachine;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\Annotation\Route;
+
+class OrderController extends AbstractController
+{
+    private OrderStateMachine $orderStateMachine;
+
+    public function __construct(OrderStateMachine $orderStateMachine)
+    {
+        $this-&gt;orderStateMachine = $orderStateMachine;
+    }
+
+    /**
+     * @Route(&quot;/admin/plugin/myorder/{id}/ship&quot;, name=&quot;my_plugin_admin_order_ship&quot;)
+     */
+    public function ship(Request $request, Order $Order)
+    {
+        $DeliveredStatus = $this-&gt;entityManager
+            -&gt;find(OrderStatus::class, OrderStatus::DELIVERED);
+
+        // 遷移可能かチェック
+        if (!$this-&gt;orderStateMachine-&gt;can($Order, $DeliveredStatus)) {
+            $this-&gt;addError('この受注は発送処理できません');
+            return $this-&gt;redirectToRoute('admin_order');
+        }
+
+        // ステータスを遷移
+        try {
+            $this-&gt;orderStateMachine-&gt;apply($Order, $DeliveredStatus);
+            $this-&gt;entityManager-&gt;flush();
+            $this-&gt;addSuccess('発送処理が完了しました');
+        } catch (\Exception $e) {
+            $this-&gt;addError('発送処理に失敗しました: ' . $e-&gt;getMessage());
+        }
+
+        return $this-&gt;redirectToRoute('admin_order');
+    }
+}
+</code></pre>
+<h2>イベント一覧</h2>
+<p>Symfony Workflowが発火するイベントの一覧です。</p>
+<table>
+<thead>
+<tr>
+<th>イベント名</th>
+<th>タイミング</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>workflow.order.guard.{transition}</code></td>
+<td>遷移前の検証</td>
+</tr>
+<tr>
+<td><code>workflow.order.leave.{place}</code></td>
+<td>状態を離れる直前</td>
+</tr>
+<tr>
+<td><code>workflow.order.transition.{transition}</code></td>
+<td>遷移中</td>
+</tr>
+<tr>
+<td><code>workflow.order.enter.{place}</code></td>
+<td>新しい状態に入った直後</td>
+</tr>
+<tr>
+<td><code>workflow.order.entered.{place}</code></td>
+<td>新しい状態に入った後</td>
+</tr>
+<tr>
+<td><code>workflow.order.completed</code></td>
+<td>遷移完了後</td>
+</tr>
+<tr>
+<td><code>workflow.order.announce.{transition}</code></td>
+<td>遷移可能になったとき</td>
+</tr>
+</tbody>
+</table>
+<h2>デバッグ</h2>
+<p>現在の受注から遷移可能なステータスを確認できます。</p>
+<pre><code class="language-php">// Workflowサービスを直接使用
+$workflow = $this-&gt;container-&gt;get('state_machine.order');
+$context = new OrderStateMachineContext(
+    (string) $Order-&gt;getOrderStatus()-&gt;getId(),
+    $Order
+);
+
+// 可能な遷移を取得
+$transitions = $workflow-&gt;getEnabledTransitions($context);
+foreach ($transitions as $transition) {
+    dump($transition-&gt;getName()); // 'pay', 'cancel', etc.
+}
+</code></pre>
+<h2>まとめ</h2>
+<p>EC-CUBEのOrderStateMachineは、Symfony Workflow Componentを活用して以下を実現しています。</p>
+<ol>
+<li><strong>不正な遷移の防止</strong> - 定義されたルール以外の遷移を許可しない</li>
+<li><strong>遷移時の自動処理</strong> - 在庫戻し、ポイント処理などを自動実行</li>
+<li><strong>拡張性</strong> - プラグインで遷移のフック、ガード、カスタムステータスを追加可能</li>
+</ol>
+<p>プラグインで活用する際は：</p>
+<ol>
+<li><strong>イベントをフック</strong> - <code>workflow.order.transition.{name}</code> で遷移時の処理を追加</li>
+<li><strong>ガードで制御</strong> - <code>workflow.order.guard.{name}</code> で遷移を動的に許可/禁止</li>
+<li><strong>カスタムステータス</strong> - マイグレーションと設定でステータスを追加</li>
+</ol>
+<p>この仕組みを理解すれば、EC-CUBEの受注処理を柔軟にカスタマイズできます。</p>
+<hr />
+<h2>📩 EC-CUBE開発・カスタマイズのご相談</h2>
+<p>以下のような案件、お気軽にご相談ください。</p>
+<ul>
+<li>プラグイン開発・既存プラグインの改修</li>
+<li>EC-CUBE 4系へのバージョンアップ対応</li>
+<li>カスタマイズ・機能追加</li>
+<li>エンタープライズ向け開発・導入支援</li>
+</ul>
+<p>👉 <strong><a href="https://a-zumi.net/contact/">お問い合わせはこちら</a></strong></p>
+<hr />
+</body>
+</html>

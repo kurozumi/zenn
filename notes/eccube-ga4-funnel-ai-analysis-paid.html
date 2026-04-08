@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>note 変換プレビュー</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h2>GA4 Data API で取得できるデータ</h2>
+<p>GA4 Data API のファネルレポートエンドポイント（<code>runFunnelReport</code>）を使うと、ステップごとの以下のデータを取得できます。</p>
+<ul>
+<li><strong>アクティブユーザー数</strong>: 各ステップに到達したユーザー数</li>
+<li><strong>完了率（Completion Rate）</strong>: 前のステップから次のステップへ進んだ割合</li>
+<li><strong>離脱数（Abandonments）</strong>: 各ステップで離脱したユーザー数</li>
+<li><strong>離脱率（Abandonment Rate）</strong>: 各ステップでの離脱割合</li>
+</ul>
+<p>さらにディメンションで分解することで、以下のような切り口で分析できます。</p>
+<ul>
+<li><strong>デバイス別</strong>: スマホとPCで離脱率に差がある</li>
+<li><strong>流入チャネル別</strong>: 広告経由のユーザーはカートに入れやすいが完了しにくい</li>
+<li><strong>時間帯別</strong>: 深夜のユーザーは支払ステップで離脱しやすい</li>
+</ul>
+<blockquote>
+<p><code>runFunnelReport</code> はアルファ版（<code>v1alpha</code>）のエンドポイントです。本番環境での利用は仕様変更の可能性を考慮してください。</p>
+</blockquote>
+<h2>GA4 のデータに個人情報は含まれるか</h2>
+<p><strong>含まれません。</strong> GA4 Data API のレスポンスは集計データ（ステップ別のユーザー数・割合）であり、個人を特定できる情報は含まれない設計です。</p>
+<p>Google のポリシーとして、メールアドレスや電話番号などの個人情報（PII）を GA4 に送信することは禁止されています。Data API で取得できるのはその集計結果のみです。</p>
+<h2>AI が分析できること</h2>
+<p>GA4 から取得したファネルデータを Claude API に渡すと、以下のような分析が可能です。</p>
+<h3>1. 離脱パターンから原因を推定する</h3>
+<pre><code>カート追加: 1,000人
+チェックアウト開始: 600人（離脱率 40%）
+住所・支払入力: 200人（離脱率 67%）← ここが最大の離脱ポイント
+注文完了: 150人（離脱率 25%）
+</code></pre>
+<p>このデータを AI に渡すと：</p>
+<blockquote>
+<p>住所・支払方法入力ステップでの離脱率が 67% と突出して高い。一般的な原因として以下が考えられます：<br />
+1. 入力項目が多くフォームが長い<br />
+2. ゲスト購入ができず会員登録が必須<br />
+3. 希望する支払方法（コンビニ払い・後払い等）に対応していない<br />
+4. スマホでの入力が煩雑（オートフィル非対応等）</p>
+</blockquote>
+<p>という形で、数字のパターンから考えられる原因を列挙してくれます。</p>
+<h3>2. デバイス別の差異から施策を絞る</h3>
+<pre><code>スマホ: 住所入力の離脱率 78%
+PC: 住所入力の離脱率 45%
+</code></pre>
+<p>AI に渡すと：</p>
+<blockquote>
+<p>スマホとPCの離脱率に 33 ポイントの差があります。スマホ特有の入力課題（キーボード切り替え・フォームの見切れ等）が主因の可能性が高く、EC-CUBE の入力フォームのモバイル最適化を優先すべきです。</p>
+</blockquote>
+<h3>3. 改善施策を優先度付きで提案させる</h3>
+<p>ファネル全体のデータと「ECサイトの業種・客単価・ターゲット層」を加えて渡すと、施策の優先度まで整理してくれます。</p>
+<blockquote>
+<p><strong>優先度 高</strong>: ゲスト購入の導入（住所入力前のログイン必須を解除）<br />
+<strong>優先度 中</strong>: 支払方法の追加（コンビニ払い・バンドルカード等）<br />
+<strong>優先度 低</strong>: フォームの入力補助強化（郵便番号による住所自動入力等）</p>
+</blockquote>
+<h2>全体の流れ</h2>
+<pre><code>GA4 Data API
+（ファネルレポート取得）
+         │
+         ▼
+ステップ別の集計データ
+（個人情報なし）
+         │
+         ▼
+Claude API
+（原因分析・施策提案）
+         │
+         ▼
+優先度付きの改善提案レポート
+</code></pre>
+<p>Symfony Console コマンドとして実装すれば、定期的に GA4 データを取得して AI 分析レポートをメール送信する、という自動化も可能です。</p>
+<h2>メルマガ施策との連携</h2>
+<p>前回の記事で紹介した AI メルマガセグメント配信と組み合わせると、さらに強力になります。</p>
+<ul>
+<li><strong>ファネル分析 AI</strong>: 「住所入力で離脱しているスマホユーザーが多い」と特定</li>
+<li><strong>メルマガ AI</strong>: カート離脱後のフォローメール（「お買い物を続ける」リンク）をセグメント送信</li>
+</ul>
+<p>GA4 の離脱データで「どこで・誰が・なぜ」を把握し、メルマガで「その人に合ったフォロー」を送る——この 2 つを AI で自動化することで、CVR 改善のサイクルが回り始めます。</p>
+<h2>まとめ</h2>
+<p>GA4 Data API は集計データを返すため、個人情報を AI に渡すことなくファネル分析が可能です。</p>
+<p>EC-CUBE の購入フロー（カート → チェックアウト → 住所・支払入力 → 完了）のステップ別データを Claude API に渡すことで、<strong>人間が時間をかけて行っていた「データを読んで仮説を立てる」作業を自動化</strong>できます。</p>
+<p>「数字は見ているけど、何をすればいいかわからない」という状態から抜け出すヒントになれば幸いです。</p>
+<hr />
+<h2>📩 EC-CUBE開発・カスタマイズのご相談</h2>
+<p>以下のような案件、お気軽にご相談ください。</p>
+<ul>
+<li>プラグイン開発・既存プラグインの改修</li>
+<li>EC-CUBE 4系へのバージョンアップ対応</li>
+<li>カスタマイズ・機能追加</li>
+<li>エンタープライズ向け開発・導入支援</li>
+</ul>
+<p>👉 <strong><a href="https://a-zumi.net/contact/">お問い合わせはこちら</a></strong></p>
+<hr />
+</body>
+</html>

@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>note 変換プレビュー</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h2>EC-CUBE 4.3 でのカスタム実装</h2>
+<p>EC-CUBE 4.3 は Symfony 6.4 を使用しているため、<code>EntityExists</code> は使えません。ただし Symfony の <code>ConstraintValidator</code> を継承すれば同等機能を実装できます。</p>
+<blockquote>
+<p>将来 EC-CUBE が Symfony 8.1 以降に対応した場合は、今回実装するカスタム Validator を削除し、公式の <code>Symfony\Bridge\Doctrine\Validator\Constraints\EntityExists</code> に置き換えるだけで移行できます。属性の引数名も同じ設計にしているため、移行コストは最小限です。</p>
+</blockquote>
+<p>EC-CUBE のコアコードでも <code>src/Eccube/Form/Validator/Email.php</code> と <code>EmailValidator.php</code> のペアで同じパターンが使われています。</p>
+<h3>ディレクトリ構成（プラグイン例）</h3>
+<pre><code>app/Plugin/MyPlugin/
+├── Validator/
+│   ├── EntityExists.php          # Constraint クラス
+│   └── EntityExistsValidator.php # ConstraintValidator クラス
+└── Form/
+    └── Type/
+        └── ProductImportType.php
+</code></pre>
+<h3>Constraint クラス</h3>
+<pre><code class="language-php">&lt;?php
+// app/Plugin/MyPlugin/Validator/EntityExists.php
+
+namespace Plugin\MyPlugin\Validator;
+
+use Symfony\Component\Validator\Constraint;
+
+#[\Attribute(\Attribute::TARGET_PROPERTY | \Attribute::TARGET_METHOD | \Attribute::IS_REPEATABLE)]
+class EntityExists extends Constraint
+{
+    // Symfony の規約に従い UUID 形式のエラーコード定数を定義
+    public const NOT_FOUND_ERROR = 'f7ef7fa8-4ef7-48d2-a264-b57447e1f2ad';
+
+    protected const ERROR_NAMES = [
+        self::NOT_FOUND_ERROR =&gt; 'NOT_FOUND_ERROR',
+    ];
+
+    public string $message = 'The referenced entity does not exist.';
+
+    public function __construct(
+        public readonly string $entityClass,
+        public readonly ?string $identifierField = null,
+        public readonly ?string $repositoryMethod = null,
+        ?string $message = null,
+        ?array $groups = null,
+        mixed $payload = null,
+        array $options = [],
+    ) {
+        if ($identifierField !== null &amp;&amp; $repositoryMethod !== null) {
+            throw new \InvalidArgumentException(
+                'The &quot;identifierField&quot; and &quot;repositoryMethod&quot; options cannot be used simultaneously.'
+            );
+        }
+
+        parent::__construct($options, $groups, $payload);
+
+        if ($message !== null) {
+            $this-&gt;message = $message;
+        }
+    }
+}
+</code></pre>
+<h3>ConstraintValidator クラス</h3>
+<pre><code class="language-php">&lt;?php
+// app/Plugin/MyPlugin/Validator/EntityExistsValidator.php
+
+namespace Plugin\MyPlugin\Validator;
+
+use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Component\Validator\Constraint;
+use Symfony\Component\Validator\ConstraintValidator;
+use Symfony\Component\Validator\Exception\UnexpectedTypeException;
+
+class EntityExistsValidator extends ConstraintValidator
+{
+    public function __construct(private readonly ManagerRegistry $registry)
+    {
+    }
+
+    public function validate(mixed $value, Constraint $constraint): void
+    {
+        if (!$constraint instanceof EntityExists) {
+            throw new UnexpectedTypeException($constraint, EntityExists::class);
+        }
+
+        // null・空文字はスキップ（任意フィールド対応）
+        if ($value === null || $value === '') {
+            return;
+        }
+
+        $em = $this-&gt;registry-&gt;getManagerForClass($constraint-&gt;entityClass);
+
+        if ($em === null) {
+            throw new \LogicException(
+                sprintf('No entity manager found for class &quot;%s&quot;.', $constraint-&gt;entityClass)
+            );
+        }
+
+        $repository = $em-&gt;getRepository($constraint-&gt;entityClass);
+
+        if ($constraint-&gt;repositoryMethod !== null) {
+            $method = $constraint-&gt;repositoryMethod;
+
+            // 存在しないメソッド名による Error を防ぐ
+            if (!method_exists($repository, $method)) {
+                throw new \LogicException(
+                    sprintf('Method &quot;%s&quot; does not exist on repository &quot;%s&quot;.', $method, $repository::class)
+                );
+            }
+
+            $result = $repository-&gt;$method($value);
+        } elseif ($constraint-&gt;identifierField !== null) {
+            // 指定フィールドで検索（findOneBy はパラメータバインディングを使うため SQL インジェクションは発生しない）
+            $result = $repository-&gt;findOneBy([$constraint-&gt;identifierField =&gt; $value]);
+        } else {
+            // 主キーで検索
+            $result = $repository-&gt;find($value);
+        }
+
+        if ($result === null) {
+            $this-&gt;context-&gt;buildViolation($constraint-&gt;message)
+                -&gt;setParameter('{{ value }}', $this-&gt;formatValue($value))
+                -&gt;setCode(EntityExists::NOT_FOUND_ERROR)
+                -&gt;addViolation();
+        }
+    }
+}
+</code></pre>
+<h3>サービス定義</h3>
+<p><code>ManagerRegistry</code> を DI するため、サービスとして登録します。</p>
+<pre><code class="language-yaml"># app/Plugin/MyPlugin/Resource/config/services.yaml
+services:
+    Plugin\MyPlugin\Validator\EntityExistsValidator:
+        arguments:
+            - '@doctrine'
+        tags:
+            - { name: validator.constraint_validator }
+</code></pre>
+<h3>使い方</h3>
+<h4>DTO クラスでの使用</h4>
+<pre><code class="language-php">&lt;?php
+
+namespace Plugin\MyPlugin\Dto;
+
+use Eccube\Entity\Customer;
+use Eccube\Entity\Product;
+use Plugin\MyPlugin\Validator\EntityExists;
+use Symfony\Component\Validator\Constraints as Assert;
+
+class OrderImportDto
+{
+    #[Assert\NotBlank]
+    #[Assert\Positive]
+    #[EntityExists(entityClass: Product::class)]
+    public ?int $productId = null;
+
+    #[Assert\NotBlank]
+    #[Assert\Positive]
+    #[EntityExists(
+        entityClass: Customer::class,
+        message: '指定された会員は存在しません。'
+    )]
+    public ?int $customerId = null;
+}
+</code></pre>
+<h4>FormType での使用</h4>
+<pre><code class="language-php">&lt;?php
+
+namespace Plugin\MyPlugin\Form\Type;
+
+use Eccube\Entity\Product;
+use Plugin\MyPlugin\Validator\EntityExists;
+use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\IntegerType;
+use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Validator\Constraints as Assert;
+
+class ProductImportType extends AbstractType
+{
+    public function buildForm(FormBuilderInterface $builder, array $options): void
+    {
+        $builder
+            -&gt;add('productId', IntegerType::class, [
+                'label' =&gt; '商品ID',
+                'constraints' =&gt; [
+                    new Assert\NotBlank(),
+                    new Assert\Positive(),
+                    new EntityExists(entityClass: Product::class),
+                ],
+            ]);
+    }
+}
+</code></pre>
+<h4>カスタムリポジトリメソッドの活用</h4>
+<p>退会済み会員を除外するなど、単純な <code>find()</code> では対応できないケースにはカスタムリポジトリメソッドが使えます。</p>
+<pre><code class="language-php">&lt;?php
+
+namespace Eccube\Repository;
+
+use Eccube\Entity\Customer;
+use Eccube\Entity\Master\CustomerStatus;
+
+// CustomerRepository に追加するメソッド
+public function findActiveById(int $id): ?Customer
+{
+    return $this-&gt;createQueryBuilder('c')
+        -&gt;andWhere('c.id = :id')
+        -&gt;andWhere('c.Status = :status')
+        -&gt;setParameter('id', $id)
+        -&gt;setParameter('status', CustomerStatus::REGULAR) // 本会員
+        -&gt;getQuery()
+        -&gt;getOneOrNullResult();
+}
+</code></pre>
+<pre><code class="language-php">#[EntityExists(
+    entityClass: Customer::class,
+    repositoryMethod: 'findActiveById',
+    message: '有効な会員が見つかりません。'
+)]
+public ?int $customerId = null;
+</code></pre>
+<h4>コントローラーでのバリデーション実行</h4>
+<p>管理画面で使う場合は、<code>#[IsGranted]</code> による権限チェックと CSRF トークン検証を必ず実装してください。</p>
+<pre><code class="language-php">&lt;?php
+
+namespace Plugin\MyPlugin\Controller\Admin;
+
+use Plugin\MyPlugin\Dto\OrderImportDto;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Security\Csrf\CsrfToken;
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
+
+class ImportController extends AbstractController
+{
+    public function __construct(
+        private readonly CsrfTokenManagerInterface $csrfTokenManager,
+    ) {}
+
+    #[IsGranted('ROLE_ADMIN')]
+    #[Route('/admin/plugin/import', methods: ['POST'])]
+    public function import(Request $request, ValidatorInterface $validator): Response
+    {
+        // CSRF トークン検証
+        $token = new CsrfToken('import', $request-&gt;request-&gt;get('_token'));
+        if (!$this-&gt;csrfTokenManager-&gt;isTokenValid($token)) {
+            throw $this-&gt;createAccessDeniedException('Invalid CSRF token.');
+        }
+
+        $dto = new OrderImportDto();
+        $dto-&gt;productId = $request-&gt;request-&gt;getInt('product_id');
+        $dto-&gt;customerId = $request-&gt;request-&gt;getInt('customer_id');
+
+        $violations = $validator-&gt;validate($dto);
+
+        if (count($violations) &gt; 0) {
+            foreach ($violations as $violation) {
+                $this-&gt;addFlash('danger', $violation-&gt;getMessage());
+            }
+
+            return $this-&gt;redirectToRoute('plugin_myPlugin_admin_import_index');
+        }
+
+        // バリデーション通過後の処理...
+
+        return $this-&gt;redirectToRoute('plugin_myPlugin_admin_import_index');
+    }
+}
+</code></pre>
+<p>Twig テンプレート側で CSRF トークンを出力します。</p>
+<pre><code class="language-twig">&lt;form method=&quot;post&quot; action=&quot;{{ path('plugin_myPlugin_admin_import') }}&quot;&gt;
+    &lt;input type=&quot;hidden&quot; name=&quot;_token&quot; value=&quot;{{ csrf_token('import') }}&quot;&gt;
+    {# フォームの内容 #}
+&lt;/form&gt;
+</code></pre>
+<h2>UniqueEntity との違い</h2>
+<p>EC-CUBE のコアでも使われている <code>UniqueEntity</code> と今回実装した <code>EntityExists</code> は目的が異なります。</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>EntityExists</th>
+<th>UniqueEntity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>目的</strong></td>
+<td>参照先エンティティが存在するか</td>
+<td>フィールド値が重複していないか</td>
+</tr>
+<tr>
+<td><strong>付与対象</strong></td>
+<td>プロパティ・メソッド</td>
+<td>クラス</td>
+</tr>
+<tr>
+<td><strong>主な用途</strong></td>
+<td>DTO の外部参照 ID 検証</td>
+<td>エンティティの一意性制約</td>
+</tr>
+<tr>
+<td><strong>EC-CUBE での実例</strong></td>
+<td>（今回の実装）</td>
+<td><code>Customer::loadValidatorMetadata()</code></td>
+</tr>
+</tbody>
+</table>
+<p>EC-CUBE では <code>Customer::loadValidatorMetadata()</code> でメールアドレスの重複チェックに <code>UniqueEntity</code> が使われています。</p>
+<h2>まとめ</h2>
+<ul>
+<li>Symfony 8.1 で追加予定の <code>EntityExists</code> 制約は参照整合性バリデーションをシンプルに書ける便利な機能</li>
+<li>EC-CUBE 4.3（Symfony 6.4）では使えないが、<code>ConstraintValidator</code> を継承して同等機能を自前実装できる</li>
+<li>プロパティレベルで属性として付与できるため、DTO やフォームで直感的に使える</li>
+<li><code>repositoryMethod</code> を使えば、退会済み会員の除外など複雑な条件にも対応できる</li>
+<li>管理画面コントローラーでは <code>#[IsGranted]</code> と CSRF 検証を必ず実装すること</li>
+</ul>
+<p>Symfony 8.1 がリリースされ EC-CUBE が対応するまでの橋渡しとして、ぜひ活用してみてください。</p>
+<hr />
+<h2>📩 EC-CUBE開発・カスタマイズのご相談</h2>
+<p>以下のような案件、お気軽にご相談ください。</p>
+<ul>
+<li>プラグイン開発・既存プラグインの改修</li>
+<li>EC-CUBE 4系へのバージョンアップ対応</li>
+<li>カスタマイズ・機能追加</li>
+<li>エンタープライズ向け開発・導入支援</li>
+</ul>
+<p>👉 <strong><a href="https://a-zumi.net/contact/">お問い合わせはこちら</a></strong></p>
+<hr />
+</body>
+</html>

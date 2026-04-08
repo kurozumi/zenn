@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>EC-CUBE大量商品サイトの高速化テクニック10選</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h1>EC-CUBE大量商品サイトの高速化テクニック10選</h1>
+<blockquote>
+<p>この記事は EC-CUBE 4.3 以上を対象としています。<br />
+また、<a href="https://claude.ai/claude-code">Claude Code</a> を使って書かれています。内容に誤りがある場合はコメントでお知らせください。</p>
+</blockquote>
+<p>商品数が数万件を超えると、EC-CUBE のパフォーマンスが低下することがあります。この記事では、大量商品サイトを高速化するための実践的なテクニックを紹介します。</p>
+<h2>1. N+1問題の解決</h2>
+<h3>問題</h3>
+<p>商品一覧で関連エンティティを取得する際、商品ごとにクエリが発行される N+1 問題が発生します。</p>
+<pre><code class="language-php">// 悪い例：商品ごとにカテゴリを取得（N+1問題）
+$products = $productRepository-&gt;findAll();
+foreach ($products as $product) {
+    $categories = $product-&gt;getProductCategories(); // 毎回クエリ発行
+}
+</code></pre>
+<h3>解決策</h3>
+<p>QueryBuilder で JOIN を使って一度に取得します。</p>
+<pre><code class="language-php">&lt;?php
+
+namespace Plugin\YourPlugin\Repository;
+
+use Eccube\Repository\ProductRepository as BaseRepository;
+
+class ProductRepository extends BaseRepository
+{
+    public function findProductsWithCategories(): array
+    {
+        return $this-&gt;createQueryBuilder('p')
+            -&gt;select('p', 'pc', 'c')
+            -&gt;leftJoin('p.ProductCategories', 'pc')
+            -&gt;leftJoin('pc.Category', 'c')
+            -&gt;getQuery()
+            -&gt;getResult();
+    }
+}
+</code></pre>
+<h2>2. ページネーションの最適化</h2>
+<h3>問題</h3>
+<p><code>COUNT(*)</code> クエリが大量データで遅くなります。</p>
+<h3>解決策</h3>
+<p>Doctrine の Paginator ではなく、カスタムページネーションを実装します。</p>
+<pre><code class="language-php">&lt;?php
+
+namespace Plugin\YourPlugin\Repository;
+
+use Doctrine\ORM\Tools\Pagination\Paginator;
+
+class OptimizedProductRepository
+{
+    /**
+     * 総件数を概算で取得（高速）
+     */
+    public function getEstimatedCount(): int
+    {
+        $conn = $this-&gt;getEntityManager()-&gt;getConnection();
+        $result = $conn-&gt;executeQuery(&quot;
+            SELECT reltuples::bigint AS estimate
+            FROM pg_class
+            WHERE relname = 'dtb_product'
+        &quot;)-&gt;fetchAssociative();
+
+        return (int) ($result['estimate'] ?? 0);
+    }
+
+    /**
+     * キーセットページネーション（OFFSET を使わない）
+     */
+    public function findProductsAfter(?int $lastId, int $limit = 20): array
+    {
+        $qb = $this-&gt;createQueryBuilder('p')
+            -&gt;orderBy('p.id', 'ASC')
+            -&gt;setMaxResults($limit);
+
+        if ($lastId !== null) {
+            $qb-&gt;where('p.id &gt; :lastId')
+               -&gt;setParameter('lastId', $lastId);
+        }
+
+        return $qb-&gt;getQuery()-&gt;getResult();
+    }
+}
+</code></pre>
+</body>
+</html>

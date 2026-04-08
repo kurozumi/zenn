@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>note 変換プレビュー</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h2>前提条件</h2>
+<ul>
+<li>Docker と Docker Compose がインストールされていること</li>
+</ul>
+<h2>操作の確認</h2>
+<p>AskUserQuestion ツールで以下を確認:</p>
+<ul>
+<li>EC-CUBEのディレクトリ（デフォルト: カレントディレクトリ）</li>
+<li>データベース:</li>
+<li><strong>MySQL</strong>（推奨）</li>
+<li><strong>PostgreSQL</strong></li>
+<li>実行する操作:</li>
+<li><strong>新規セットアップ</strong>: 初めてDocker環境を構築する（起動 + DB初期化）</li>
+<li><strong>起動</strong>: すでにDB初期化済みで、コンテナを起動するだけ</li>
+<li><strong>停止</strong>: コンテナを停止する</li>
+<li><strong>再起動</strong>: コンテナを再起動する</li>
+</ul>
+<h2>データベース別の compose ファイル</h2>
+<table>
+<thead>
+<tr>
+<th>データベース</th>
+<th>compose ファイル</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MySQL</td>
+<td><code>docker-compose.mysql.yml</code></td>
+</tr>
+<tr>
+<td>PostgreSQL</td>
+<td><code>docker-compose.pgsql.yml</code></td>
+</tr>
+</tbody>
+</table>
+<p>以降のコマンドでは、選択されたDBに応じて compose ファイルを使い分けてください。</p>
+<hr />
+<h2>新規セットアップ</h2>
+<p>以下のコマンドでは <code>${DB_COMPOSE}</code> を選択したDBのcomposeファイルに置き換えてください:<br />
+- MySQL: <code>docker-compose.mysql.yml</code><br />
+- PostgreSQL: <code>docker-compose.pgsql.yml</code></p>
+<h3>1. Docker Compose で起動</h3>
+<pre><code class="language-bash">docker compose -f docker-compose.yml -f ${DB_COMPOSE} up -d --build
+</code></pre>
+<h3>2. コンテナ起動確認</h3>
+<pre><code class="language-bash">docker compose ps
+</code></pre>
+<p>ec-cube コンテナが起動していることを確認してください。</p>
+<h3>3. データベーススキーマの初期化</h3>
+<pre><code class="language-bash"># Composerの依存関係をコンパイル
+docker compose -f docker-compose.yml -f ${DB_COMPOSE} exec ec-cube composer run-script compile
+
+# EC-CUBEインストール（www-dataユーザで非対話モード実行）
+docker compose -f docker-compose.yml -f ${DB_COMPOSE} exec -u www-data ec-cube bin/console eccube:install -n
+</code></pre>
+<p><strong>重要:</strong> <code>eccube:install</code> コマンドは必ず <code>www-data</code> ユーザで実行し、<code>-n</code>（非対話モード）オプションを使用してください。</p>
+<h3>4. 動作確認</h3>
+<ul>
+<li>フロント画面: http://localhost:8080/</li>
+<li>管理画面: http://localhost:8080/admin/</li>
+<li>ID: <code>admin</code></li>
+<li>パスワード: <code>password</code></li>
+</ul>
+<hr />
+<h2>起動</h2>
+<pre><code class="language-bash">docker compose -f docker-compose.yml -f ${DB_COMPOSE} up -d
+</code></pre>
+<p>起動確認:</p>
+<pre><code class="language-bash">docker compose ps
+</code></pre>
+<hr />
+<h2>停止</h2>
+<pre><code class="language-bash">docker compose -f docker-compose.yml -f ${DB_COMPOSE} down
+</code></pre>
+<hr />
+<h2>再起動</h2>
+<pre><code class="language-bash">docker compose -f docker-compose.yml -f ${DB_COMPOSE} down
+docker compose -f docker-compose.yml -f ${DB_COMPOSE} up -d
+</code></pre>
+<hr />
+<h2>ローカル開発について</h2>
+<p>Docker Compose のボリュームマウントにより、ローカルのファイル変更が即座にコンテナに反映されます。</p>
+<ul>
+<li><code>app/</code> - アプリケーションコード</li>
+<li><code>src/</code> - EC-CUBEコアコード</li>
+<li><code>html/</code> - 公開ディレクトリ</li>
+<li><code>var/</code> - キャッシュ、ログ等</li>
+</ul>
+<p>キャッシュクリアが必要な場合:</p>
+<pre><code class="language-bash">docker compose -f docker-compose.yml -f ${DB_COMPOSE} exec ec-cube bin/console cache:clear
+</code></pre>
+<h2>よく使うコマンド</h2>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>コマンド</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ログ確認</td>
+<td><code>docker compose logs -f ec-cube</code></td>
+</tr>
+<tr>
+<td>コンテナに入る</td>
+<td><code>docker compose exec ec-cube bash</code></td>
+</tr>
+<tr>
+<td>キャッシュクリア</td>
+<td><code>docker compose exec ec-cube bin/console cache:clear</code></td>
+</tr>
+<tr>
+<td>マイグレーション実行</td>
+<td><code>docker compose exec ec-cube bin/console doctrine:migrations:migrate</code></td>
+</tr>
+</tbody>
+</table>
+<h2>トラブルシューティング</h2>
+<h3>コンテナが起動しない場合</h3>
+<pre><code class="language-bash">docker compose -f docker-compose.yml -f ${DB_COMPOSE} logs
+</code></pre>
+<h3>パーミッションエラーの場合</h3>
+<pre><code class="language-bash">docker compose -f docker-compose.yml -f ${DB_COMPOSE} exec ec-cube chown -R www-data:www-data var/
+</code></pre>
+<h3>データベース接続エラーの場合</h3>
+<p>データベースコンテナが完全に起動するまで待ってから、再度 <code>eccube:install</code> を実行してください。</p>
+<h2>参考</h2>
+<ul>
+<li><a href="https://doc4.ec-cube.net/quickstart/docker_compose_install">EC-CUBE 4 ドキュメント - Docker Composeを使用したインストール</a><br />
+````</li>
+</ul>
+<h2>スキルの設置方法</h2>
+<h3>1. ディレクトリの作成</h3>
+<p>Claude Codeのスキルは <code>~/.claude/skills/</code> ディレクトリに配置します。</p>
+<pre><code class="language-bash">mkdir -p ~/.claude/skills/eccube-docker
+</code></pre>
+<h3>2. SKILL.mdファイルの作成</h3>
+<p>上記の内容を <code>SKILL.md</code> ファイルとして保存します。</p>
+<pre><code class="language-bash"># ファイルを作成
+touch ~/.claude/skills/eccube-docker/SKILL.md
+</code></pre>
+<p>お好みのエディタで <code>~/.claude/skills/eccube-docker/SKILL.md</code> を開き、上記のSKILL.mdの内容をコピー＆ペーストしてください。</p>
+<h3>3. ディレクトリ構成の確認</h3>
+<p>設置後のディレクトリ構成は以下のようになります。</p>
+<pre><code>~/.claude/
+└── skills/
+    └── eccube-docker/
+        └── SKILL.md
+</code></pre>
+<h3>4. スキルの確認</h3>
+<p>Claude Codeを起動して、スキルが認識されているか確認します。</p>
+<pre><code>/eccube-docker
+</code></pre>
+<p>と入力すると、スキルが起動します。</p>
+<h2>スキルの使い方</h2>
+<h3>1. スキルの実行</h3>
+<p>EC-CUBEのソースコードがあるディレクトリで、Claude Codeを起動し、以下のコマンドを入力します。</p>
+<pre><code>/eccube-docker
+</code></pre>
+<h3>2. 対話形式で設定</h3>
+<p>スキルを実行すると、以下の項目を順番に聞かれます。</p>
+<ol>
+<li><strong>EC-CUBEのディレクトリ</strong>: EC-CUBEのソースコードがあるパス（デフォルト: カレントディレクトリ）</li>
+<li><strong>データベース</strong>: MySQL（推奨）または PostgreSQL</li>
+<li><strong>実行する操作</strong>: 新規セットアップ / 起動 / 停止 / 再起動</li>
+</ol>
+<h3>3. 自動実行</h3>
+<p>選択した内容に応じて、必要なDockerコマンドが自動的に実行されます。</p>
+<h2>新規セットアップの流れ</h2>
+<p>「新規セットアップ」を選択すると、以下の処理が順番に実行されます。</p>
+<h3>Step 1: Docker Composeで起動</h3>
+<p>選択したデータベースに応じたcomposeファイルを使用してコンテナを起動します。</p>
+<pre><code class="language-bash"># MySQLの場合
+docker compose -f docker-compose.yml -f docker-compose.mysql.yml up -d --build
+
+# PostgreSQLの場合
+docker compose -f docker-compose.yml -f docker-compose.pgsql.yml up -d --build
+</code></pre>
+<h3>Step 2: コンテナ起動確認</h3>
+<pre><code class="language-bash">docker compose ps
+</code></pre>
+<p>ec-cubeコンテナが正常に起動していることを確認します。</p>
+<h3>Step 3: データベーススキーマの初期化</h3>
+<pre><code class="language-bash"># Composerの依存関係をコンパイル
+docker compose exec ec-cube composer run-script compile
+
+# EC-CUBEインストール（www-dataユーザで非対話モード実行）
+docker compose exec -u www-data ec-cube bin/console eccube:install -n
+</code></pre>
+<h3>Step 4: 動作確認</h3>
+<p>セットアップが完了したら、ブラウザでアクセスできます。</p>
+<table>
+<thead>
+<tr>
+<th>画面</th>
+<th>URL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>フロント画面</td>
+<td>http://localhost:8080/</td>
+</tr>
+<tr>
+<td>管理画面</td>
+<td>http://localhost:8080/admin/</td>
+</tr>
+</tbody>
+</table>
+<p>管理画面のログイン情報：<br />
+- ID: <code>admin</code><br />
+- パスワード: <code>password</code></p>
+<h2>まとめ</h2>
+<p><code>eccube-docker</code>スキルを使えば、EC-CUBE 4のDocker環境構築を対話形式で簡単に行えます。</p>
+<ol>
+<li><code>~/.claude/skills/eccube-docker/SKILL.md</code> にスキルファイルを配置</li>
+<li><code>/eccube-docker</code>でスキルを起動</li>
+<li>データベースと操作を選択</li>
+<li>自動的にDockerコマンドが実行される</li>
+</ol>
+<p>Docker Composeのコマンドを覚えていなくても、スキルがガイドしてくれるので、初めてEC-CUBEの開発環境を構築する方にもおすすめです。</p>
+<h2>参考</h2>
+<ul>
+<li><a href="https://doc4.ec-cube.net/quickstart/docker_compose_install">EC-CUBE 4 ドキュメント - Docker Composeを使用したインストール</a></li>
+</ul>
+<hr />
+<h2>📩 EC-CUBE開発・カスタマイズのご相談</h2>
+<p>以下のような案件、お気軽にご相談ください。</p>
+<ul>
+<li>プラグイン開発・既存プラグインの改修</li>
+<li>EC-CUBE 4系へのバージョンアップ対応</li>
+<li>カスタマイズ・機能追加</li>
+<li>エンタープライズ向け開発・導入支援</li>
+</ul>
+<p>👉 <strong><a href="https://a-zumi.net/contact/">お問い合わせはこちら</a></strong></p>
+<hr />
+</body>
+</html>

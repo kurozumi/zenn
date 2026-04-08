@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>note 変換プレビュー</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h2>3. 商品検索のインデックス最適化</h2>
+<h3>マイグレーションでインデックスを追加</h3>
+<pre><code class="language-php">&lt;?php
+
+namespace Plugin\YourPlugin\DoctrineMigrations;
+
+use Doctrine\DBAL\Schema\Schema;
+use Doctrine\Migrations\AbstractMigration;
+
+final class Version20250215000000 extends AbstractMigration
+{
+    public function up(Schema $schema): void
+    {
+        // 商品名検索用の部分一致インデックス（PostgreSQL）
+        $this-&gt;addSql(&quot;
+            CREATE INDEX idx_product_name_trgm
+            ON dtb_product
+            USING gin (name gin_trgm_ops)
+        &quot;);
+
+        // 複合インデックス（公開状態 + 作成日）
+        $this-&gt;addSql(&quot;
+            CREATE INDEX idx_product_status_date
+            ON dtb_product (product_status_id, create_date DESC)
+        &quot;);
+    }
+
+    public function down(Schema $schema): void
+    {
+        $this-&gt;addSql(&quot;DROP INDEX IF EXISTS idx_product_name_trgm&quot;);
+        $this-&gt;addSql(&quot;DROP INDEX IF EXISTS idx_product_status_date&quot;);
+    }
+}
+</code></pre>
+<h2>4. Doctrine の Second Level Cache</h2>
+<h3>設定</h3>
+<pre><code class="language-yaml"># app/config/eccube/packages/doctrine.yaml
+doctrine:
+    orm:
+        second_level_cache:
+            enabled: true
+            region_cache_driver:
+                type: pool
+                pool: cache.doctrine.second_level
+            regions:
+                default:
+                    lifetime: 3600
+                    cache_driver:
+                        type: pool
+                        pool: cache.doctrine.second_level
+</code></pre>
+<h3>エンティティにキャッシュ設定</h3>
+<p>プラグインの独自エンティティにキャッシュを設定できます。</p>
+<pre><code class="language-php">&lt;?php
+
+namespace Plugin\YourPlugin\Entity;
+
+use Doctrine\ORM\Mapping as ORM;
+
+#[ORM\Entity]
+#[ORM\Table(name: 'plg_your_plugin_config')]
+#[ORM\Cache(usage: 'READ_ONLY', region: 'default')]
+class Config
+{
+    // ...
+}
+</code></pre>
+<h2>5. HTTP キャッシュの活用</h2>
+<h3>商品一覧ページのキャッシュ</h3>
+<pre><code class="language-php">&lt;?php
+
+namespace Plugin\YourPlugin\Controller;
+
+use Eccube\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+class ProductListController extends AbstractController
+{
+    #[Route(path: '/products/cached', name: 'plugin_product_list_cached')]
+    public function index(): Response
+    {
+        $response = $this-&gt;render('@YourPlugin/Product/list.twig', [
+            'products' =&gt; $this-&gt;getProducts(),
+        ]);
+
+        // 5分間キャッシュ
+        $response-&gt;setSharedMaxAge(300);
+        $response-&gt;headers-&gt;addCacheControlDirective('must-revalidate');
+
+        return $response;
+    }
+}
+</code></pre>
+<h3>ETag によるキャッシュ制御</h3>
+<pre><code class="language-php">public function detail(Product $product): Response
+{
+    $response = new Response();
+    $etag = md5($product-&gt;getUpdateDate()-&gt;format('U'));
+    $response-&gt;setEtag($etag);
+
+    if ($response-&gt;isNotModified($this-&gt;request)) {
+        return $response; // 304 Not Modified
+    }
+
+    return $this-&gt;render('@YourPlugin/Product/detail.twig', [
+        'Product' =&gt; $product,
+    ], $response);
+}
+</code></pre>
+<h2>6. 遅延読み込みの活用</h2>
+<h3>Twig で必要な時だけ読み込む</h3>
+<pre><code class="language-twig">{# 商品画像は表示領域に入った時に読み込む #}
+&lt;img
+    src=&quot;{{ asset('img/placeholder.png') }}&quot;
+    data-src=&quot;{{ asset(Product.MainListImage|no_image_product, 'save_image') }}&quot;
+    loading=&quot;lazy&quot;
+    class=&quot;lazy-load&quot;
+&gt;
+</code></pre>
+<h3>JavaScript での実装</h3>
+<pre><code class="language-javascript">document.addEventListener('DOMContentLoaded', () =&gt; {
+    const observer = new IntersectionObserver((entries) =&gt; {
+        entries.forEach(entry =&gt; {
+            if (entry.isIntersecting) {
+                const img = entry.target;
+                img.src = img.dataset.src;
+                observer.unobserve(img);
+            }
+        });
+    });
+
+    document.querySelectorAll('.lazy-load').forEach(img =&gt; {
+        observer.observe(img);
+    });
+});
+</code></pre>
+<h2>7. クエリ結果のキャッシュ</h2>
+<h3>Symfony Cache を使用</h3>
+<pre><code class="language-php">&lt;?php
+
+namespace Plugin\YourPlugin\Service;
+
+use Eccube\Repository\CategoryRepository;
+use Symfony\Contracts\Cache\CacheInterface;
+use Symfony\Contracts\Cache\ItemInterface;
+
+class CachedCategoryService
+{
+    public function __construct(
+        private CategoryRepository $categoryRepository,
+        private CacheInterface $cache
+    ) {
+    }
+
+    public function getCategoryTree(): array
+    {
+        return $this-&gt;cache-&gt;get('category_tree', function (ItemInterface $item) {
+            $item-&gt;expiresAfter(3600); // 1時間キャッシュ
+
+            return $this-&gt;categoryRepository-&gt;getList();
+        });
+    }
+
+    public function clearCache(): void
+    {
+        $this-&gt;cache-&gt;delete('category_tree');
+    }
+}
+</code></pre>
+<h3>イベントでキャッシュクリア</h3>
+<pre><code class="language-php">&lt;?php
+
+namespace Plugin\YourPlugin\EventSubscriber;
+
+use Eccube\Event\EccubeEvents;
+use Plugin\YourPlugin\Service\CachedCategoryService;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+
+class CacheClearSubscriber implements EventSubscriberInterface
+{
+    public function __construct(
+        private CachedCategoryService $categoryService
+    ) {
+    }
+
+    public static function getSubscribedEvents(): array
+    {
+        return [
+            EccubeEvents::ADMIN_PRODUCT_CATEGORY_INDEX_COMPLETE =&gt; 'onCategoryUpdate',
+        ];
+    }
+
+    public function onCategoryUpdate(): void
+    {
+        $this-&gt;categoryService-&gt;clearCache();
+    }
+}
+</code></pre>
+<h2>8. バッチ処理の最適化</h2>
+<h3>大量データの一括処理</h3>
+<pre><code class="language-php">&lt;?php
+
+namespace Plugin\YourPlugin\Command;
+
+use Doctrine\ORM\EntityManagerInterface;
+use Eccube\Repository\ProductRepository;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+
+#[AsCommand(name: 'plugin:update-products')]
+class UpdateProductsCommand extends Command
+{
+    public function __construct(
+        private ProductRepository $productRepository,
+        private EntityManagerInterface $entityManager
+    ) {
+        parent::__construct();
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $batchSize = 100;
+        $i = 0;
+
+        $query = $this-&gt;productRepository-&gt;createQueryBuilder('p')
+            -&gt;getQuery();
+
+        foreach ($query-&gt;toIterable() as $product) {
+            // 商品を更新
+            $product-&gt;setUpdateDate(new \DateTime());
+
+            $i++;
+            if ($i % $batchSize === 0) {
+                $this-&gt;entityManager-&gt;flush();
+                $this-&gt;entityManager-&gt;clear(); // メモリ解放
+                $output-&gt;writeln(&quot;Processed $i products...&quot;);
+            }
+        }
+
+        $this-&gt;entityManager-&gt;flush();
+        $output-&gt;writeln(&quot;Completed! Total: $i products&quot;);
+
+        return Command::SUCCESS;
+    }
+}
+</code></pre>
+<h2>9. 画像の最適化</h2>
+<h3>WebP 変換プラグイン</h3>
+<pre><code class="language-php">&lt;?php
+
+namespace Plugin\YourPlugin\EventSubscriber;
+
+use Eccube\Event\EccubeEvents;
+use Eccube\Event\EventArgs;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+
+class ImageOptimizeSubscriber implements EventSubscriberInterface
+{
+    public static function getSubscribedEvents(): array
+    {
+        return [
+            EccubeEvents::ADMIN_PRODUCT_EDIT_COMPLETE =&gt; 'onProductEditComplete',
+        ];
+    }
+
+    public function onProductEditComplete(EventArgs $event): void
+    {
+        $Product = $event-&gt;getArgument('Product');
+
+        foreach ($Product-&gt;getProductImages() as $productImage) {
+            $this-&gt;convertToWebP($productImage-&gt;getFileName());
+        }
+    }
+
+    private function convertToWebP(string $fileName): void
+    {
+        $savePath = env('ECCUBE_SAVE_IMAGE_DIR');
+        $originalPath = $savePath . '/' . $fileName;
+
+        if (!file_exists($originalPath)) {
+            return;
+        }
+
+        $image = imagecreatefromstring(file_get_contents($originalPath));
+        if ($image === false) {
+            return;
+        }
+
+        $webpPath = preg_replace('/\.(jpg|jpeg|png)$/i', '.webp', $originalPath);
+        imagewebp($image, $webpPath, 80);
+        imagedestroy($image);
+    }
+}
+</code></pre>
+<h2>10. OPcache の設定</h2>
+<h3>php.ini の推奨設定</h3>
+<pre><code class="language-ini">[opcache]
+opcache.enable=1
+opcache.memory_consumption=256
+opcache.interned_strings_buffer=16
+opcache.max_accelerated_files=20000
+opcache.validate_timestamps=0  ; 本番環境のみ
+opcache.save_comments=1
+opcache.fast_shutdown=1
+</code></pre>
+<h3>プリロードの設定（PHP 8.x）</h3>
+<pre><code class="language-php">&lt;?php
+// config/preload.php
+
+require dirname(__DIR__).'/vendor/autoload.php';
+
+// よく使うクラスをプリロード
+$classes = [
+    \Eccube\Entity\Product::class,
+    \Eccube\Entity\ProductClass::class,
+    \Eccube\Entity\Category::class,
+    \Eccube\Repository\ProductRepository::class,
+];
+
+foreach ($classes as $class) {
+    class_exists($class);
+}
+</code></pre>
+<pre><code class="language-ini">; php.ini
+opcache.preload=/path/to/ec-cube/config/preload.php
+opcache.preload_user=www-data
+</code></pre>
+<h2>まとめ</h2>
+<table>
+<thead>
+<tr>
+<th>テクニック</th>
+<th>効果</th>
+<th>難易度</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>N+1問題の解決</td>
+<td>大</td>
+<td>中</td>
+</tr>
+<tr>
+<td>ページネーション最適化</td>
+<td>大</td>
+<td>中</td>
+</tr>
+<tr>
+<td>インデックス追加</td>
+<td>大</td>
+<td>低</td>
+</tr>
+<tr>
+<td>Second Level Cache</td>
+<td>中</td>
+<td>中</td>
+</tr>
+<tr>
+<td>HTTP キャッシュ</td>
+<td>大</td>
+<td>低</td>
+</tr>
+<tr>
+<td>遅延読み込み</td>
+<td>中</td>
+<td>低</td>
+</tr>
+<tr>
+<td>クエリキャッシュ</td>
+<td>中</td>
+<td>中</td>
+</tr>
+<tr>
+<td>バッチ処理最適化</td>
+<td>大</td>
+<td>中</td>
+</tr>
+<tr>
+<td>画像最適化</td>
+<td>中</td>
+<td>中</td>
+</tr>
+<tr>
+<td>OPcache 設定</td>
+<td>大</td>
+<td>低</td>
+</tr>
+</tbody>
+</table>
+<p>パフォーマンス改善は計測が重要です。Blackfire や Xdebug などのプロファイラを使って、ボトルネックを特定してから対策を行いましょう。</p>
+<h2>参考リンク</h2>
+<ul>
+<li><a href="https://doc4.ec-cube.net/">EC-CUBE 4 開発者向けドキュメント</a></li>
+<li><a href="https://www.doctrine-project.org/projects/doctrine-orm/en/current/reference/improving-performance.html">Doctrine ORM Performance</a></li>
+<li><a href="https://symfony.com/doc/current/performance.html">Symfony Performance</a></li>
+</ul>
+<hr />
+<h2>📩 EC-CUBE開発・カスタマイズのご相談</h2>
+<p>以下のような案件、お気軽にご相談ください。</p>
+<ul>
+<li>プラグイン開発・既存プラグインの改修</li>
+<li>EC-CUBE 4系へのバージョンアップ対応</li>
+<li>カスタマイズ・機能追加</li>
+<li>エンタープライズ向け開発・導入支援</li>
+</ul>
+<p>👉 <strong><a href="https://a-zumi.net/contact/">お問い合わせはこちら</a></strong></p>
+<hr />
+</body>
+</html>

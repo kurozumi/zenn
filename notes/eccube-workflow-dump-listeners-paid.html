@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>note 変換プレビュー</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h2>各遷移で何が起きるか：OrderStateMachine のイベントリスナー</h2>
+<p>状態遷移が起きるとき、<code>OrderStateMachine</code> クラス（<code>EventSubscriberInterface</code> を実装）が各遷移に対応したイベントを処理します。</p>
+<table>
+<thead>
+<tr>
+<th>イベント</th>
+<th>処理内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>workflow.order.completed</code></td>
+<td>受注エンティティのステータスを再設定</td>
+</tr>
+<tr>
+<td><code>workflow.order.transition.pay</code></td>
+<td>入金日を現在日時に設定</td>
+</tr>
+<tr>
+<td><code>workflow.order.transition.cancel</code></td>
+<td>在庫を戻す、利用ポイントを戻す</td>
+</tr>
+<tr>
+<td><code>workflow.order.transition.back_to_in_progress</code></td>
+<td>在庫を減らす、利用ポイントを消費</td>
+</tr>
+<tr>
+<td><code>workflow.order.transition.ship</code></td>
+<td>加算ポイントを会員に付与</td>
+</tr>
+<tr>
+<td><code>workflow.order.transition.return</code></td>
+<td>利用ポイント・加算ポイントを戻す</td>
+</tr>
+<tr>
+<td><code>workflow.order.transition.cancel_return</code></td>
+<td>利用ポイント・加算ポイントを再適用</td>
+</tr>
+</tbody>
+</table>
+<p>これを見るだけで「<code>ship</code>（発送済みへの遷移）でポイントが付与される」「<code>cancel</code>（取り消し）で在庫とポイントが戻る」という重要なビジネスロジックがわかります。</p>
+<hr />
+<h2>Symfony 8.1 で来る変化：<code>--with-listeners</code> オプション（PR #63809）</h2>
+<p>Symfony PR <a href="https://github.com/symfony/symfony/pull/63809">#63809</a> では、<code>workflow:dump</code> に <code>--with-listeners</code> オプションが追加される予定です。</p>
+<pre><code class="language-bash"># Symfony 8.1以降（予定）
+php bin/console workflow:dump order --with-listeners | dot -Tpng -o order_workflow.png
+</code></pre>
+<p>このオプションを使うと、Graphviz図の各遷移ノードに対応するイベントリスナーが表示されます。</p>
+<p><strong>変更の概要（PR #63809のdiffより確認）:</strong></p>
+<ul>
+<li><code>WorkflowDumpCommand</code> に <code>--with-listeners</code> オプション（フラグ型）を追加</li>
+<li><code>ListenerExtractor::extractListeners()</code> でリスナーを取得</li>
+<li><code>GraphvizDumper</code> がリスナーを遷移ノードに <code>"Listener #N"</code> として表示</li>
+<li>Guard リスナーは <code>"Guard: &lt;expression&gt;"</code> として表示</li>
+</ul>
+<p>EC-CUBEに当てはめると、<code>ship</code> 遷移のノードに「加算ポイントを付与する <code>commitAddPoint</code> リスナー」が図に表示されるイメージです。</p>
+<h3>EC-CUBEでこれが使えると何が嬉しいか</h3>
+<p>現状、EC-CUBEの受注処理のどのタイミングで何が起きるかを把握するには <code>OrderStateMachine.php</code> を読む必要があります。<code>--with-listeners</code> が使えるようになると：</p>
+<ul>
+<li><strong>新しいメンバーへの引き継ぎ</strong>に状態遷移図をそのまま使える</li>
+<li><strong>プラグインのリスナー追加時</strong>に「どの遷移に何が紐づいているか」を一目で確認できる</li>
+<li><strong>カスタマイズの影響範囲</strong>を図で説明できる</li>
+</ul>
+<hr />
+<h2>まとめ</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>今すぐ使えること</td>
+<td><code>workflow:dump order</code> で状態遷移図をdot/PlantUML/Mermaid形式で出力</td>
+</tr>
+<tr>
+<td>EC-CUBEのワークフロー定義</td>
+<td><code>app/config/eccube/packages/order_state_machine.php</code></td>
+</tr>
+<tr>
+<td>EC-CUBEのリスナー実装</td>
+<td><code>src/Eccube/Service/OrderStateMachine.php</code></td>
+</tr>
+<tr>
+<td>Symfony 8.1以降（予定）</td>
+<td><code>--with-listeners</code> でリスナーも図に含められる（PR #63809）</td>
+</tr>
+</tbody>
+</table>
+<p>受注周りのカスタマイズをするときは、まず <code>workflow:dump</code> で状態遷移を確認する習慣をつけると、コードを追いかける時間を大幅に減らせます。</p>
+<p>みなさんの EC-CUBE カスタマイズで「この遷移でこんな副作用があった」という経験があれば、ぜひコメントで教えてください。</p>
+<hr />
+<h2>📩 EC-CUBE開発・カスタマイズのご相談</h2>
+<p>以下のような案件、お気軽にご相談ください。</p>
+<ul>
+<li>プラグイン開発・既存プラグインの改修</li>
+<li>EC-CUBE 4系へのバージョンアップ対応</li>
+<li>カスタマイズ・機能追加</li>
+<li>エンタープライズ向け開発・導入支援</li>
+</ul>
+<p>👉 <strong><a href="https://a-zumi.net/contact/">お問い合わせはこちら</a></strong></p>
+<hr />
+</body>
+</html>

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>note 変換プレビュー</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h2>release.yml の解説</h2>
+<p>GitHubでリリースを公開したときに自動実行されるワークフローです。</p>
+<pre><code class="language-yaml">name: Packaging for EC-CUBE Plugin
+on:
+  release:
+    types: [ published ]
+jobs:
+  deploy:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Packaging
+        run: |
+          git archive HEAD --format=tar.gz &gt; ../${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.tar.gz
+
+      - name: Upload binaries to release of TGZ
+        uses: svenstaro/upload-release-action@v1-release
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ runner.workspace }}/${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.tar.gz
+          asset_name: ${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.tar.gz
+          tag: ${{ github.ref }}
+          overwrite: true
+</code></pre>
+<h3>ワークフローの流れ</h3>
+<ol>
+<li><strong>トリガー</strong>: リリースが公開（<code>published</code>）されたとき</li>
+<li><strong>Checkout</strong>: ソースコードをチェックアウト</li>
+<li><strong>Packaging</strong>: <code>git archive</code> でtar.gzを作成</li>
+<li><strong>Upload</strong>: 作成したtar.gzをリリースにアップロード</li>
+</ol>
+<h3>git archive コマンド</h3>
+<pre><code class="language-bash">git archive HEAD --format=tar.gz &gt; プラグイン名-バージョン.tar.gz
+</code></pre>
+<p>このコマンドは、Gitで管理されているファイルのみをアーカイブします。<code>.gitignore</code> で無視されているファイルや、<code>.gitattributes</code> で <code>export-ignore</code> 指定されたファイルは含まれません。</p>
+<h2>.gitattributes の解説</h2>
+<p><code>.gitattributes</code> はGitの属性を設定するファイルです。<code>export-ignore</code> 属性を指定すると、<code>git archive</code> でパッケージングする際にそのファイルを除外できます。</p>
+<pre><code>/.gitattributes             export-ignore
+/.github                    export-ignore
+/.gitignore                 export-ignore
+/dummy                      export-ignore
+</code></pre>
+<h3>デフォルトで除外されるファイル</h3>
+<table>
+<thead>
+<tr>
+<th>ファイル/ディレクトリ</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.gitattributes</code></td>
+<td>パッケージング設定自体は不要</td>
+</tr>
+<tr>
+<td><code>.github</code></td>
+<td>GitHub Actions設定は不要</td>
+</tr>
+<tr>
+<td><code>.gitignore</code></td>
+<td>Git設定は不要</td>
+</tr>
+<tr>
+<td><code>/dummy</code></td>
+<td>ダミーファイル置き場</td>
+</tr>
+</tbody>
+</table>
+<h3>除外したいファイルを追加する</h3>
+<p>開発用のファイルやテストファイルなど、配布パッケージに含めたくないものがあれば追加できます。</p>
+<pre><code># デフォルトの除外設定
+/.gitattributes             export-ignore
+/.github                    export-ignore
+/.gitignore                 export-ignore
+
+# 追加の除外設定
+/tests                      export-ignore
+/phpunit.xml                export-ignore
+/phpstan.neon               export-ignore
+/.php-cs-fixer.php          export-ignore
+/Makefile                   export-ignore
+/docker-compose.yml         export-ignore
+/README.md                  export-ignore
+/CHANGELOG.md               export-ignore
+/docs                       export-ignore
+</code></pre>
+<h3>よくある除外パターン</h3>
+<pre><code># テスト関連
+/tests                      export-ignore
+/phpunit.xml                export-ignore
+/phpunit.xml.dist           export-ignore
+
+# 静的解析・コード整形
+/phpstan.neon               export-ignore
+/.php-cs-fixer.php          export-ignore
+/.php-cs-fixer.dist.php     export-ignore
+
+# CI/CD
+/.github                    export-ignore
+/.gitlab-ci.yml             export-ignore
+
+# 開発環境
+/docker-compose.yml         export-ignore
+/Makefile                   export-ignore
+/.env.example               export-ignore
+
+# ドキュメント（必要に応じて）
+/README.md                  export-ignore
+/CHANGELOG.md               export-ignore
+/docs                       export-ignore
+/LICENSE                    export-ignore
+</code></pre>
+<h2>リリースの手順</h2>
+<h3>1. バージョンを更新</h3>
+<p><code>composer.json</code> のバージョンを更新します。</p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;ec-cube/sample&quot;,
+  &quot;version&quot;: &quot;1.0.1&quot;,
+  &quot;description&quot;: &quot;EC-CUBE Sample Plugin&quot;,
+  &quot;type&quot;: &quot;eccube-plugin&quot;,
+  &quot;require&quot;: {
+    &quot;ec-cube/plugin-installer&quot;: &quot;~0.0.7 || ^2.0&quot;
+  },
+  &quot;extra&quot;: {
+    &quot;code&quot;: &quot;Sample&quot;
+  }
+}
+</code></pre>
+<h3>2. 変更をコミット・プッシュ</h3>
+<pre><code class="language-bash">git add composer.json
+git commit -m &quot;Bump version to 1.0.1&quot;
+git push origin main
+</code></pre>
+<h3>3. GitHubでリリースを作成</h3>
+<ol>
+<li>GitHubリポジトリの「Releases」ページへ移動</li>
+<li>「Draft a new release」をクリック</li>
+<li>「Choose a tag」で新しいタグを作成（例: <code>1.0.1</code>）</li>
+<li>リリースタイトルを入力（例: <code>v1.0.1</code>）</li>
+<li>リリースノートを記入</li>
+<li>「Publish release」をクリック</li>
+</ol>
+<h3>4. 自動パッケージング</h3>
+<p>リリースを公開すると、GitHub Actionsが自動実行されます。</p>
+<ol>
+<li>ワークフローが <code>git archive</code> でtar.gzを作成</li>
+<li>作成されたtar.gzがリリースのAssetsに追加される</li>
+</ol>
+<h3>5. ダウンロード確認</h3>
+<p>リリースページに <code>Sample-1.0.1.tar.gz</code> が追加されていることを確認します。</p>
+<h2>ワークフローのカスタマイズ</h2>
+<h3>zip形式も同時に作成</h3>
+<p>tar.gzとzipの両方を作成する例です。</p>
+<pre><code class="language-yaml">- name: Packaging
+  run: |
+    git archive HEAD --format=tar.gz &gt; ../${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.tar.gz
+    git archive HEAD --format=zip &gt; ../${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.zip
+
+- name: Upload TGZ
+  uses: svenstaro/upload-release-action@v2
+  with:
+    repo_token: ${{ secrets.GITHUB_TOKEN }}
+    file: ${{ runner.workspace }}/${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.tar.gz
+    asset_name: ${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.tar.gz
+    tag: ${{ github.ref }}
+    overwrite: true
+
+- name: Upload ZIP
+  uses: svenstaro/upload-release-action@v2
+  with:
+    repo_token: ${{ secrets.GITHUB_TOKEN }}
+    file: ${{ runner.workspace }}/${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.zip
+    asset_name: ${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.zip
+    tag: ${{ github.ref }}
+    overwrite: true
+</code></pre>
+<h2>トラブルシューティング</h2>
+<h3>パッケージにファイルが含まれない</h3>
+<p><code>.gitignore</code> に記載されているファイルは <code>git archive</code> に含まれません。配布に必要なファイルが <code>.gitignore</code> に含まれていないか確認してください。</p>
+<h3>パッケージに不要なファイルが含まれる</h3>
+<p><code>.gitattributes</code> に <code>export-ignore</code> を追加してください。</p>
+<pre><code>/不要なファイル    export-ignore
+</code></pre>
+<h3>ワークフローが実行されない</h3>
+<ul>
+<li>リリースが「Draft」ではなく「Publish」されているか確認</li>
+<li><code>.github/workflows/release.yml</code> がmainブランチにプッシュされているか確認</li>
+</ul>
+<h3>除外設定が反映されない</h3>
+<p><code>.gitattributes</code> の変更後はコミットが必要です。</p>
+<pre><code class="language-bash">git add .gitattributes
+git commit -m &quot;Update .gitattributes&quot;
+git push
+</code></pre>
+<h2>まとめ</h2>
+<p>EC-CUBEプラグインのリリース自動化には以下の仕組みを使います。</p>
+<ol>
+<li><strong>release.yml</strong> - GitHubリリース時に自動でtar.gzを作成</li>
+<li><strong>.gitattributes</strong> - <code>export-ignore</code> で不要ファイルを除外</li>
+<li><strong>git archive</strong> - Gitで管理されているファイルのみをパッケージング</li>
+</ol>
+<p><code>bin/console eccube:plugin:generate</code> で生成されるテンプレートをベースに、プロジェクトに合わせてカスタマイズしてください。</p>
+<hr />
+<h2>📩 EC-CUBE開発・カスタマイズのご相談</h2>
+<p>以下のような案件、お気軽にご相談ください。</p>
+<ul>
+<li>プラグイン開発・既存プラグインの改修</li>
+<li>EC-CUBE 4系へのバージョンアップ対応</li>
+<li>カスタマイズ・機能追加</li>
+<li>エンタープライズ向け開発・導入支援</li>
+</ul>
+<p>👉 <strong><a href="https://a-zumi.net/contact/">お問い合わせはこちら</a></strong></p>
+<hr />
+</body>
+</html>

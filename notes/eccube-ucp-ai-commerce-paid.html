@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>note 変換プレビュー</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h2>なぜEC-CUBEにUCPが必要なのか？</h2>
+<h3>1. AIショッピングの波に乗り遅れない</h3>
+<p>Shopify はすでに UCP 対応を進めています。日本の EC サイトがこの波に乗り遅れれば、<strong>AI エージェント経由の顧客を取りこぼす</strong>ことになります。</p>
+<h3>2. 日本初のUCP対応オープンソースEC</h3>
+<p>EC-CUBE が UCP に対応すれば、<strong>日本初のUCP対応オープンソースECプラットフォーム</strong>になる可能性があります。これは EC-CUBE コミュニティにとって大きなアドバンテージです。</p>
+<h3>3. グローバル展開の足がかり</h3>
+<p>UCP は国際的なプロトコルです。対応することで、日本の EC-CUBE サイトが<strong>グローバルな AI エコシステム</strong>に参加できるようになります。</p>
+<h2>EC-CUBEでの実装イメージ</h2>
+<p>EC-CUBE の GitHub に、すでに <a href="https://github.com/EC-CUBE/ec-cube/issues/6574">UCP 対応の Issue</a> が立てられています。</p>
+<h3>必要な3つのエンドポイント</h3>
+<p>UCPでは、以下の3つのエンドポイントを実装します：</p>
+<pre><code>POST   /checkout-sessions           # セッション作成
+PUT    /checkout-sessions/{id}      # セッション更新（配送先変更など）
+POST   /checkout-sessions/{id}/complete  # 注文確定
+</code></pre>
+<h3>1. セッション作成 (<code>POST /checkout-sessions</code>)</h3>
+<p>AIエージェントが「この商品を買いたい」とリクエストすると、EC-CUBE がチェックアウトセッションを作成します。</p>
+<pre><code class="language-php">// イメージ（実際の実装は要設計）
+#[Route('/checkout-sessions', name: 'ucp_checkout_session_create', methods: ['POST'])]
+public function createSession(Request $request): JsonResponse
+{
+    $data = json_decode($request-&gt;getContent(), true);
+
+    // カートを作成
+    $cart = $this-&gt;cartService-&gt;createCartFromUCP($data['cart']);
+
+    // セッションを作成
+    $session = new CheckoutSession();
+    $session-&gt;setCart($cart);
+    $session-&gt;setStatus('incomplete');
+    $session-&gt;setExpiresAt(new \DateTime('+30 minutes'));
+
+    $this-&gt;entityManager-&gt;persist($session);
+    $this-&gt;entityManager-&gt;flush();
+
+    return $this-&gt;json([
+        'id' =&gt; $session-&gt;getSessionId(),
+        'total' =&gt; $this-&gt;formatAmount($cart-&gt;getTotal()),
+        'currency' =&gt; 'JPY',
+        'links' =&gt; [
+            ['rel' =&gt; 'privacy_policy', 'href' =&gt; $this-&gt;baseInfo-&gt;getPrivacyPolicyUrl()],
+            ['rel' =&gt; 'terms_of_service', 'href' =&gt; $this-&gt;baseInfo-&gt;getTermsOfServiceUrl()],
+        ],
+    ]);
+}
+</code></pre>
+<h3>2. セッション更新 (<code>PUT /checkout-sessions/{id}</code>)</h3>
+<p>配送先住所が更新されたら、送料や税金を再計算します。</p>
+<pre><code class="language-php">#[Route('/checkout-sessions/{id}', name: 'ucp_checkout_session_update', methods: ['PUT'])]
+public function updateSession(string $id, Request $request): JsonResponse
+{
+    $session = $this-&gt;checkoutSessionRepository-&gt;findBySessionId($id);
+    $data = json_decode($request-&gt;getContent(), true);
+
+    // 配送先を更新
+    if (isset($data['fulfillment']['address'])) {
+        $session-&gt;setFulfillmentData($data['fulfillment']);
+
+        // PurchaseFlow で送料・税金を再計算
+        $this-&gt;purchaseFlow-&gt;calculate($session-&gt;getCart());
+    }
+
+    return $this-&gt;json([
+        'id' =&gt; $session-&gt;getSessionId(),
+        'subtotal' =&gt; $this-&gt;formatAmount($session-&gt;getSubtotal()),
+        'tax' =&gt; $this-&gt;formatAmount($session-&gt;getTax()),
+        'shipping' =&gt; $this-&gt;formatAmount($session-&gt;getShipping()),
+        'total' =&gt; $this-&gt;formatAmount($session-&gt;getTotal()),
+        'shipping_options' =&gt; $this-&gt;getShippingOptions($session),
+    ]);
+}
+</code></pre>
+<h3>3. セッション完了 (<code>POST /checkout-sessions/{id}/complete</code>)</h3>
+<p>ユーザーが「注文する」と言ったら、注文を確定します。</p>
+<pre><code class="language-php">#[Route('/checkout-sessions/{id}/complete', name: 'ucp_checkout_session_complete', methods: ['POST'])]
+public function completeSession(string $id, Request $request): JsonResponse
+{
+    $session = $this-&gt;checkoutSessionRepository-&gt;findBySessionId($id);
+
+    // 注文を作成
+    $order = $this-&gt;orderHelper-&gt;createOrderFromCheckoutSession($session);
+
+    // PurchaseFlow で購入処理
+    $this-&gt;purchaseFlow-&gt;commit($order);
+
+    $session-&gt;setOrder($order);
+    $session-&gt;setStatus('completed');
+
+    $this-&gt;entityManager-&gt;flush();
+
+    return $this-&gt;json([
+        'order_id' =&gt; $order-&gt;getOrderNo(),
+        'order_url' =&gt; $this-&gt;generateUrl('mypage_history', [
+            'order_no' =&gt; $order-&gt;getOrderNo()
+        ], UrlGeneratorInterface::ABSOLUTE_URL),
+    ]);
+}
+</code></pre>
+<h3>必要な新規エンティティ</h3>
+<pre><code class="language-php">#[ORM\Entity(repositoryClass: CheckoutSessionRepository::class)]
+#[ORM\Table(name: 'dtb_checkout_session')]
+class CheckoutSession
+{
+    #[ORM\Id]
+    #[ORM\GeneratedValue]
+    #[ORM\Column]
+    private ?int $id = null;
+
+    #[ORM\Column(length: 255, unique: true)]
+    private string $sessionId;
+
+    #[ORM\Column(length: 20)]
+    private string $status = 'incomplete';
+
+    #[ORM\Column(length: 3)]
+    private string $currency = 'JPY';
+
+    #[ORM\Column(type: 'datetime')]
+    private \DateTimeInterface $expiresAt;
+
+    #[ORM\ManyToOne(targetEntity: Order::class)]
+    private ?Order $Order = null;
+
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $buyerData = null;
+
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $fulfillmentData = null;
+
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $paymentData = null;
+
+    // ... getter/setter
+}
+</code></pre>
+<h2>実装ロードマップ（提案）</h2>
+<h3>Phase 1: 基盤構築</h3>
+<ul>
+<li><code>CheckoutSession</code> エンティティの設計・実装</li>
+<li>データベースマイグレーション作成</li>
+<li>基本的なリポジトリ実装</li>
+</ul>
+<h3>Phase 2: API 実装</h3>
+<ul>
+<li>3つのエンドポイントの実装</li>
+<li>既存の <code>PurchaseFlow</code> との連携</li>
+<li>住所フォーマット変換（EC-CUBE ⇔ UCP）</li>
+</ul>
+<h3>Phase 3: セキュリティ・認証</h3>
+<ul>
+<li>OAuth 2.0 認証の実装</li>
+<li>リクエストバリデーション</li>
+<li>レート制限</li>
+</ul>
+<h3>Phase 4: テスト・ドキュメント</h3>
+<ul>
+<li>ユニットテスト / 統合テスト</li>
+<li><code>/.well-known/ucp</code> マニフェスト</li>
+<li>設定ドキュメント</li>
+</ul>
+<h2>みんなで開発しませんか？</h2>
+<p><strong>EC-CUBE を AI 時代に対応させるチャンス</strong>です。</p>
+<p>この機能は、一人で作るには大きすぎます。でも、コミュニティの力を合わせれば実現できます。</p>
+<h3>参加方法</h3>
+<ol>
+<li>
+<p><strong>GitHub Issue にコメント</strong><br />
+   https://github.com/EC-CUBE/ec-cube/issues/6574<br />
+   アイデアや意見をぜひ共有してください。</p>
+</li>
+<li>
+<p><strong>プルリクエストを送る</strong><br />
+   小さな機能から始めてもOKです。</p>
+</li>
+<li>
+<p><strong>テストに協力する</strong><br />
+   実装ができたら、テストに協力してください。</p>
+</li>
+<li>
+<p><strong>ドキュメントを書く</strong><br />
+   技術文書の翻訳や、設定手順の作成も重要な貢献です。</p>
+</li>
+</ol>
+<h3>議論したいこと</h3>
+<ul>
+<li>認証方式はどうするか？（OAuth 2.0? APIキー?）</li>
+<li>プラグインとして実装するか、コアに組み込むか？</li>
+<li>Google Pay 以外の決済プロバイダーへの対応は？</li>
+<li>MCP (Model Context Protocol) との連携は？</li>
+</ul>
+<h2>まとめ</h2>
+<p><strong>AI がショッピングを代行する時代</strong>が来ています。</p>
+<p>EC-CUBE が UCP に対応すれば、日本の EC サイトがこの新しい時代に乗り遅れることはありません。</p>
+<p>技術的には挑戦的ですが、EC-CUBE の強力なコミュニティなら実現できると信じています。</p>
+<p><strong>一緒に、EC-CUBE を AI 時代の EC プラットフォームにしましょう！</strong></p>
+<h2>参考リンク</h2>
+<ul>
+<li><a href="https://ucp.dev/">Universal Commerce Protocol 公式サイト</a></li>
+<li><a href="https://developers.google.com/merchant/ucp">Google UCP ドキュメント</a></li>
+<li><a href="https://developers.googleblog.com/under-the-hood-universal-commerce-protocol-ucp/">Google Developers Blog: Under the Hood UCP</a></li>
+<li><a href="https://github.com/EC-CUBE/ec-cube/issues/6574">EC-CUBE UCP 対応 Issue #6574</a></li>
+<li><a href="https://shopify.engineering/ucp">Shopify UCP 対応記事</a></li>
+</ul>
+<hr />
+<h2>📩 EC-CUBE開発・カスタマイズのご相談</h2>
+<p>以下のような案件、お気軽にご相談ください。</p>
+<ul>
+<li>プラグイン開発・既存プラグインの改修</li>
+<li>EC-CUBE 4系へのバージョンアップ対応</li>
+<li>カスタマイズ・機能追加</li>
+<li>エンタープライズ向け開発・導入支援</li>
+</ul>
+<p>👉 <strong><a href="https://a-zumi.net/contact/">お問い合わせはこちら</a></strong></p>
+<hr />
+</body>
+</html>

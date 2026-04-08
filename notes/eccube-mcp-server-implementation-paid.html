@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>note 変換プレビュー</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h2>環境構築</h2>
+<h3>必要なもの</h3>
+<ul>
+<li>EC-CUBE 4.3以上</li>
+<li>PHP 8.1以上</li>
+<li>Composer</li>
+<li>Claude Desktop または Claude Code</li>
+</ul>
+<h3>プロジェクト構成</h3>
+<p>EC-CUBEのプロジェクトルートに <code>mcp-server</code> ディレクトリを作成します。</p>
+<pre><code>ec-cube/
+├── app/
+├── src/
+├── mcp-server/          # MCPサーバー用ディレクトリ
+│   ├── composer.json
+│   ├── server.php       # MCPサーバーのエントリポイント
+│   └── src/
+│       └── Tools/       # MCPツール定義
+└── ...
+</code></pre>
+<h3>MCP SDKのインストール</h3>
+<pre><code class="language-bash">cd /path/to/ec-cube/mcp-server
+composer init --name=&quot;myshop/eccube-mcp-server&quot; --no-interaction
+composer require mcp/sdk
+</code></pre>
+<h2>MCPサーバーの実装</h2>
+<h3>EC-CUBEのブートストラップ</h3>
+<p>EC-CUBEのEntityManagerを使用するため、EC-CUBEのカーネルを起動します。</p>
+<pre><code class="language-php">&lt;?php
+// mcp-server/bootstrap.php
+
+require_once __DIR__.'/../vendor/autoload.php';
+
+use Eccube\Kernel;
+use Symfony\Component\Dotenv\Dotenv;
+
+// 環境変数の読み込み
+$dotenv = new Dotenv();
+$dotenv-&gt;loadEnv(__DIR__.'/../.env');
+
+$env = $_SERVER['APP_ENV'] ?? 'prod';
+$debug = (bool) ($_SERVER['APP_DEBUG'] ?? false);
+
+// EC-CUBEカーネルの起動
+$kernel = new Kernel($env, $debug);
+$kernel-&gt;boot();
+
+return $kernel-&gt;getContainer();
+</code></pre>
+<h3>商品取得ツールの実装</h3>
+<pre><code class="language-php">&lt;?php
+// mcp-server/src/Tools/ProductTools.php
+
+namespace MyShop\MCP\Tools;
+
+use Eccube\Repository\ProductRepository;
+use Mcp\Attribute\McpTool;
+use Mcp\Attribute\ToolParameter;
+
+class ProductTools
+{
+    private ProductRepository $productRepository;
+
+    public function __construct(ProductRepository $productRepository)
+    {
+        $this-&gt;productRepository = $productRepository;
+    }
+
+    /**
+     * 商品IDで商品情報を取得する
+     */
+    #[McpTool(
+        name: 'get_product',
+        description: '商品IDを指定して商品の詳細情報を取得します'
+    )]
+    public function getProduct(
+        #[ToolParameter(description: '商品ID', required: true)]
+        int $productId
+    ): array {
+        $product = $this-&gt;productRepository-&gt;find($productId);
+
+        if (!$product) {
+            return ['error' =&gt; '商品が見つかりません'];
+        }
+
+        return [
+            'id' =&gt; $product-&gt;getId(),
+            'name' =&gt; $product-&gt;getName(),
+            'description' =&gt; $product-&gt;getDescriptionDetail(),
+            'price' =&gt; $product-&gt;getPrice02Min(),
+            'stock' =&gt; $this-&gt;getStockInfo($product),
+            'status' =&gt; $product-&gt;getStatus()-&gt;getName(),
+            'create_date' =&gt; $product-&gt;getCreateDate()-&gt;format('Y-m-d H:i:s'),
+        ];
+    }
+
+    /**
+     * 商品を検索する
+     */
+    #[McpTool(
+        name: 'search_products',
+        description: '条件を指定して商品を検索します'
+    )]
+    public function searchProducts(
+        #[ToolParameter(description: '検索キーワード（商品名）', required: false)]
+        ?string $keyword = null,
+        #[ToolParameter(description: '在庫切れのみ取得するか', required: false)]
+        bool $outOfStock = false,
+        #[ToolParameter(description: '取得件数（デフォルト10件）', required: false)]
+        int $limit = 10
+    ): array {
+        $qb = $this-&gt;productRepository-&gt;createQueryBuilder('p')
+            -&gt;select('p')
+            -&gt;setMaxResults($limit);
+
+        if ($keyword) {
+            $qb-&gt;andWhere('p.name LIKE :keyword')
+               -&gt;setParameter('keyword', '%'.$keyword.'%');
+        }
+
+        $products = $qb-&gt;getQuery()-&gt;getResult();
+        $results = [];
+
+        foreach ($products as $product) {
+            $stock = $this-&gt;getStockInfo($product);
+
+            if ($outOfStock &amp;&amp; $stock['total'] &gt; 0) {
+                continue;
+            }
+
+            $results[] = [
+                'id' =&gt; $product-&gt;getId(),
+                'name' =&gt; $product-&gt;getName(),
+                'price' =&gt; $product-&gt;getPrice02Min(),
+                'stock' =&gt; $stock['total'],
+                'status' =&gt; $product-&gt;getStatus()-&gt;getName(),
+            ];
+        }
+
+        return [
+            'count' =&gt; count($results),
+            'products' =&gt; $results,
+        ];
+    }
+
+    private function getStockInfo($product): array
+    {
+        $total = 0;
+        foreach ($product-&gt;getProductClasses() as $pc) {
+            if ($pc-&gt;isVisible() &amp;&amp; $pc-&gt;getStock() !== null) {
+                $total += $pc-&gt;getStock();
+            }
+        }
+        return ['total' =&gt; $total];
+    }
+}
+</code></pre>
+<h3>受注取得ツールの実装</h3>
+<pre><code class="language-php">&lt;?php
+// mcp-server/src/Tools/OrderTools.php
+
+namespace MyShop\MCP\Tools;
+
+use Eccube\Repository\OrderRepository;
+use Mcp\Attribute\McpTool;
+use Mcp\Attribute\ToolParameter;
+
+class OrderTools
+{
+    private OrderRepository $orderRepository;
+
+    public function __construct(OrderRepository $orderRepository)
+    {
+        $this-&gt;orderRepository = $orderRepository;
+    }
+
+    /**
+     * 受注を検索する
+     */
+    #[McpTool(
+        name: 'search_orders',
+        description: '条件を指定して受注を検索します'
+    )]
+    public function searchOrders(
+        #[ToolParameter(description: '検索開始日（YYYY-MM-DD形式）', required: false)]
+        ?string $fromDate = null,
+        #[ToolParameter(description: '検索終了日（YYYY-MM-DD形式）', required: false)]
+        ?string $toDate = null,
+        #[ToolParameter(description: '対応状況ID（1:新規受付, 3:キャンセル, 5:発送済み, 6:入金済み）', required: false)]
+        ?int $statusId = null,
+        #[ToolParameter(description: '取得件数（デフォルト20件）', required: false)]
+        int $limit = 20
+    ): array {
+        $qb = $this-&gt;orderRepository-&gt;createQueryBuilder('o')
+            -&gt;select('o')
+            -&gt;orderBy('o.order_date', 'DESC')
+            -&gt;setMaxResults($limit);
+
+        if ($fromDate) {
+            $qb-&gt;andWhere('o.order_date &gt;= :fromDate')
+               -&gt;setParameter('fromDate', new \DateTime($fromDate));
+        }
+
+        if ($toDate) {
+            $qb-&gt;andWhere('o.order_date &lt;= :toDate')
+               -&gt;setParameter('toDate', new \DateTime($toDate.' 23:59:59'));
+        }
+
+        if ($statusId) {
+            $qb-&gt;andWhere('o.OrderStatus = :status')
+               -&gt;setParameter('status', $statusId);
+        }
+
+        $orders = $qb-&gt;getQuery()-&gt;getResult();
+        $results = [];
+
+        foreach ($orders as $order) {
+            $results[] = [
+                'id' =&gt; $order-&gt;getId(),
+                'order_no' =&gt; $order-&gt;getOrderNo(),
+                'customer_name' =&gt; $order-&gt;getName01().' '.$order-&gt;getName02(),
+                'email' =&gt; $order-&gt;getEmail(),
+                'total' =&gt; $order-&gt;getPaymentTotal(),
+                'status' =&gt; $order-&gt;getOrderStatus()-&gt;getName(),
+                'order_date' =&gt; $order-&gt;getOrderDate()-&gt;format('Y-m-d H:i:s'),
+            ];
+        }
+
+        return [
+            'count' =&gt; count($results),
+            'orders' =&gt; $results,
+        ];
+    }
+
+    /**
+     * 今日の売上サマリーを取得する
+     */
+    #[McpTool(
+        name: 'get_today_summary',
+        description: '今日の売上サマリー（受注件数、売上合計）を取得します'
+    )]
+    public function getTodaySummary(): array
+    {
+        $today = new \DateTime('today');
+        $tomorrow = new \DateTime('tomorrow');
+
+        $qb = $this-&gt;orderRepository-&gt;createQueryBuilder('o')
+            -&gt;select('COUNT(o.id) as order_count, SUM(o.payment_total) as total_sales')
+            -&gt;where('o.order_date &gt;= :today')
+            -&gt;andWhere('o.order_date &lt; :tomorrow')
+            -&gt;andWhere('o.OrderStatus NOT IN (:excludeStatus)')
+            -&gt;setParameter('today', $today)
+            -&gt;setParameter('tomorrow', $tomorrow)
+            -&gt;setParameter('excludeStatus', [3, 8]); // キャンセル、購入処理中を除外
+
+        $result = $qb-&gt;getQuery()-&gt;getSingleResult();
+
+        return [
+            'date' =&gt; $today-&gt;format('Y-m-d'),
+            'order_count' =&gt; (int) $result['order_count'],
+            'total_sales' =&gt; (int) ($result['total_sales'] ?? 0),
+        ];
+    }
+}
+</code></pre>
+<h3>MCPサーバーのエントリポイント</h3>
+<pre><code class="language-php">&lt;?php
+// mcp-server/server.php
+
+require_once __DIR__.'/vendor/autoload.php';
+
+use Mcp\Server\Server;
+use Mcp\Transport\StdioTransport;
+use MyShop\MCP\Tools\ProductTools;
+use MyShop\MCP\Tools\OrderTools;
+
+// EC-CUBEのコンテナを取得
+$container = require_once __DIR__.'/bootstrap.php';
+
+// リポジトリの取得
+$productRepository = $container-&gt;get(\Eccube\Repository\ProductRepository::class);
+$orderRepository = $container-&gt;get(\Eccube\Repository\OrderRepository::class);
+
+// ツールのインスタンス化
+$productTools = new ProductTools($productRepository);
+$orderTools = new OrderTools($orderRepository);
+
+// MCPサーバーの構築
+$server = Server::builder()
+    -&gt;setServerInfo('EC-CUBE MCP Server', '1.0.0')
+    -&gt;registerToolsFromObject($productTools)
+    -&gt;registerToolsFromObject($orderTools)
+    -&gt;build();
+
+// STDIOトランスポートで実行
+$transport = new StdioTransport();
+$server-&gt;run($transport);
+</code></pre>
+<h3>Composerのオートロード設定</h3>
+<pre><code class="language-json">{
+    &quot;name&quot;: &quot;myshop/eccube-mcp-server&quot;,
+    &quot;autoload&quot;: {
+        &quot;psr-4&quot;: {
+            &quot;MyShop\\MCP\\&quot;: &quot;src/&quot;
+        }
+    },
+    &quot;require&quot;: {
+        &quot;php&quot;: &quot;&gt;=8.1&quot;,
+        &quot;mcp/sdk&quot;: &quot;^0.4&quot;
+    }
+}
+</code></pre>
+<p>オートロードを更新します。</p>
+<pre><code class="language-bash">composer dump-autoload
+</code></pre>
+<h2>Claude Desktopでの設定</h2>
+<p>Claude Desktopの設定ファイルにMCPサーバーを登録します。</p>
+<h3>macOSの場合</h3>
+<p><code>~/Library/Application Support/Claude/claude_desktop_config.json</code> を編集します。</p>
+<pre><code class="language-json">{
+  &quot;mcpServers&quot;: {
+    &quot;eccube&quot;: {
+      &quot;command&quot;: &quot;php&quot;,
+      &quot;args&quot;: [&quot;/path/to/ec-cube/mcp-server/server.php&quot;],
+      &quot;env&quot;: {
+        &quot;APP_ENV&quot;: &quot;prod&quot;,
+        &quot;APP_DEBUG&quot;: &quot;0&quot;
+      }
+    }
+  }
+}
+</code></pre>
+<h3>Windowsの場合</h3>
+<p><code>%APPDATA%\Claude\claude_desktop_config.json</code> を編集します。</p>
+<pre><code class="language-json">{
+  &quot;mcpServers&quot;: {
+    &quot;eccube&quot;: {
+      &quot;command&quot;: &quot;php&quot;,
+      &quot;args&quot;: [&quot;C:\\path\\to\\ec-cube\\mcp-server\\server.php&quot;],
+      &quot;env&quot;: {
+        &quot;APP_ENV&quot;: &quot;prod&quot;,
+        &quot;APP_DEBUG&quot;: &quot;0&quot;
+      }
+    }
+  }
+}
+</code></pre>
+<p>設定後、Claude Desktopを再起動すると、MCPサーバーが利用可能になります。</p>
+<h2>使用例</h2>
+<p>Claude Desktopで以下のような質問ができるようになります。</p>
+<h3>商品検索</h3>
+<pre><code>在庫切れの商品を教えて
+</code></pre>
+<p>AIが <code>search_products</code> ツールを呼び出し、在庫切れ商品の一覧を返します。</p>
+<h3>売上確認</h3>
+<pre><code>今日の売上状況を教えて
+</code></pre>
+<p>AIが <code>get_today_summary</code> ツールを呼び出し、本日の受注件数と売上合計を返します。</p>
+<h3>受注検索</h3>
+<pre><code>今週の新規受注を一覧で見せて
+</code></pre>
+<p>AIが <code>search_orders</code> ツールを呼び出し、条件に合った受注データを返します。</p>
+<h2>セキュリティ上の注意</h2>
+<p>MCPサーバーはEC-CUBEのデータベースに直接アクセスするため、以下の点に注意してください。</p>
+<ol>
+<li><strong>本番環境での使用は慎重に</strong>: 開発・検証環境での使用を推奨</li>
+<li><strong>読み取り専用のツールに限定</strong>: 更新・削除系のツールは慎重に設計</li>
+<li><strong>アクセス制限</strong>: MCPサーバーは信頼できる環境でのみ実行</li>
+<li><strong>ログ出力</strong>: 実行ログを記録してモニタリング</li>
+</ol>
+<h2>拡張のアイデア</h2>
+<p>基本的なツールを実装したら、以下のような拡張も検討できます。</p>
+<table>
+<thead>
+<tr>
+<th>ツール</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>get_customer</code></td>
+<td>会員情報の取得</td>
+</tr>
+<tr>
+<td><code>get_category_tree</code></td>
+<td>カテゴリ階層の取得</td>
+</tr>
+<tr>
+<td><code>get_plugin_list</code></td>
+<td>インストール済みプラグイン一覧</td>
+</tr>
+<tr>
+<td><code>check_system_info</code></td>
+<td>システム情報（PHP/DBバージョン等）</td>
+</tr>
+<tr>
+<td><code>analyze_sales</code></td>
+<td>売上分析（期間別、商品別）</td>
+</tr>
+</tbody>
+</table>
+<h2>まとめ</h2>
+<ul>
+<li>MCPサーバーを実装することで、AIがEC-CUBEのデータに直接アクセス可能に</li>
+<li>公式PHP SDKを使えば、属性ベースで簡単にツールを定義できる</li>
+<li>商品検索、受注確認、売上サマリーなど、日常業務をAIが補助</li>
+<li>EC-CUBEのバージョンアップ作業もAIエージェントが支援可能に</li>
+</ul>
+<p>MCPサーバーは、EC-CUBEの開発・運用をAIと協働で行う新しいワークフローを実現します。</p>
+<h2>参考リンク</h2>
+<ul>
+<li><a href="https://github.com/kurozumi/eccube-mcp-server">EC-CUBE MCP Server（GitHub）</a> - 本記事で紹介したMCPサーバーのOSS</li>
+<li><a href="https://github.com/EC-CUBE/ec-cube/issues/6347">GitHub Issue: MCPサーバーの実装</a></li>
+<li><a href="https://github.com/modelcontextprotocol/php-sdk">MCP公式PHP SDK</a></li>
+<li><a href="https://modelcontextprotocol.io/">Model Context Protocol</a></li>
+<li><a href="https://packagist.org/packages/mcp/sdk">MCP PHP SDK - Packagist</a></li>
+</ul>
+<hr />
+<h2>📩 EC-CUBE開発・カスタマイズのご相談</h2>
+<p>以下のような案件、お気軽にご相談ください。</p>
+<ul>
+<li>プラグイン開発・既存プラグインの改修</li>
+<li>EC-CUBE 4系へのバージョンアップ対応</li>
+<li>カスタマイズ・機能追加</li>
+<li>エンタープライズ向け開発・導入支援</li>
+</ul>
+<p>👉 <strong><a href="https://a-zumi.net/contact/">お問い合わせはこちら</a></strong></p>
+<hr />
+</body>
+</html>

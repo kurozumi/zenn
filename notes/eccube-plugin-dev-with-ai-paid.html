@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>note 変換プレビュー</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h2>AI活用の具体例</h2>
+<h3>1. 設計相談</h3>
+<h4>サービス分割の判断</h4>
+<p><strong>質問例:</strong></p>
+<blockquote>
+<p>このプラグインで外部API連携、データ加工、メール送信を行います。サービスクラスをどう分割すべきですか？</p>
+</blockquote>
+<p><strong>AIの提案:</strong></p>
+<pre><code class="language-php">&lt;?php
+
+// 1. 外部API連携は専用クライアントに分離
+namespace Plugin\YourPlugin\Service;
+
+class ExternalApiClient
+{
+    public function __construct(
+        private HttpClientInterface $httpClient,
+        private string $apiEndpoint
+    ) {
+    }
+
+    public function fetchData(string $id): array
+    {
+        $response = $this-&gt;httpClient-&gt;request('GET', $this-&gt;apiEndpoint . '/' . $id);
+        return $response-&gt;toArray();
+    }
+}
+</code></pre>
+<pre><code class="language-php">&lt;?php
+
+// 2. データ加工はトランスフォーマーとして分離
+namespace Plugin\YourPlugin\Service;
+
+class DataTransformer
+{
+    public function transform(array $rawData): ProcessedData
+    {
+        // 加工ロジック
+        return new ProcessedData(/* ... */);
+    }
+}
+</code></pre>
+<pre><code class="language-php">&lt;?php
+
+// 3. メール送信は通知サービスとして分離
+namespace Plugin\YourPlugin\Service;
+
+class NotificationService
+{
+    public function __construct(
+        private MailService $mailService
+    ) {
+    }
+
+    public function sendCompletionNotice(Customer $customer, ProcessedData $data): void
+    {
+        // メール送信ロジック
+    }
+}
+</code></pre>
+<pre><code class="language-php">&lt;?php
+
+// 4. オーケストレーションは専用サービスで
+namespace Plugin\YourPlugin\Service;
+
+class SampleOrchestrator
+{
+    public function __construct(
+        private ExternalApiClient $apiClient,
+        private DataTransformer $transformer,
+        private NotificationService $notification
+    ) {
+    }
+
+    public function execute(string $id, Customer $customer): void
+    {
+        $rawData = $this-&gt;apiClient-&gt;fetchData($id);
+        $processedData = $this-&gt;transformer-&gt;transform($rawData);
+        $this-&gt;notification-&gt;sendCompletionNotice($customer, $processedData);
+    }
+}
+</code></pre>
+<p>単一責任の原則に基づいた分割案を即座に提示してもらえました。</p>
+<h4>Voter の要否判断</h4>
+<p><strong>質問例:</strong></p>
+<blockquote>
+<p>管理者ロールによってアクセス制限をかけたいのですが、Voter を使うべきですか？</p>
+</blockquote>
+<p><strong>AIの回答:</strong></p>
+<pre><code class="language-php">&lt;?php
+
+// シンプルなロールチェックなら #[IsGranted] で十分
+namespace Plugin\YourPlugin\Controller\Admin;
+
+use Symfony\Component\Security\Http\Attribute\IsGranted;
+
+class SampleController extends AbstractController
+{
+    #[Route(
+        path: '/%eccube_admin_route%/sample',
+        name: 'admin_sample_index'
+    )]
+    #[IsGranted('ROLE_ADMIN')]
+    public function index(): Response
+    {
+        // ...
+    }
+}
+</code></pre>
+<pre><code class="language-php">&lt;?php
+
+// 複雑な条件（リソースの所有者チェックなど）がある場合は Voter を使う
+namespace Plugin\YourPlugin\Security\Voter;
+
+use Symfony\Component\Security\Core\Authorization\Voter\Voter;
+
+class SampleVoter extends Voter
+{
+    public const EDIT = 'SAMPLE_EDIT';
+
+    protected function supports(string $attribute, mixed $subject): bool
+    {
+        return $attribute === self::EDIT &amp;&amp; $subject instanceof Sample;
+    }
+
+    protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token): bool
+    {
+        $user = $token-&gt;getUser();
+
+        // リソースの作成者のみ編集可能
+        return $subject-&gt;getCreatedBy() === $user;
+    }
+}
+</code></pre>
+<p>要件に応じた使い分けの基準を明確にできました。</p>
+<h3>2. リファクタ提案</h3>
+<h4>120行メソッドの分割</h4>
+<p><strong>Before（問題のあるコード）:</strong></p>
+<pre><code class="language-php">&lt;?php
+
+public function register(Request $request): Response
+{
+    // フォーム処理（20行）
+    $form = $this-&gt;createForm(SampleType::class);
+    $form-&gt;handleRequest($request);
+    // ...validation...
+
+    // データ取得（25行）
+    $existingData = $this-&gt;repository-&gt;findBy([/* ... */]);
+    // ...filtering...
+    // ...sorting...
+
+    // 計算処理（30行）
+    $total = 0;
+    foreach ($items as $item) {
+        // ...complex calculation...
+    }
+
+    // 外部API連携（25行）
+    $response = $this-&gt;httpClient-&gt;request(/* ... */);
+    // ...error handling...
+
+    // DB保存（20行）
+    $entity = new Sample();
+    // ...setting properties...
+    $this-&gt;entityManager-&gt;persist($entity);
+    $this-&gt;entityManager-&gt;flush();
+
+    return $this-&gt;redirectToRoute('admin_sample_index');
+}
+</code></pre>
+<p><strong>After（リファクタ後）:</strong></p>
+<pre><code class="language-php">&lt;?php
+
+namespace Plugin\YourPlugin\Controller\Admin;
+
+class SampleController extends AbstractController
+{
+    public function __construct(
+        private SampleService $sampleService
+    ) {
+    }
+
+    #[Route(
+        path: '/%eccube_admin_route%/sample/register',
+        name: 'admin_sample_register',
+        methods: ['GET', 'POST']
+    )]
+    public function register(Request $request): Response
+    {
+        $form = $this-&gt;createForm(SampleType::class);
+        $form-&gt;handleRequest($request);
+
+        if ($form-&gt;isSubmitted() &amp;&amp; $form-&gt;isValid()) {
+            try {
+                $this-&gt;sampleService-&gt;register($form-&gt;getData());
+                $this-&gt;addSuccess('admin.common.save_complete', 'admin');
+
+                return $this-&gt;redirectToRoute('admin_sample_index');
+            } catch (SampleException $e) {
+                $this-&gt;addError($e-&gt;getMessage(), 'admin');
+            }
+        }
+
+        return $this-&gt;render('@YourPlugin/admin/sample_register.twig', [
+            'form' =&gt; $form-&gt;createView(),
+        ]);
+    }
+}
+</code></pre>
+<pre><code class="language-php">&lt;?php
+
+namespace Plugin\YourPlugin\Service;
+
+class SampleService
+{
+    public function __construct(
+        private SampleRepository $repository,
+        private Calculator $calculator,
+        private ExternalApiClient $apiClient,
+        private EntityManagerInterface $entityManager
+    ) {
+    }
+
+    public function register(SampleDto $dto): Sample
+    {
+        $existingData = $this-&gt;fetchExistingData($dto);
+        $calculatedValue = $this-&gt;calculator-&gt;calculate($existingData);
+        $externalData = $this-&gt;apiClient-&gt;fetch($dto-&gt;getExternalId());
+
+        $sample = $this-&gt;createSample($dto, $calculatedValue, $externalData);
+
+        $this-&gt;entityManager-&gt;persist($sample);
+        $this-&gt;entityManager-&gt;flush();
+
+        return $sample;
+    }
+
+    private function fetchExistingData(SampleDto $dto): array
+    {
+        return $this-&gt;repository-&gt;findByConditions($dto-&gt;toSearchCriteria());
+    }
+
+    private function createSample(
+        SampleDto $dto,
+        int $calculatedValue,
+        array $externalData
+    ): Sample {
+        $sample = new Sample();
+        $sample-&gt;setName($dto-&gt;getName());
+        $sample-&gt;setValue($calculatedValue);
+        $sample-&gt;setExternalData($externalData);
+
+        return $sample;
+    }
+}
+</code></pre>
+<p>Controller は薄く保ち、ビジネスロジックは Service に移動しました。</p>
+<h4>DI の整理</h4>
+<p><strong>Before:</strong></p>
+<pre><code class="language-php">&lt;?php
+
+public function __construct(
+    private EntityManagerInterface $entityManager,
+    private SampleRepository $sampleRepository,
+    private AnotherRepository $anotherRepository,
+    private MailService $mailService,
+    private HttpClientInterface $httpClient,
+    private LoggerInterface $logger,
+    private TranslatorInterface $translator,
+    private RouterInterface $router
+) {
+}
+</code></pre>
+<p><strong>After:</strong></p>
+<pre><code class="language-php">&lt;?php
+
+// コントローラーには本当に必要なものだけ
+public function __construct(
+    private SampleService $sampleService
+) {
+}
+</code></pre>
+<pre><code class="language-php">&lt;?php
+
+// サービス側で必要な依存を持つ
+namespace Plugin\YourPlugin\Service;
+
+class SampleService
+{
+    public function __construct(
+        private SampleRepository $sampleRepository,
+        private NotificationService $notificationService,
+        private ExternalApiClient $apiClient
+    ) {
+    }
+}
+</code></pre>
+<p>依存の数が減り、テストも書きやすくなりました。</p>
+<h3>3. PR 説明文の改善</h3>
+<h4>Why の補強</h4>
+<p><strong>Before:</strong></p>
+<pre><code class="language-markdown">## 変更内容
+- SampleService を追加
+- SampleController を修正
+- SampleType を追加
+</code></pre>
+<p><strong>After:</strong></p>
+<pre><code class="language-markdown">## 背景・目的
+
+現状、サンプル登録処理がコントローラーに集中しており、以下の問題がありました。
+
+- テストが書きにくい（HTTP リクエストが必要）
+- 処理の再利用ができない
+- 変更時の影響範囲が把握しにくい
+
+本 PR では、ビジネスロジックをサービス層に分離し、保守性を向上させます。
+
+## 変更内容
+
+### 新規追加
+- `SampleService`: 登録ロジックを担当
+- `SampleType`: バリデーション定義
+
+### 修正
+- `SampleController`: サービス呼び出しに変更（ロジック削除）
+
+## 影響範囲
+
+- 管理画面 &gt; サンプル管理 &gt; 登録機能
+- 既存データへの影響なし
+- 外部連携への影響なし
+</code></pre>
+<p>レビュアーが「なぜこの変更が必要か」を理解しやすくなりました。</p>
+<h2>効果が大きかった場面</h2>
+<h3>1. 既存コードとの整合性確認</h3>
+<p>AI にプロジェクトの既存コードを読み込ませた上で質問すると、既存の命名規則やディレクトリ構造に合わせた提案をしてくれました。</p>
+<h3>2. Symfony ドキュメントの要約</h3>
+<p>「Rate Limiter の設定方法を教えて」と聞くと、EC-CUBE プラグインの文脈に合わせた具体的なコード例を提示してくれました。</p>
+<h3>3. エラーメッセージの解読</h3>
+<p>Symfony の長いスタックトレースを貼り付けると、原因と解決策を提示してくれました。</p>
+<h2>注意点</h2>
+<p>AI を活用する際の注意点もあります。</p>
+<ol>
+<li><strong>提案の検証は必須</strong>: AI の提案をそのまま使わず、動作確認とコードレビューは必ず行う</li>
+<li><strong>セキュリティの確認</strong>: 特に認証・認可周りは人間の目でチェック</li>
+<li><strong>EC-CUBE 固有の仕様</strong>: EC-CUBE 特有の Event や PurchaseFlow などは、公式ドキュメントと照らし合わせる</li>
+</ol>
+<h2>まとめ</h2>
+<table>
+<thead>
+<tr>
+<th>活用シーン</th>
+<th>効果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>設計相談</td>
+<td>迷いが減り、判断が早くなる</td>
+</tr>
+<tr>
+<td>リファクタ提案</td>
+<td>客観的な改善案が得られる</td>
+</tr>
+<tr>
+<td>PR 説明文作成</td>
+<td>レビュアー視点の補強ができる</td>
+</tr>
+</tbody>
+</table>
+<p>AI はペアプログラミングの相手として優秀です。特に「この設計でいいのか？」という迷いを解消するのに役立ちました。</p>
+<p>ただし、最終的な判断は人間が行う必要があります。AI の提案を鵜呑みにせず、チームのコーディング規約や EC-CUBE の仕様と照らし合わせて採用するかどうかを決めてください。</p>
+<h2>参考リンク</h2>
+<ul>
+<li><a href="https://doc4.ec-cube.net/">EC-CUBE 4 開発者向けドキュメント</a></li>
+<li><a href="https://symfony.com/doc/current/index.html">Symfony Documentation</a></li>
+<li><a href="https://claude.ai/claude-code">Claude Code</a></li>
+</ul>
+<hr />
+<h2>📩 EC-CUBE開発・カスタマイズのご相談</h2>
+<p>以下のような案件、お気軽にご相談ください。</p>
+<ul>
+<li>プラグイン開発・既存プラグインの改修</li>
+<li>EC-CUBE 4系へのバージョンアップ対応</li>
+<li>カスタマイズ・機能追加</li>
+<li>エンタープライズ向け開発・導入支援</li>
+</ul>
+<p>👉 <strong><a href="https://a-zumi.net/contact/">お問い合わせはこちら</a></strong></p>
+<hr />
+</body>
+</html>

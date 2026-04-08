@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>note 変換プレビュー</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h2>環境別のバンドル登録</h2>
+<p>開発環境のみで使用するバンドルは、環境を指定して登録できます。</p>
+<pre><code class="language-php">&lt;?php
+
+return [
+    // 全環境で有効
+    Some\Bundle\SomeBundle::class =&gt; ['all' =&gt; true],
+
+    // 開発環境のみ
+    Symfony\Bundle\WebProfilerBundle\WebProfilerBundle::class =&gt; ['dev' =&gt; true],
+
+    // 本番環境以外
+    Doctrine\Bundle\FixturesBundle\DoctrineFixturesBundle::class =&gt; ['dev' =&gt; true, 'test' =&gt; true],
+];
+</code></pre>
+<h2>バンドルの設定</h2>
+<p>バンドルの設定は、プラグインの <code>Resource/config/services.yaml</code> に記述します。</p>
+<h3>設定ファイルの例（services.yaml）</h3>
+<pre><code class="language-yaml"># app/Plugin/SamplePlugin/Resource/config/services.yaml
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    Plugin\SamplePlugin\:
+        resource: '../../*'
+        exclude: '../../{Entity,Resource,Tests}'
+
+# バンドルの設定
+nelmio_api_doc:
+    documentation:
+        info:
+            title: EC-CUBE API
+            description: EC-CUBE Plugin API Documentation
+            version: 1.0.0
+    areas:
+        path_patterns:
+            - ^/api(?!/doc)
+</code></pre>
+<h2>composer.jsonへの依存関係の追加</h2>
+<p>プラグインが外部バンドルに依存する場合、<code>composer.json</code> に依存関係を記述します。</p>
+<pre><code class="language-json">{
+    &quot;name&quot;: &quot;ec-cube/sample-plugin&quot;,
+    &quot;require&quot;: {
+        &quot;nelmio/api-doc-bundle&quot;: &quot;^4.0&quot;
+    }
+}
+</code></pre>
+<p>プラグインインストール時に依存パッケージも自動的にインストールされます。</p>
+<h2>実践例：API Documentationバンドルの導入</h2>
+<p>NelmioApiDocBundleを使ってSwagger UIを提供する例を紹介します。</p>
+<h3>1. composer.jsonの設定</h3>
+<pre><code class="language-json">{
+    &quot;name&quot;: &quot;ec-cube/sample-plugin&quot;,
+    &quot;version&quot;: &quot;1.0.0&quot;,
+    &quot;require&quot;: {
+        &quot;nelmio/api-doc-bundle&quot;: &quot;^4.0&quot;
+    }
+}
+</code></pre>
+<h3>2. bundles.phpの作成</h3>
+<pre><code class="language-php">&lt;?php
+// app/Plugin/SamplePlugin/Resource/config/bundles.php
+
+return [
+    Nelmio\ApiDocBundle\NelmioApiDocBundle::class =&gt; ['all' =&gt; true],
+];
+</code></pre>
+<h3>3. services.yamlでバンドルを設定</h3>
+<pre><code class="language-yaml"># app/Plugin/SamplePlugin/Resource/config/services.yaml
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    Plugin\SamplePlugin\:
+        resource: '../../*'
+        exclude: '../../{Entity,Resource,Tests}'
+
+nelmio_api_doc:
+    documentation:
+        info:
+            title: Sample Plugin API
+            version: 1.0.0
+        servers:
+            - url: /
+              description: API Server
+    areas:
+        default:
+            path_patterns:
+                - ^/plugin/sample/api
+</code></pre>
+<h3>4. ルーティングの設定</h3>
+<pre><code class="language-yaml"># app/Plugin/SamplePlugin/Resource/config/routes.yaml
+app.swagger_ui:
+    path: /plugin/sample/api/doc
+    methods: GET
+    defaults:
+        _controller: nelmio_api_doc.controller.swagger_ui
+</code></pre>
+<h2>キャッシュのクリア</h2>
+<p>バンドルを登録した後は、キャッシュのクリアが必要です。</p>
+<pre><code class="language-bash">bin/console cache:clear --no-warmup
+bin/console cache:warmup
+</code></pre>
+<h2>注意点</h2>
+<h3>1. バージョン互換性</h3>
+<p>登録するバンドルがEC-CUBEが使用するSymfonyバージョンと互換性があるか確認してください。</p>
+<table>
+<thead>
+<tr>
+<th>EC-CUBE</th>
+<th>Symfony</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4.0〜4.1</td>
+<td>4.4</td>
+</tr>
+<tr>
+<td>4.2</td>
+<td>5.4</td>
+</tr>
+<tr>
+<td>4.3</td>
+<td>6.4</td>
+</tr>
+</tbody>
+</table>
+<h3>2. プラグインの無効化</h3>
+<p>プラグインを無効化すると、<code>bundles.php</code> に登録されたバンドルも自動的に無効化されます。バンドルが提供する機能に依存するデータがある場合は、適切にハンドリングしてください。</p>
+<h2>まとめ</h2>
+<p>EC-CUBEプラグインでSymfonyバンドルを登録するには：</p>
+<ol>
+<li><code>Resource/config/bundles.php</code> にバンドルクラスを登録する</li>
+<li><code>Resource/config/services.yaml</code> にバンドルの設定を記述する</li>
+<li><code>composer.json</code> に依存関係を記述する</li>
+</ol>
+<p><code>PluginManager</code> での複雑な処理は不要で、ファイルを配置するだけでバンドルが利用可能になります。この仕組みにより、Symfonyエコシステムの豊富なバンドルをEC-CUBEプラグインで簡単に活用できます。</p>
+<hr />
+<h2>📩 EC-CUBE開発・カスタマイズのご相談</h2>
+<p>以下のような案件、お気軽にご相談ください。</p>
+<ul>
+<li>プラグイン開発・既存プラグインの改修</li>
+<li>EC-CUBE 4系へのバージョンアップ対応</li>
+<li>カスタマイズ・機能追加</li>
+<li>エンタープライズ向け開発・導入支援</li>
+</ul>
+<p>👉 <strong><a href="https://a-zumi.net/contact/">お問い合わせはこちら</a></strong></p>
+<hr />
+</body>
+</html>

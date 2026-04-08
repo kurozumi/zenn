@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>note 変換プレビュー</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h2>AI Skillsで解決</h2>
+<p>AI Skillsは、AIに「正しい使い分け」を教えるファイルです。</p>
+<p>具体的には：</p>
+<ul>
+<li><strong>どんな時にどの方法を使うべきか</strong>（判断基準）</li>
+<li><strong>やってはいけないこと</strong>（よくある失敗）</li>
+<li><strong>お手本のコード</strong>（ベストプラクティス）</li>
+</ul>
+<p>これらをAIが読み込むことで、最初から正しいアプローチで実装できるようになります。</p>
+<h2>誰が作ったの？</h2>
+<p>Symfonyの開発に深く関わっているSimon André氏（SensioLabs所属）が作成しました。</p>
+<p>Symfonyの「中の人」が作っているので、内容は公式に近いクオリティです。</p>
+<h2>対応しているAIツール</h2>
+<p>以下のツールで使えます。</p>
+<ul>
+<li><strong>Claude Code</strong>（Anthropic社のCLIツール）</li>
+<li><strong>Cursor</strong>（AI搭載エディタ）</li>
+<li><strong>Gemini CLI</strong>（Google製）</li>
+<li><strong>Windsurf</strong></li>
+</ul>
+<p>最近のAIコーディングツールであれば、ほとんど対応しています。</p>
+<h2>使い方</h2>
+<p>Claude Codeの場合、以下のコマンドでインストールできます。</p>
+<pre><code class="language-bash">git clone https://github.com/smnandre/symfony-ux-skills.git
+cp -r symfony-ux-skills/skills/* ~/.claude/skills/
+</code></pre>
+<p>一度インストールすれば、あとは自動的に機能します。「このスキルを使って」と指示する必要はありません。</p>
+<h2>実際の効果</h2>
+<h3>Before（スキルなし）</h3>
+<p>ユーザー：「商品検索をリアルタイムにしたい」</p>
+<p>AI：「えーと、JavaScriptで書きますね...」（試行錯誤が発生）</p>
+<h3>After（スキルあり）</h3>
+<p>ユーザー：「商品検索をリアルタイムにしたい」</p>
+<p>AI：「リアルタイム検索ですね。LiveComponentを使うのが最適です。こう書きます」（一発で正解）</p>
+<p>スキルがあると、AIが「経験豊富なSymfony開発者」のように振る舞えるようになります。</p>
+<h2>EC-CUBEでも使える</h2>
+<p>EC-CUBEはSymfonyベースで作られています。そのため、このAI Skillsはそのまま活用できます。</p>
+<p>例えば：</p>
+<ul>
+<li>カートの数量変更をリアルタイム反映</li>
+<li>商品検索の結果を素早く更新</li>
+<li>お気に入りボタンのアニメーション</li>
+</ul>
+<p>こうした機能をAIに実装してもらう際に、より良いコードが生成されるようになります。</p>
+<h2>人間にも役立つ</h2>
+<p>実は、AI Skillsのファイルは人間が読んでも勉強になります。</p>
+<p>「Stimulus、Turbo、LiveComponentの違いがよく分からない」という方は、スキルファイルを読むだけでも理解が深まるはずです。</p>
+<p>公式ドキュメントより実践的で、「こういう時はこれを使う」という判断基準が明確に書かれています。</p>
+<h2>まとめ</h2>
+<ul>
+<li>AI Skillsは、AIに「正しいコードの書き方」を教える仕組み</li>
+<li>Symfonyの専門家が作成した公式に近いクオリティ</li>
+<li>Claude Code、Cursorなど主要ツールに対応</li>
+<li>EC-CUBE開発にも活用可能</li>
+<li>人間の学習リソースとしても有用</li>
+</ul>
+<p>AIと一緒にコードを書く機会が増えている今、こうした仕組みを活用することで、より良いコードを効率的に書けるようになります。</p>
+<h2>参考リンク</h2>
+<ul>
+<li><a href="https://symfony.com/blog/introducing-ai-skills-for-symfony-ux">Introducing AI Skills for Symfony UX (Symfony Blog)</a></li>
+<li><a href="https://github.com/smnandre/symfony-ux-skills">GitHub: symfony-ux-skills</a></li>
+</ul>
+<hr />
+<h2>📩 EC-CUBE開発・カスタマイズのご相談</h2>
+<p>以下のような案件、お気軽にご相談ください。</p>
+<ul>
+<li>プラグイン開発・既存プラグインの改修</li>
+<li>EC-CUBE 4系へのバージョンアップ対応</li>
+<li>カスタマイズ・機能追加</li>
+<li>エンタープライズ向け開発・導入支援</li>
+</ul>
+<p>👉 <strong><a href="https://a-zumi.net/contact/">お問い合わせはこちら</a></strong></p>
+<hr />
+</body>
+</html>

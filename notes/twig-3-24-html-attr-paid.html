@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>note 変換プレビュー</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h2>基本的な使い方</h2>
+<h3>シンプルな例</h3>
+<pre><code class="language-twig">&lt;div {{ html_attr({class: 'container', id: 'main'}) }}&gt;
+    コンテンツ
+&lt;/div&gt;
+</code></pre>
+<p>出力：</p>
+<pre><code class="language-html">&lt;div class=&quot;container&quot; id=&quot;main&quot;&gt;コンテンツ&lt;/div&gt;
+</code></pre>
+<h3>配列でクラスを指定</h3>
+<pre><code class="language-twig">&lt;div {{ html_attr({class: ['btn', 'btn-primary', 'btn-lg']}) }}&gt;
+    ボタン
+&lt;/div&gt;
+</code></pre>
+<p>出力：</p>
+<pre><code class="language-html">&lt;div class=&quot;btn btn-primary btn-lg&quot;&gt;ボタン&lt;/div&gt;
+</code></pre>
+<h3>条件付き属性</h3>
+<pre><code class="language-twig">{% set isDisabled = true %}
+{% set customId = null %}
+
+&lt;button {{ html_attr({
+    disabled: isDisabled,
+    id: customId
+}) }}&gt;
+    送信
+&lt;/button&gt;
+</code></pre>
+<p>出力：</p>
+<pre><code class="language-html">&lt;button disabled&gt;送信&lt;/button&gt;
+</code></pre>
+<p><code>id</code>は<code>null</code>なので出力されません。</p>
+<h2>複数の属性をマージ</h2>
+<p><code>html_attr</code>は複数の属性マップを受け取れます。後から指定した値が優先されます。</p>
+<pre><code class="language-twig">{% set baseAttrs = {class: ['btn'], type: 'button'} %}
+{% set variantAttrs = {class: ['btn-primary']} %}
+{% set stateAttrs = {disabled: true} %}
+
+&lt;button {{ html_attr(baseAttrs, variantAttrs, stateAttrs) }}&gt;
+    送信
+&lt;/button&gt;
+</code></pre>
+<p>出力：</p>
+<pre><code class="language-html">&lt;button class=&quot;btn btn-primary&quot; type=&quot;button&quot; disabled&gt;送信&lt;/button&gt;
+</code></pre>
+<p>クラスは自動でマージされます。</p>
+<h2>Vue.jsなどのフレームワークと併用</h2>
+<p>Twig 3.24では<code>html_attr_relaxed</code>というエスケープ戦略も追加されました。</p>
+<p>Vue.jsやAlpine.jsで使う特殊な属性（<code>:</code>, <code>@</code>で始まるもの）をそのまま出力できます。</p>
+<pre><code class="language-twig">&lt;input {{ html_attr({
+    ':disabled': 'isLoading',
+    '@input': 'validate($event)',
+    'v-model': 'formData.email'
+})|e('html_attr_relaxed') }}&gt;
+</code></pre>
+<p>出力：</p>
+<pre><code class="language-html">&lt;input :disabled=&quot;isLoading&quot; @input=&quot;validate($event)&quot; v-model=&quot;formData.email&quot;&gt;
+</code></pre>
+<h2>EC-CUBEでの活用例</h2>
+<h3>商品一覧のボタン</h3>
+<pre><code class="language-twig">{% for Product in Products %}
+    &lt;button {{ html_attr({
+        class: ['btn', 'btn-primary', Product.stock_find ? '' : 'btn-disabled'],
+        disabled: not Product.stock_find,
+        'data-product-id': Product.id
+    }) }}&gt;
+        {% if Product.stock_find %}
+            カートに入れる
+        {% else %}
+            在庫切れ
+        {% endif %}
+    &lt;/button&gt;
+{% endfor %}
+</code></pre>
+<h3>フォーム要素</h3>
+<pre><code class="language-twig">{% set inputAttrs = {
+    class: ['form-control', errors ? 'is-invalid' : ''],
+    id: 'email',
+    name: 'email',
+    type: 'email',
+    required: true,
+    'aria-describedby': errors ? 'email-error' : null
+} %}
+
+&lt;input {{ html_attr(inputAttrs) }}&gt;
+</code></pre>
+<h2>Null-Safe演算子の改善</h2>
+<p>Twig 3.24では、Null-Safe演算子（<code>?.</code>）の動作も改善されました。</p>
+<pre><code class="language-twig">{{ user?.address?.city }}
+</code></pre>
+<p>以前は<code>user</code>が<code>null</code>の場合でも<code>address</code>にアクセスしようとしてエラーになることがありましたが、今後はPHPと同じように、<code>null</code>が返された時点でチェーンが中断されます。</p>
+<h2>EC-CUBEで使うには</h2>
+<p>現時点（2026年3月）のEC-CUBE 4.3系は、Symfony 6.4ベースでTwig 3.x系を使用しています。</p>
+<p>Twig 3.24を使うには、<code>composer.json</code>でTwigのバージョンを更新します。</p>
+<pre><code class="language-bash">composer require twig/twig:^3.24
+</code></pre>
+<p>ただし、EC-CUBEの動作確認は各自で行ってください。</p>
+<h2>まとめ</h2>
+<p>Twig 3.24の<code>html_attr</code>関数は、テンプレートの記述を大幅に簡潔にしてくれます。</p>
+<ul>
+<li>条件分岐の削減でコードがスッキリ</li>
+<li>クラスの自動マージで再利用性アップ</li>
+<li>Vue.jsなどとの連携も簡単</li>
+</ul>
+<p>EC-CUBEのテンプレートカスタマイズでも、ぜひ活用してみてください。</p>
+<h2>参考リンク</h2>
+<ul>
+<li><a href="https://symfony.com/blog/twig-3-24-0-released">Twig 3.24.0 Released (Symfony Blog)</a></li>
+<li><a href="https://twig.symfony.com/doc/3.x/">Twig Documentation</a></li>
+</ul>
+<hr />
+<h2>📩 EC-CUBE開発・カスタマイズのご相談</h2>
+<p>以下のような案件、お気軽にご相談ください。</p>
+<ul>
+<li>プラグイン開発・既存プラグインの改修</li>
+<li>EC-CUBE 4系へのバージョンアップ対応</li>
+<li>カスタマイズ・機能追加</li>
+<li>エンタープライズ向け開発・導入支援</li>
+</ul>
+<p>👉 <strong><a href="https://a-zumi.net/contact/">お問い合わせはこちら</a></strong></p>
+<hr />
+</body>
+</html>

@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>note 変換プレビュー</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h2>基本的な使い方</h2>
+<h3>シンプルな例</h3>
+<pre><code class="language-php">use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapRequestHeader;
+use Symfony\Component\Routing\Attribute\Route;
+
+class ApiController extends AbstractController
+{
+    #[Route('/api/data')]
+    public function getData(
+        #[MapRequestHeader] string $accept,
+        #[MapRequestHeader] ?string $authorization,
+    ): Response {
+        // $accept には Accept ヘッダーの値が入る
+        // $authorization は Authorization ヘッダー（なければnull）
+    }
+}
+</code></pre>
+<h3>名前の自動変換</h3>
+<p>引数名がcamelCaseの場合、自動的にkebab-caseに変換されます。</p>
+<pre><code class="language-php">public function index(
+    #[MapRequestHeader] string $acceptLanguage,  // → Accept-Language
+    #[MapRequestHeader] string $contentType,     // → Content-Type
+    #[MapRequestHeader] string $xCustomHeader,   // → X-Custom-Header
+): Response {
+    // ...
+}
+</code></pre>
+<p>これは地味に便利です。PHPの変数名規則とHTTPヘッダーの命名規則を自動的に橋渡ししてくれます。</p>
+<h3>明示的なヘッダー名指定</h3>
+<p>自動変換に頼りたくない場合は、明示的に指定できます。</p>
+<pre><code class="language-php">public function index(
+    #[MapRequestHeader('User-Agent')] string $userAgent,
+    #[MapRequestHeader('X-API-KEY')] string $apiKey,
+): Response {
+    // ...
+}
+</code></pre>
+<h2>配列としての取得</h2>
+<p>同じヘッダーが複数回送信される場合、配列で受け取れます。</p>
+<pre><code class="language-php">public function index(
+    #[MapRequestHeader] array $acceptLanguage,
+): Response {
+    // $acceptLanguage = ['ja', 'en-US', 'en']
+}
+</code></pre>
+<p>これは<code>Accept-Language: ja, en-US, en</code>のようなヘッダーを解析するときに便利です。</p>
+<h2>AcceptHeaderクラスでの受け取り</h2>
+<p>Accept系ヘッダーには専用のクラスがあります。</p>
+<pre><code class="language-php">use Symfony\Component\HttpFoundation\AcceptHeader;
+
+public function index(
+    #[MapRequestHeader] AcceptHeader $accept,
+    #[MapRequestHeader] AcceptHeader $acceptEncoding,
+): Response {
+    // $accept-&gt;has('application/json') で判定
+    // $accept-&gt;all() で全エントリ取得
+}
+</code></pre>
+<p><code>AcceptHeader</code>クラスは品質値（q値）の解析もしてくれるので、コンテンツネゴシエーションが簡単に実装できます。</p>
+<h2>エラーハンドリング</h2>
+<p>必須ヘッダーが見つからない場合、自動的に400エラーが返されます。</p>
+<pre><code class="language-php">public function index(
+    #[MapRequestHeader] string $authorization,  // 必須
+): Response {
+    // Authorization ヘッダーがなければ400
+}
+</code></pre>
+<h3>ステータスコードのカスタマイズ</h3>
+<p>401を返したい場合など、ステータスコードを変更できます。</p>
+<pre><code class="language-php">public function index(
+    #[MapRequestHeader(validationFailedStatusCode: 401)] string $authorization,
+): Response {
+    // Authorization ヘッダーがなければ401
+}
+</code></pre>
+<h2>EC-CUBEでの実用例</h2>
+<h3>例1: API認証ヘッダーの処理</h3>
+<pre><code class="language-php">namespace Customize\Controller\Api;
+
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpKernel\Attribute\MapRequestHeader;
+use Symfony\Component\Routing\Attribute\Route;
+
+class ProductApiController extends AbstractController
+{
+    #[Route('/api/v1/products', methods: ['GET'])]
+    public function list(
+        #[MapRequestHeader('X-API-KEY', validationFailedStatusCode: 401)] string $apiKey,
+        #[MapRequestHeader] ?string $acceptLanguage,
+    ): JsonResponse {
+        // APIキーの検証（タイミング攻撃対策としてhash_equalsを使用）
+        if (!$this-&gt;apiKeyService-&gt;isValid($apiKey)) {
+            return $this-&gt;json(['error' =&gt; 'Unauthorized'], 401);
+        }
+
+        // 言語に応じた商品データを返す
+        $locale = $this-&gt;parseLocale($acceptLanguage);
+
+        return $this-&gt;json([
+            'products' =&gt; $this-&gt;productRepository-&gt;findAllLocalized($locale),
+        ]);
+    }
+}
+</code></pre>
+<h3>例2: モバイルアプリ判定</h3>
+<pre><code class="language-php">namespace Customize\Controller;
+
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapRequestHeader;
+use Symfony\Component\Routing\Attribute\Route;
+
+class ProductController extends AbstractController
+{
+    #[Route('/products/{id}')]
+    public function detail(
+        int $id,
+        #[MapRequestHeader('User-Agent')] string $userAgent,
+        #[MapRequestHeader('X-App-Version')] ?string $appVersion,
+    ): Response {
+        $product = $this-&gt;productRepository-&gt;find($id);
+
+        // モバイルアプリからのアクセスか判定
+        $isMobileApp = $appVersion !== null;
+
+        // User-Agentでモバイルブラウザ判定
+        $isMobileBrowser = str_contains($userAgent, 'Mobile');
+
+        return $this-&gt;render('Product/detail.twig', [
+            'Product' =&gt; $product,
+            'isMobileApp' =&gt; $isMobileApp,
+            'isMobileBrowser' =&gt; $isMobileBrowser,
+        ]);
+    }
+}
+</code></pre>
+<h3>例3: キャッシュ制御</h3>
+<pre><code class="language-php">namespace Customize\Controller;
+
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapRequestHeader;
+use Symfony\Component\Routing\Attribute\Route;
+
+class CatalogController extends AbstractController
+{
+    #[Route('/catalog')]
+    public function index(
+        #[MapRequestHeader('If-None-Match')] ?string $ifNoneMatch,
+        #[MapRequestHeader('If-Modified-Since')] ?string $ifModifiedSince,
+    ): Response {
+        $lastModified = $this-&gt;catalogService-&gt;getLastModified();
+        $etag = $this-&gt;catalogService-&gt;getEtag();
+
+        // クライアントキャッシュが有効か判定（hash_equalsでタイミング攻撃対策）
+        if ($ifNoneMatch !== null &amp;&amp; hash_equals($etag, $ifNoneMatch)) {
+            return new Response('', 304);
+        }
+
+        if ($ifModifiedSince !== null) {
+            try {
+                if (new \DateTime($ifModifiedSince) &gt;= $lastModified) {
+                    return new Response('', 304);
+                }
+            } catch (\Exception) {
+                // 無効な日付形式は無視してコンテンツを返す
+            }
+        }
+
+        $response = $this-&gt;render('Catalog/index.twig', [
+            'products' =&gt; $this-&gt;catalogService-&gt;getProducts(),
+        ]);
+
+        $response-&gt;setEtag($etag);
+        $response-&gt;setLastModified($lastModified);
+
+        return $response;
+    }
+}
+</code></pre>
+<h3>例4: コンテンツネゴシエーション</h3>
+<pre><code class="language-php">namespace Customize\Controller\Api;
+
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\AcceptHeader;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapRequestHeader;
+use Symfony\Component\Routing\Attribute\Route;
+
+class ExportController extends AbstractController
+{
+    #[Route('/api/v1/products/export')]
+    public function export(
+        #[MapRequestHeader] AcceptHeader $accept,
+    ): Response {
+        $products = $this-&gt;productRepository-&gt;findAll();
+
+        // Accept ヘッダーに基づいてフォーマットを決定
+        if ($accept-&gt;has('text/csv')) {
+            return $this-&gt;exportCsv($products);
+        }
+
+        if ($accept-&gt;has('application/xml')) {
+            return $this-&gt;exportXml($products);
+        }
+
+        // デフォルトはJSON
+        return $this-&gt;json(['products' =&gt; $products]);
+    }
+}
+</code></pre>
+<blockquote>
+<p><strong>注意</strong>: <code>#[MapRequestHeader]</code> は型の安全性を提供しますが、ヘッダーの内容の検証は行いません。APIキーや認証トークンなど、セキュリティに関わるヘッダーは必ず追加の検証を行ってください。</p>
+</blockquote>
+<h2>従来の方法との比較</h2>
+<h3>コード量: 75%削減</h3>
+<p>従来6行必要だった処理が、属性を使えば<strong>引数宣言だけ</strong>で完結します。</p>
+<h3>Before（従来）</h3>
+<pre><code class="language-php">public function index(Request $request): Response
+{
+    $accept = $request-&gt;headers-&gt;get('Accept');
+    $authorization = $request-&gt;headers-&gt;get('Authorization');
+    $userAgent = $request-&gt;headers-&gt;get('User-Agent');
+    $acceptLanguage = $request-&gt;headers-&gt;get('Accept-Language');
+
+    if ($authorization === null) {
+        throw new HttpException(401, 'Authorization required');
+    }
+
+    // 処理...
+}
+</code></pre>
+<h3>After（Symfony 8.1）</h3>
+<pre><code class="language-php">public function index(
+    #[MapRequestHeader] string $accept,
+    #[MapRequestHeader(validationFailedStatusCode: 401)] string $authorization,
+    #[MapRequestHeader('User-Agent')] string $userAgent,
+    #[MapRequestHeader] ?string $acceptLanguage,
+): Response {
+    // 処理...
+}
+</code></pre>
+<h3>比較表</h3>
+<table>
+<thead>
+<tr>
+<th>観点</th>
+<th>従来</th>
+<th>#[MapRequestHeader]</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>コード量</td>
+<td>多い</td>
+<td>少ない</td>
+</tr>
+<tr>
+<td>型安全性</td>
+<td>手動で担保</td>
+<td>自動</td>
+</tr>
+<tr>
+<td>null処理</td>
+<td>手動</td>
+<td>型で表現</td>
+</tr>
+<tr>
+<td>エラーハンドリング</td>
+<td>手動</td>
+<td>自動</td>
+</tr>
+<tr>
+<td>IDE補完</td>
+<td>なし</td>
+<td>あり</td>
+</tr>
+<tr>
+<td>テスタビリティ</td>
+<td>Request必須</td>
+<td>引数で注入</td>
+</tr>
+</tbody>
+</table>
+<h2>関連する属性たち</h2>
+<p>Symfony 8.1では、リクエストデータをコントローラー引数にマップする属性が充実しています。</p>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>#[MapQueryParameter]</code></td>
+<td>クエリパラメータ</td>
+</tr>
+<tr>
+<td><code>#[MapRequestPayload]</code></td>
+<td>リクエストボディ（JSON等）</td>
+</tr>
+<tr>
+<td><code>#[MapQueryString]</code></td>
+<td>クエリ文字列全体をDTO化</td>
+</tr>
+<tr>
+<td><code>#[MapRequestHeader]</code></td>
+<td>HTTPヘッダー ← <strong>NEW!</strong></td>
+</tr>
+</tbody>
+</table>
+<p>これらを組み合わせると、コントローラーの引数だけでリクエストの全データにアクセスできます。</p>
+<pre><code class="language-php">public function create(
+    #[MapRequestPayload] ProductDto $product,
+    #[MapQueryParameter] int $categoryId,
+    #[MapRequestHeader('X-API-KEY')] string $apiKey,
+): Response {
+    // $request を一切触らずに全データにアクセス
+}
+</code></pre>
+<h2>まとめ</h2>
+<p>Symfony 8.1の<code>#[MapRequestHeader]</code>は、HTTPヘッダーの取得をシンプルかつ型安全にします。</p>
+<ul>
+<li><strong>コード量削減</strong>: <code>$request-&gt;headers-&gt;get()</code> の繰り返しが不要</li>
+<li><strong>型安全</strong>: string, array, AcceptHeader など適切な型で受け取り</li>
+<li><strong>自動変換</strong>: camelCase → kebab-case の自動変換</li>
+<li><strong>エラー処理</strong>: 必須ヘッダーの検証が自動化</li>
+</ul>
+<p>EC-CUBEがSymfony 8.x系に対応した際には、API開発やモバイル対応で活躍する機能です。</p>
+<blockquote>
+<p>「コントローラーの引数を見れば、そのエンドポイントが何を必要としているか一目でわかる」</p>
+</blockquote>
+<p>これがSymfony 8.x時代のコントローラーです。</p>
+<h2>どう思いますか？</h2>
+<p>この機能について、ご意見があればコメントで教えてください：</p>
+<ul>
+<li><strong>すぐ使いたい派</strong>: EC-CUBEのSymfony 8.x対応が待ち遠しい</li>
+<li><strong>様子見派</strong>: 既存コードとの兼ね合いが気になる</li>
+<li><strong>他に欲しい機能</strong>: <code>#[MapCookie]</code> とか欲しくないですか？</li>
+</ul>
+<h2>参考リンク</h2>
+<ul>
+<li><a href="https://github.com/symfony/symfony/commit/3e03afd7f9b2abe59063f156c44a28d64e90be0d">MapRequestHeader PR #51379 (GitHub)</a></li>
+<li><a href="https://symfony.com/blog/a-week-of-symfony-1002-march-9-15-2026">A Week of Symfony #1002</a></li>
+<li><a href="https://symfony.com/releases/8.1">Symfony 8.1 Release</a></li>
+</ul>
+<hr />
+<h2>📩 EC-CUBE開発・カスタマイズのご相談</h2>
+<p>以下のような案件、お気軽にご相談ください。</p>
+<ul>
+<li>プラグイン開発・既存プラグインの改修</li>
+<li>EC-CUBE 4系へのバージョンアップ対応</li>
+<li>カスタマイズ・機能追加</li>
+<li>エンタープライズ向け開発・導入支援</li>
+</ul>
+<p>👉 <strong><a href="https://a-zumi.net/contact/">お問い合わせはこちら</a></strong></p>
+<hr />
+</body>
+</html>

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>note 変換プレビュー</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h2>よくあるエラーパターンと Claude Code の活用法</h2>
+<h3>パターン1：500エラー（原因不明）</h3>
+<p><strong>症状:</strong> フロント・管理画面に「システムエラーが発生しました」と表示される。</p>
+<p><strong>まずデバッグモードを有効化する（ローカル開発環境のみ）:</strong></p>
+<pre><code class="language-bash"># .env を編集
+APP_ENV=dev
+APP_DEBUG=1
+</code></pre>
+<p><strong>Claude Code への指示:</strong></p>
+<pre><code>&gt; var/log/prod/site.log の末尾50行を確認して、500エラーの原因を特定して
+</code></pre>
+<p><strong>ログの例と Claude Code の解析:</strong></p>
+<pre><code>[2026-03-01 10:23:45] prod.CRITICAL: Uncaught PHP Exception
+Symfony\Component\HttpKernel\Exception\NotFoundHttpException:
+&quot;No route found for &quot;GET /admin/secret-path&quot;&quot;
+</code></pre>
+<p>Claude Code はこのログを見て「ルートが見つからない → <code>ECCUBE_ADMIN_ROUTE</code> の設定値と実際のリクエストパスが一致していない」と特定し、<code>.env</code> の修正まで提案します。</p>
+<hr />
+<h3>パターン2：DB接続エラー</h3>
+<p><strong>症状:</strong> 画面が真っ白になる、または「接続できません」エラー。</p>
+<p><strong>Claude Code への指示:</strong></p>
+<pre><code>&gt; var/log/prod/site.log にDB接続エラーが出ている。.env の DATABASE_URL と
+  MySQL の設定を確認して原因を特定して
+</code></pre>
+<p><strong>よくある原因と Claude Code の対処:</strong></p>
+<table>
+<thead>
+<tr>
+<th>ログのキーワード</th>
+<th>原因</th>
+<th>Claude Code が提案する修正</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SQLSTATE[HY000] [2002]</code></td>
+<td>MySQLが起動していない</td>
+<td><code>sudo systemctl start mysql</code></td>
+</tr>
+<tr>
+<td><code>Access denied for user</code></td>
+<td>DBユーザー・パスワード誤り</td>
+<td><code>.env</code> の <code>DATABASE_URL</code> を修正</td>
+</tr>
+<tr>
+<td><code>Unknown database</code></td>
+<td>DB名が存在しない</td>
+<td>DB作成コマンドを提案</td>
+</tr>
+<tr>
+<td><code>Too many connections</code></td>
+<td>接続数上限</td>
+<td><code>max_connections</code> の見直しを提案</td>
+</tr>
+</tbody>
+</table>
+<pre><code>&gt; var/log/prod/site.log を見て。SQLSTATE エラーが出ているので
+  原因を特定して .env の修正方法を教えて
+</code></pre>
+<hr />
+<h3>パターン3：プラグイン競合・インストール後の500エラー</h3>
+<p><strong>症状:</strong> プラグインを有効化したら画面が壊れた。</p>
+<p>EC-CUBE 4では、プラグインのコードに問題があっても管理画面から無効化できなくなることがあります。</p>
+<p><strong>Claude Code への指示:</strong></p>
+<pre><code>&gt; プラグインを有効化したら500エラーになった。
+  var/log/prod/site.log を確認して原因のプラグインと修正方法を教えて
+</code></pre>
+<p><strong>強制無効化の流れを Claude Code に任せる:</strong></p>
+<pre><code>&gt; AcmePlugin を強制的に無効化したい。
+  DBのプラグインテーブルを直接更新する方法を教えて
+</code></pre>
+<p>Claude Code は以下のような修正を提案します。</p>
+<pre><code class="language-sql">-- 実行前に必ずバックアップを取得すること
+-- まずSELECTで対象を確認してからUPDATEする
+SELECT id, code, enabled FROM dtb_plugin WHERE code = 'AcmePlugin';
+
+-- 対象を確認したらUPDATEを実行
+UPDATE dtb_plugin SET enabled = 0 WHERE code = 'AcmePlugin';
+</code></pre>
+<pre><code class="language-bash"># キャッシュをクリアして動作確認
+php bin/console cache:clear --env=prod --no-debug
+</code></pre>
+<hr />
+<h3>パターン4：キャッシュ関連のエラー</h3>
+<p><strong>症状:</strong> コードを修正したのに反映されない、またはキャッシュ生成でエラー。</p>
+<pre><code>&gt; デプロイ後に画面が更新されない。キャッシュ関連の問題を調査して修正して
+</code></pre>
+<p>Claude Code が実行する典型的な手順：</p>
+<pre><code class="language-bash"># キャッシュの強制クリア
+php bin/console cache:clear --env=prod --no-debug
+
+# キャッシュディレクトリの権限確認・修正
+ls -la var/cache/
+# 755（所有者のみ書き込み）が安全。共用サーバーでは特に775を避けること
+chmod -R 755 var/cache/
+chown -R eccube-admin:www-data var/cache/
+</code></pre>
+<hr />
+<h3>パターン5：メモリ不足・タイムアウト</h3>
+<p><strong>症状:</strong> 大量データのCSVインポートや一括処理でエラー。</p>
+<p><strong>ログの例:</strong></p>
+<pre><code>[2026-03-01 14:00:00] prod.ERROR: Allowed memory size of 134217728 bytes exhausted
+</code></pre>
+<pre><code>&gt; var/log/prod/site.log にメモリ不足エラーが出ている。
+  原因を特定して php.ini または bin/console の設定で解決する方法を教えて
+</code></pre>
+<p>Claude Code の提案例：</p>
+<pre><code class="language-bash"># コンソールコマンド実行時のメモリ上限を引き上げる
+php -d memory_limit=512M bin/console eccube:xxxxxx
+
+# または php.ini を修正
+memory_limit = 512M
+</code></pre>
+<hr />
+<h2>Claude Code を使った体系的なデバッグフロー</h2>
+<p>手順をまとめると以下のようになります。</p>
+<pre><code>1. エラー発生
+   ↓
+2. Claude Code に指示
+   「var/log/prod/site.log の最新エラーを確認して原因を特定して」
+   ↓
+3. Claude Code がログ + ソースコードを横断解析
+   ↓
+4. 原因特定 + 修正案の提示
+   ↓
+5. 修正を適用（Claude Code が自動でファイルを編集）
+   ↓
+6. キャッシュクリア + 動作確認
+</code></pre>
+<h3>複数のログを同時に解析させる</h3>
+<pre><code>&gt; 以下を同時に確認して、500エラーの根本原因を特定して：
+  - var/log/prod/site.log（アプリログ）
+  - var/log/prod/front.log（フロントログ）
+  - /var/log/nginx/eccube_error.log（Nginxログ）
+</code></pre>
+<hr />
+<h2>デバッグ効率を上げる CLAUDE.md の設定</h2>
+<p>プロジェクトルートの <code>CLAUDE.md</code> にデバッグ情報を記載しておくと、毎回説明する手間が省けます。</p>
+<pre><code class="language-markdown"># CLAUDE.md
+
+## ログファイルの場所（EC-CUBE 4.3）
+- 本番アプリログ: var/log/prod/site.log（rotating_file、日付付き）
+- 本番フロントログ: var/log/prod/front.log
+- 本番管理画面ログ: var/log/prod/admin.log
+- 開発ログ: var/log/dev/site.log
+- Nginxログ: /var/log/nginx/eccube_error.log
+- MySQLログ: /var/log/mysql/error.log
+
+## よく使うデバッグコマンド
+- キャッシュクリア: php bin/console cache:clear --env=prod --no-debug
+- ルート一覧: php bin/console debug:router
+- サービス一覧: php bin/console debug:container
+
+## 本番環境の注意事項
+- APP_DEBUG=1 は絶対に本番で有効にしない
+- DB操作前は必ずバックアップを取る
+</code></pre>
+<hr />
+<h2>まとめ</h2>
+<table>
+<thead>
+<tr>
+<th>エラーパターン</th>
+<th>Claude Code への指示</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>500エラー（原因不明）</td>
+<td><code>var/log/prod/site.log の末尾を確認してエラーの原因を特定して</code></td>
+</tr>
+<tr>
+<td>DB接続エラー</td>
+<td><code>SQLSTATE エラーを解析して .env の修正方法を教えて</code></td>
+</tr>
+<tr>
+<td>プラグイン競合</td>
+<td><code>プラグイン有効化後の500エラーを調査して強制無効化する方法を教えて</code></td>
+</tr>
+<tr>
+<td>キャッシュ問題</td>
+<td><code>デプロイ後に画面が更新されない原因を調査して修正して</code></td>
+</tr>
+<tr>
+<td>メモリ不足</td>
+<td><code>メモリ不足エラーを解析してphp.iniの設定変更を提案して</code></td>
+</tr>
+</tbody>
+</table>
+<p>「ログを見てもよくわからない」はもう過去の話です。Claude Codeにログを渡して、デバッグの時間を開発に使いましょう。</p>
+<blockquote>
+<p><strong>この記事の要約（シェア用）</strong><br />
+EC-CUBEの500エラー、Claude Codeに <code>var/log/prod/site.log を確認して原因を特定して修正して</code> と伝えるだけで解決できます。デバッグに費やす時間を開発に使いましょう。</p>
+</blockquote>
+<p>あなたはEC-CUBEのデバッグにどのくらい時間を使っていますか？Claude Codeを使い始めて変わったことがあれば、ぜひコメントで教えてください。</p>
+<hr />
+<h2>📩 EC-CUBE開発・カスタマイズのご相談</h2>
+<p>以下のような案件、お気軽にご相談ください。</p>
+<ul>
+<li>プラグイン開発・既存プラグインの改修</li>
+<li>EC-CUBE 4系へのバージョンアップ対応</li>
+<li>カスタマイズ・機能追加</li>
+<li>エンタープライズ向け開発・導入支援</li>
+</ul>
+<p>👉 <strong><a href="https://a-zumi.net/contact/">お問い合わせはこちら</a></strong></p>
+<hr />
+</body>
+</html>

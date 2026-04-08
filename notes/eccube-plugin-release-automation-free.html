@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>EC-CUBE 4プラグインのパッケージングを自動化する方法</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h1>EC-CUBE 4プラグインのパッケージングを自動化する方法</h1>
+<blockquote>
+<p>この記事は EC-CUBE 4.3 以上を対象としています。<br />
+また、<a href="https://claude.ai/claude-code">Claude Code</a> を使って書かれています。内容に誤りがある場合はコメントでお知らせください。</p>
+</blockquote>
+<p>EC-CUBEプラグインの配布には、ソースコードをtar.gz形式でパッケージングする必要があります。この記事では、GitHubのリリース機能とGitHub Actionsを使って、パッケージングを自動化する方法を解説します。</p>
+<h2>概要</h2>
+<p><code>bin/console eccube:plugin:generate</code> コマンドでプラグインを生成すると、以下のファイルが自動的に作成されます。</p>
+<ul>
+<li><code>.github/workflows/release.yml</code> - リリース自動化ワークフロー</li>
+<li><code>.gitattributes</code> - パッケージング除外設定</li>
+</ul>
+<p>これらを使うことで、GitHubでリリースを公開するだけでtar.gzファイルが自動生成されます。</p>
+<h2>ディレクトリ構成</h2>
+<pre><code>app/Plugin/Sample/
+├── .github/
+│   └── workflows/
+│       └── release.yml     # GitHub Actions ワークフロー
+├── .gitattributes          # パッケージング除外設定
+├── .gitignore
+├── composer.json
+├── Controller/
+├── Entity/
+├── Event.php
+├── Form/
+├── Nav.php
+├── PluginManager.php
+├── Repository/
+├── Resource/
+└── TwigBlock.php
+</code></pre>
+</body>
+</html>

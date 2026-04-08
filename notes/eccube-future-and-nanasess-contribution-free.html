@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>EC-CUBEの未来を考える - 主要コントリビューターの貢献から見えるもの</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h1>EC-CUBEの未来を考える - 主要コントリビューターの貢献から見えるもの</h1>
+<blockquote>
+<p>この記事は EC-CUBE 4.3 以上を対象としています。<br />
+また、<a href="https://claude.ai/claude-code">Claude Code</a> を使って書かれています。内容に誤りがある場合はコメントでお知らせください。</p>
+</blockquote>
+<h2>はじめに</h2>
+<p>EC-CUBEは日本最大のオープンソースECプラットフォームとして、多くのECサイトで利用されています。しかし近年、Shopify、BASE、STORESなどのSaaS型ECプラットフォームの台頭により、オープンソースECを取り巻く環境は大きく変化しています。</p>
+<p>本記事では、EC-CUBEの主要コントリビューターである大河内健太郎氏（<a href="https://github.com/nanasess">@nanasess</a>）と木元伸彦氏（<a href="https://github.com/nobuhiko">@nobuhiko</a>）の貢献を数値で振り返りながら、EC-CUBEが今後生き残っていくための戦略を考察します。</p>
+<h2>大河内健太郎氏（nanasess）とは</h2>
+<h3>基本プロフィール</h3>
+<ul>
+<li><strong>所属</strong>: Skirnir Inc.（大阪）</li>
+<li><strong>GitHub参加</strong>: 2011年5月〜（約15年）</li>
+<li><strong>プロフィール</strong>: 自称「寿司職人」、GNU Emacsアイコンコントリビューター</li>
+</ul>
+<p>プロフィールには「寿司職人」とありますが、その実態はEC-CUBEの心臓部を<strong>約18年間</strong>支え続けてきた中心人物です。</p>
+<h3>EC-CUBEへの圧倒的な貢献</h3>
+<p>GitHubのデータを調査した結果、以下の数値が明らかになりました。</p>
+<table>
+<thead>
+<tr>
+<th>指標</th>
+<th>数値</th>
+<th>備考</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EC-CUBE本体コミット数</td>
+<td><strong>2,165</strong></td>
+<td><strong>ダントツ1位</strong></td>
+</tr>
+<tr>
+<td>EC-CUBE組織全体コミット</td>
+<td><strong>6,867</strong></td>
+<td>EC-CUBE2含む</td>
+</tr>
+<tr>
+<td>マージされたPR</td>
+<td><strong>529</strong></td>
+<td>EC-CUBE本体のみ</td>
+</tr>
+<tr>
+<td>EC-CUBE組織へのPR</td>
+<td><strong>1,089</strong></td>
+<td>全リポジトリ</td>
+</tr>
+<tr>
+<td>貢献期間</td>
+<td><strong>2007年頃〜現在</strong></td>
+<td><strong>約18年</strong>（Subversion時代含む）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>上記のGitHubの数値は、2014年にGitHubへ移行した後のデータです。大河内氏はSubversion時代の2007年頃からEC-CUBEに貢献しており、実際の貢献期間は約18年に及びます。</p>
+</blockquote>
+<h3>コントリビューターランキング</h3>
+<p>EC-CUBE本体リポジトリのコントリビューターランキングを見てみましょう。</p>
+<pre><code>1位: nanasess       2,165 commits ← 大河内さん
+2位: chihiro-adachi 1,742 commits
+3位: k-yamamura     1,165 commits
+4位: okazy          1,097 commits
+5位: kiy0taka         942 commits
+</code></pre>
+<p>2位との差は<strong>423コミット</strong>。GitHub移行後だけで2,165コミット、Subversion時代を含めると18年以上の継続的な貢献です。これは個人の献身なくしては不可能な数字です。</p>
+<h3>EC-CUBE以外の貢献</h3>
+<p>大河内氏はEC-CUBE以外にも多くの貢献をしています。</p>
+<ul>
+<li><strong>他プロジェクトへのマージ済みPR</strong>: 1,075件</li>
+<li><strong>自作の<a href="https://github.com/nanasess/setup-chromedriver">setup-chromedriver</a></strong>: 124スター、38フォーク</li>
+<li>GitHub Actions用のChromeDriver自動セットアップツール</li>
+<li>Ubuntu/macOS/Windows対応</li>
+<li>多くのCI/CDパイプラインで採用</li>
+</ul>
+<pre><code class="language-yaml"># setup-chromedriverの使用例
+- uses: nanasess/setup-chromedriver@v2
+</code></pre>
+<p>このツールは、GitHub Marketplaceに登録され、多くのプロジェクトのE2Eテストで利用されています。</p>
+</body>
+</html>

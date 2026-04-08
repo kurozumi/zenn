@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>note 変換プレビュー</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h2>問題：ネストしたフォームで <code>POST_SUBMIT</code> の <code>isValid()</code> が信頼できない</h2>
+<p>EC-CUBE の注文フォームはネスト構造を持っています。<code>OrderType</code> が親フォームで、配送先ごとに <code>ShippingType</code> が子フォームとして含まれます。</p>
+<pre><code>OrderType（親）
+  └→ ShippingType（子）
+       └→ （プラグインが追加したフィールド）
+</code></pre>
+<p>Symfony のフォームは <code>submit()</code> が呼ばれると、子フォームから順番に <code>POST_SUBMIT</code> イベントを発火させます。<strong>バリデーションはルートフォームの <code>POST_SUBMIT</code> 時にまとめて実行</strong>されます。</p>
+<pre><code>POST_SUBMIT（子: ShippingType） ← ここではまだバリデーションが実行されていない
+POST_SUBMIT（親: OrderType）    ← バリデーションはここで実行される
+</code></pre>
+<p>つまり <code>ShippingType</code> の <code>POST_SUBMIT</code> リスナー内で <code>$form-&gt;isValid()</code> を呼んでも、この時点ではバリデーションが走っていないため <code>true</code> が返ってしまいます。</p>
+<p>現在の Symfony 6.4 に <code>POST_VALIDATE</code> イベントは存在しません（<code>FormEvents</code> に定義されているのは <code>PRE_SET_DATA</code>, <code>POST_SET_DATA</code>, <code>PRE_SUBMIT</code>, <code>SUBMIT</code>, <code>POST_SUBMIT</code> の5つのみ）。</p>
+<h3>現状の回避策</h3>
+<p><code>POST_SUBMIT</code> の実行優先度を下げることで、バリデーションより後に処理を走らせる方法があります。</p>
+<pre><code class="language-php">// 優先度を負の値にすることでバリデーション後に実行させる（ハック的）
+$builder-&gt;addEventListener(
+    FormEvents::POST_SUBMIT,
+    function (FormEvent $event) {
+        // バリデーション後（優先度が低いため後に実行される）
+        if ($event-&gt;getForm()-&gt;isValid()) {
+            // 処理...
+        }
+    },
+    -1000 // 優先度を下げる
+);
+</code></pre>
+<p>ただしこれはバリデーションの実行タイミングに依存したハックであり、フォーム構造の変化で壊れる可能性があります。</p>
+<hr />
+<h2>Symfony 8.1 での解決策：<code>ValidatorFormEvents::POST_VALIDATE</code></h2>
+<p>Symfony PR <a href="https://github.com/symfony/symfony/pull/47210">#47210</a> では、バリデーション専用のイベントが追加されます。</p>
+<pre><code class="language-php">// Symfony 8.1 以降（予定）
+use Symfony\Component\Form\Extension\Validator\ValidatorFormEvents;
+use Symfony\Component\Form\Extension\Validator\Event\PostValidateEvent;
+
+$builder-&gt;addEventListener(
+    ValidatorFormEvents::POST_VALIDATE,
+    function (PostValidateEvent $event) { // FormEvent でも動作する（PR公式サンプルは FormEvent を使用）
+        $form = $event-&gt;getForm();
+
+        // バリデーション完了後なので isValid() が正確に機能する
+        if ($form-&gt;isValid()) {
+            // このフォームの全フィールドが有効な場合の処理
+        }
+
+        // ルートフォーム全体の有効性も確認できる
+        if ($form-&gt;getRoot()-&gt;isValid()) {
+            // 注文フォーム全体が有効な場合の処理
+        }
+    }
+);
+</code></pre>
+<h3>追加されるクラス・定数</h3>
+<table>
+<thead>
+<tr>
+<th>追加物</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ValidatorFormEvents::PRE_VALIDATE</code></td>
+<td>バリデーション開始前のイベント文字列</td>
+</tr>
+<tr>
+<td><code>ValidatorFormEvents::POST_VALIDATE</code></td>
+<td>バリデーション完了後のイベント文字列</td>
+</tr>
+<tr>
+<td><code>PreValidateEvent</code></td>
+<td><code>FormEvent</code> を継承した final クラス</td>
+</tr>
+<tr>
+<td><code>PostValidateEvent</code></td>
+<td><code>FormEvent</code> を継承した final クラス</td>
+</tr>
+</tbody>
+</table>
+<p>既存の <code>FormEvents</code> クラスには追加されず、バリデーター拡張専用の <code>ValidatorFormEvents</code> クラスとして分離されます。</p>
+<h3>イベント発火の順序</h3>
+<pre><code>POST_SUBMIT（子: ShippingType）
+POST_SUBMIT（親: OrderType）      ← バリデーション実行
+POST_VALIDATE（子: ShippingType） ← 子フォームでも isValid() が正確
+POST_VALIDATE（親: OrderType）
+</code></pre>
+<hr />
+<h2>EC-CUBEプラグインでの実践：現時点での推奨パターン</h2>
+<h3>パターン1：フォームバリデーションは Symfony Constraints に任せる</h3>
+<p>フィールドの入力値チェックは Constraints として宣言的に書き、ビジネスロジック検証は PurchaseFlow に追加します。<code>POST_SUBMIT</code> は「バリデーション結果を見て何かする」用途に使わないのが安全です。</p>
+<pre><code class="language-php">class ShippingTypeExtension extends AbstractTypeExtension
+{
+    public function buildForm(FormBuilderInterface $builder, array $options): void
+    {
+        $builder-&gt;add('gift_message', TextareaType::class, [
+            'mapped' =&gt; false,
+            'required' =&gt; false,
+            'constraints' =&gt; [
+                // バリデーションは Constraints で宣言的に書く
+                new Length(['max' =&gt; 200]),
+                // XSSの根本対策は出力時のエスケープ（Twigの {{ }} 自動エスケープ等）で行うこと
+            // これはサーバー側での入力の補助的チェックに過ぎない
+            new Regex(['pattern' =&gt; '/^[^&lt;&gt;]*$/', 'message' =&gt; 'HTMLタグは使用できません']),
+            ],
+        ]);
+
+        // POST_SUBMIT はエンティティへのデータ転送のみに使う
+        $builder-&gt;addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event) {
+            $data = $event-&gt;getForm()-&gt;get('gift_message')-&gt;getData();
+            $event-&gt;getData()?-&gt;setGiftMessage($data);
+        });
+    }
+
+    public static function getExtendedTypes(): iterable
+    {
+        return [ShippingType::class];
+    }
+}
+</code></pre>
+<h3>パターン2：ビジネスロジック検証は PurchaseFlow に追加する</h3>
+<p>在庫・価格・配送に関するビジネスロジックの検証は PurchaseFlow の Processor として実装します。</p>
+<pre><code class="language-php">// app/Plugin/AcmePlugin/Service/PurchaseFlow/Validator/GiftMessageValidator.php
+use Eccube\Service\PurchaseFlow\ItemValidator;
+use Eccube\Service\PurchaseFlow\PurchaseContext;
+
+class GiftMessageValidator extends ItemValidator
+{
+    protected function validate(ItemInterface $item, PurchaseContext $context): void
+    {
+        // ここにビジネスルールを書く
+    }
+}
+</code></pre>
+<hr />
+<h2>まとめ</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>現在（Symfony 6.4）</th>
+<th>PR #47210後（Symfony 8.1〜）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>バリデーション後のイベント</td>
+<td>なし（<code>POST_SUBMIT</code> で代替）</td>
+<td><code>ValidatorFormEvents::POST_VALIDATE</code></td>
+</tr>
+<tr>
+<td>子フォームでの <code>isValid()</code></td>
+<td>不正確（バリデーション前）</td>
+<td>正確（バリデーション後）</td>
+</tr>
+<tr>
+<td>EC-CUBE コアの検証</td>
+<td>PurchaseFlow（FormEvents を使わない）</td>
+<td>変わらず</td>
+</tr>
+<tr>
+<td>プラグインの推奨パターン</td>
+<td>Constraints + PurchaseFlow Processor</td>
+<td>変わらず（<code>POST_VALIDATE</code> が選択肢として加わる）</td>
+</tr>
+</tbody>
+</table>
+<p>EC-CUBE のビジネスロジック検証は PurchaseFlow が担当しているため、<code>POST_VALIDATE</code> の恩恵を受けるのは主に「フォームバリデーション後に UI フィードバックを調整する」プラグインや、Symfony のフォームシステムに慣れた開発者が書くフォーム拡張コードです。</p>
+<p>プラグインで <code>POST_SUBMIT</code> の <code>isValid()</code> が思った通りに動かないと感じたことがあれば、コメントで教えてください。</p>
+<hr />
+<h2>📩 EC-CUBE開発・カスタマイズのご相談</h2>
+<p>以下のような案件、お気軽にご相談ください。</p>
+<ul>
+<li>プラグイン開発・既存プラグインの改修</li>
+<li>EC-CUBE 4系へのバージョンアップ対応</li>
+<li>カスタマイズ・機能追加</li>
+<li>エンタープライズ向け開発・導入支援</li>
+</ul>
+<p>👉 <strong><a href="https://a-zumi.net/contact/">お問い合わせはこちら</a></strong></p>
+<hr />
+</body>
+</html>

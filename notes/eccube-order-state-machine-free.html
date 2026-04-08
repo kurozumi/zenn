@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>EC-CUBE 4のOrderStateMachineを理解する - Symfony Workflowで実現する受注ステータス管理</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h1>EC-CUBE 4のOrderStateMachineを理解する - Symfony Workflowで実現する受注ステータス管理</h1>
+<blockquote>
+<p>この記事は EC-CUBE 4.3 以上を対象としています。<br />
+また、<a href="https://claude.ai/claude-code">Claude Code</a> を使って書かれています。内容に誤りがある場合はコメントでお知らせください。</p>
+</blockquote>
+<p>EC-CUBE 4では、受注ステータスの遷移管理にSymfony Workflow Componentを採用しています。この記事では、OrderStateMachineの仕組みを詳しく解説し、プラグインでの活用方法を紹介します。</p>
+<h2>Symfony Workflow Componentとは</h2>
+<p>Symfony Workflow Componentは、<strong>状態遷移</strong>を管理するためのコンポーネントです。「ある状態から別の状態への移動ルール」を定義し、不正な遷移を防ぐことができます。</p>
+<h3>日常の例：信号機</h3>
+<p>信号機を例に考えてみましょう。</p>
+<pre><code>[青] → [黄] → [赤] → [青] ...
+</code></pre>
+<ul>
+<li>青 → 黄 ✅ OK</li>
+<li>青 → 赤 ❌ NG（いきなり赤にはならない）</li>
+<li>赤 → 青 ✅ OK</li>
+</ul>
+<p>このような「状態の変化ルール」をコードで管理するのがWorkflow Componentです。</p>
+<h3>WorkflowとStateMachineの違い</h3>
+<p>Symfony Workflowには2つのタイプがあります。</p>
+<table>
+<thead>
+<tr>
+<th>タイプ</th>
+<th>特徴</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Workflow</strong></td>
+<td>複数の状態を同時に持てる</td>
+<td>承認フロー（複数人の承認待ちなど）</td>
+</tr>
+<tr>
+<td><strong>StateMachine</strong></td>
+<td>常に1つの状態のみ</td>
+<td>受注ステータスなど</td>
+</tr>
+</tbody>
+</table>
+<p>EC-CUBEのOrderStateMachineは、名前の通り<strong>StateMachine</strong>タイプを使用しています。</p>
+<h2>EC-CUBEの受注ステータス</h2>
+<p>EC-CUBEでは以下の受注ステータスが定義されています。</p>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>定数名</th>
+<th>表示名</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>NEW</code></td>
+<td>新規受付</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>CANCEL</code></td>
+<td>注文取消し</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>IN_PROGRESS</code></td>
+<td>対応中</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>DELIVERED</code></td>
+<td>発送済み</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>PAID</code></td>
+<td>入金済み</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>PENDING</code></td>
+<td>決済処理中</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>PROCESSING</code></td>
+<td>購入処理中</td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>RETURNED</code></td>
+<td>返品</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>

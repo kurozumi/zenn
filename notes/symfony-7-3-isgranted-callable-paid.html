@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>note 変換プレビュー</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h2>基本的な使い方</h2>
+<h3>シンプルな例：投稿者チェック</h3>
+<pre><code class="language-php">use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Security\Http\Attribute\IsGrantedContext;
+
+class PostController extends AbstractController
+{
+    #[IsGranted(static function (IsGrantedContext $context, mixed $subject): bool {
+        // 投稿の作成者のみアクセス可能
+        return $context-&gt;user === $subject-&gt;getAuthor();
+    }, subject: 'post')]
+    public function edit(Post $post): Response
+    {
+        // 編集処理
+    }
+}
+</code></pre>
+<h3>IsGrantedContext が提供するもの</h3>
+<p>コーラブルには <code>IsGrantedContext</code> と <code>$subject</code> の2つのパラメータが渡されます：</p>
+<table>
+<thead>
+<tr>
+<th>パラメータ</th>
+<th>型</th>
+<th>説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>$context</code></td>
+<td><code>IsGrantedContext</code></td>
+<td>認可コンテキスト</td>
+</tr>
+<tr>
+<td><code>$subject</code></td>
+<td><code>mixed</code></td>
+<td>アクセス対象のオブジェクト</td>
+</tr>
+</tbody>
+</table>
+<p><code>IsGrantedContext</code> は以下のプロパティとメソッドを提供します：</p>
+<table>
+<thead>
+<tr>
+<th>プロパティ/メソッド</th>
+<th>説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>$context-&gt;token</code></td>
+<td>認証トークン（<code>TokenInterface</code>）</td>
+</tr>
+<tr>
+<td><code>$context-&gt;user</code></td>
+<td>現在のユーザー（未認証時は <code>null</code>）</td>
+</tr>
+<tr>
+<td><code>$context-&gt;isGranted()</code></td>
+<td>他のロール/パーミッションをチェック</td>
+</tr>
+<tr>
+<td><code>$context-&gt;isAuthenticated()</code></td>
+<td>認証済みかどうか</td>
+</tr>
+<tr>
+<td><code>$context-&gt;isAuthenticatedFully()</code></td>
+<td>完全認証済みかどうか</td>
+</tr>
+</tbody>
+</table>
+<h2>EC-CUBEでの実用例</h2>
+<h3>例1: 商品の編集権限チェック</h3>
+<p>EC-CUBEで特定のメンバーが作成した商品のみ編集可能にする例です：</p>
+<pre><code class="language-php">namespace Customize\Controller\Admin;
+
+use Eccube\Entity\Member;
+use Eccube\Entity\Product;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Security\Http\Attribute\IsGrantedContext;
+
+class ProductController extends AbstractController
+{
+    #[Route('/admin/product/{id}/edit', name: 'admin_product_edit')]
+    #[IsGranted(static function (IsGrantedContext $context, mixed $subject): bool {
+        // 管理者は全商品を編集可能
+        if ($context-&gt;isGranted('ROLE_ADMIN')) {
+            return true;
+        }
+
+        // メンバーでなければアクセス拒否
+        if (!$context-&gt;user instanceof Member) {
+            return false;
+        }
+
+        // 商品作成者のみ編集可能
+        return $subject-&gt;getCreator() === $context-&gt;user;
+    }, subject: 'product')]
+    public function edit(Product $product): Response
+    {
+        // 編集フォームを表示
+    }
+}
+</code></pre>
+<h3>例2: 注文の閲覧権限（顧客側）</h3>
+<p>マイページで自分の注文のみ閲覧可能にする例：</p>
+<pre><code class="language-php">namespace Customize\Controller;
+
+use Eccube\Entity\Customer;
+use Eccube\Entity\Order;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Security\Http\Attribute\IsGrantedContext;
+
+class MyPageOrderController extends AbstractController
+{
+    #[Route('/mypage/order/{id}', name: 'mypage_order_detail')]
+    #[IsGranted(static function (IsGrantedContext $context, mixed $subject): bool {
+        // 顧客でなければアクセス拒否
+        if (!$context-&gt;user instanceof Customer) {
+            return false;
+        }
+
+        // 自分の注文のみ閲覧可能
+        return $subject-&gt;getCustomer()?-&gt;getId() === $context-&gt;user-&gt;getId();
+    }, subject: 'order')]
+    public function detail(Order $order): Response
+    {
+        return $this-&gt;render('Mypage/order_detail.twig', [
+            'Order' =&gt; $order,
+        ]);
+    }
+}
+</code></pre>
+<h3>例3: 複雑な条件分岐</h3>
+<p>公開状態に応じたアクセス制御：</p>
+<pre><code class="language-php">namespace Customize\Controller;
+
+use Eccube\Entity\Master\ProductStatus;
+use Eccube\Entity\Product;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Security\Http\Attribute\IsGrantedContext;
+
+class ProductDetailController extends AbstractController
+{
+    #[Route('/products/{id}', name: 'product_detail')]
+    #[IsGranted(static function (IsGrantedContext $context, mixed $subject): bool {
+        /** @var Product $product */
+        $product = $subject;
+
+        // 公開中の商品は誰でも閲覧可能
+        $status = $product-&gt;getStatus();
+        if ($status !== null &amp;&amp; $status-&gt;getId() === ProductStatus::DISPLAY_SHOW) {
+            return true;
+        }
+
+        // 非公開商品は管理者のみ
+        return $context-&gt;isGranted('ROLE_ADMIN');
+    }, subject: 'product')]
+    public function detail(Product $product): Response
+    {
+        return $this-&gt;render('Product/detail.twig', [
+            'Product' =&gt; $product,
+        ]);
+    }
+}
+</code></pre>
+<h2>subject パラメータの柔軟な指定</h2>
+<p><code>subject</code> パラメータにもコーラブルを使用できます：</p>
+<pre><code class="language-php">#[IsGranted(
+    static function (IsGrantedContext $context, mixed $subject): bool {
+        return $context-&gt;user === $subject['order']-&gt;getCustomer();
+    },
+    subject: static function (array $args): array {
+        return [
+            'order' =&gt; $args['order'],
+            'items' =&gt; $args['order']-&gt;getOrderItems(),
+        ];
+    }
+)]
+public function show(Order $order): Response
+{
+    // ...
+}
+</code></pre>
+<h2>従来の方法との比較</h2>
+<h3>Voter を使う場合（従来）</h3>
+<pre><code class="language-php">// App/Security/Voter/ProductVoter.php
+class ProductVoter extends Voter
+{
+    protected function supports(string $attribute, mixed $subject): bool
+    {
+        return $attribute === 'EDIT' &amp;&amp; $subject instanceof Product;
+    }
+
+    protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token): bool
+    {
+        $user = $token-&gt;getUser();
+        return $subject-&gt;getCreator() === $user;
+    }
+}
+
+// Controller
+#[IsGranted('EDIT', subject: 'product')]
+public function edit(Product $product): Response { }
+</code></pre>
+<h3>コーラブルを使う場合（Symfony 7.3+）</h3>
+<pre><code class="language-php">#[IsGranted(static function (IsGrantedContext $context, mixed $subject): bool {
+    return $subject-&gt;getCreator() === $context-&gt;user;
+}, subject: 'product')]
+public function edit(Product $product): Response { }
+</code></pre>
+<h3>比較表</h3>
+<table>
+<thead>
+<tr>
+<th>観点</th>
+<th>Voter</th>
+<th>コーラブル</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>コード量</td>
+<td>多い（別ファイル必要）</td>
+<td>少ない（インライン）</td>
+</tr>
+<tr>
+<td>再利用性</td>
+<td>高い</td>
+<td>低い</td>
+</tr>
+<tr>
+<td>型安全性</td>
+<td>あり</td>
+<td>あり</td>
+</tr>
+<tr>
+<td>IDE補完</td>
+<td>あり</td>
+<td>あり</td>
+</tr>
+<tr>
+<td>テスト</td>
+<td>単体テスト可能</td>
+<td>コントローラーテストで確認</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>覚えておきたいルール:</strong><br />
+複数箇所で使うなら <strong>Voter</strong>、1箇所だけなら <strong>コーラブル</strong>。<br />
+迷ったらVoterを選べば間違いない。</p>
+</blockquote>
+<h2>どっちを使う？30秒判断フローチャート</h2>
+<ol>
+<li>
+<p><strong>そのチェック、2箇所以上で使う？</strong><br />
+   - Yes → Voter<br />
+   - No → 次へ</p>
+</li>
+<li>
+<p><strong>ロジックが3行以下？</strong><br />
+   - Yes → コーラブル<br />
+   - No → Voter</p>
+</li>
+<li>
+<p><strong>単体テストが必要？</strong><br />
+   - Yes → Voter<br />
+   - No → コーラブル</p>
+</li>
+</ol>
+<h2>あなたはどっち派？</h2>
+<p>この機能を見て、開発者の間で意見が分かれています：</p>
+<p><strong>コーラブル推進派:</strong></p>
+<blockquote>
+<p>「Voterを作るほどでもない小さなチェックが多い。インラインで書けるのは神機能」</p>
+</blockquote>
+<p><strong>Voter維持派:</strong></p>
+<blockquote>
+<p>「ロジックが属性に埋まると、テストしにくくなる。保守性を考えるとVoter一択」</p>
+</blockquote>
+<p>あなたはどう思いますか？ぜひコメントで教えてください。</p>
+<h2>まとめ</h2>
+<p>Symfony 7.3の <code>#[IsGranted]</code> コーラブル対応は、シンプルなアクセス制御を直感的に記述できる便利な機能です。</p>
+<ul>
+<li><strong>メリット</strong>: コード量削減、型安全、IDE補完</li>
+<li><strong>デメリット</strong>: 再利用性が低い、複雑なロジックには不向き</li>
+<li><strong>EC-CUBEでの活用</strong>: 商品や注文の所有者チェックなど</li>
+</ul>
+<p>EC-CUBEがSymfony 7.x系に対応した際には、ぜひ活用してみてください。</p>
+<h2>参考リンク</h2>
+<ul>
+<li><a href="https://symfony.com/blog/new-in-symfony-7-3-security-improvements">New in Symfony 7.3: Security Improvements</a></li>
+<li><a href="https://github.com/symfony/symfony/pull/59150">Symfony PR #59150: Allow using a callable with IsGranted</a></li>
+<li><a href="https://wiki.php.net/rfc/closures_in_const_expr">PHP RFC: Closures in const expressions</a></li>
+</ul>
+<hr />
+<h2>📩 EC-CUBE開発・カスタマイズのご相談</h2>
+<p>以下のような案件、お気軽にご相談ください。</p>
+<ul>
+<li>プラグイン開発・既存プラグインの改修</li>
+<li>EC-CUBE 4系へのバージョンアップ対応</li>
+<li>カスタマイズ・機能追加</li>
+<li>エンタープライズ向け開発・導入支援</li>
+</ul>
+<p>👉 <strong><a href="https://a-zumi.net/contact/">お問い合わせはこちら</a></strong></p>
+<hr />
+</body>
+</html>

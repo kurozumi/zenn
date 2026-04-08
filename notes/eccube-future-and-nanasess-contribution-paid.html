@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>note 変換プレビュー</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h2>木元伸彦氏（nobuhiko）- 現役で活躍するコントリビューター</h2>
+<h3>基本プロフィール</h3>
+<ul>
+<li><strong>所属</strong>: フリーランス（東京）</li>
+<li><strong>GitHub参加</strong>: 2011年2月〜（約15年）</li>
+<li><strong>EC-CUBE貢献開始</strong>: Subversion時代から（具体的な時期は不明）</li>
+<li><strong>プロフィール</strong>: 「I am committed to nudibranchs every day.」（ウミウシの観察が趣味）</li>
+<li><strong>Twitter</strong>: <a href="https://twitter.com/seaslug_world">@seaslug_world</a></li>
+</ul>
+<p>大河内氏と同様に、木元氏もSubversion時代からEC-CUBEに貢献している古参のコントリビューターです。</p>
+<h3>EC-CUBEへの継続的な貢献</h3>
+<table>
+<thead>
+<tr>
+<th>指標</th>
+<th>数値</th>
+<th>備考</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EC-CUBE本体コミット数</td>
+<td><strong>317</strong></td>
+<td><strong>10位</strong></td>
+</tr>
+<tr>
+<td>EC-CUBE組織全体コミット</td>
+<td><strong>1,063</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>マージされたPR</td>
+<td><strong>98</strong></td>
+<td>EC-CUBE本体のみ</td>
+</tr>
+<tr>
+<td>総PR数</td>
+<td><strong>120</strong></td>
+<td>EC-CUBE本体</td>
+</tr>
+</tbody>
+</table>
+<h3>最近の活動</h3>
+<p>木元氏の特筆すべき点は、<strong>現在も活発に活動している</strong>ことです。直近のコミット履歴を見ると：</p>
+<pre><code>2026-03-02: fix(ci): add least-privilege permissions to all workflows
+2026-02-26: fix: フォーム送信済みの場合はクリックを再試行せずサーバー応答を待機
+2026-02-26: fix: プラグインボタンクリック前に Bootstrap tooltip を除去
+2026-02-19: fix: click 前に document.readyState === complete を待機
+</code></pre>
+<p>CI/CDの改善やE2Eテストの安定化など、プロジェクトの品質を支える重要な貢献を続けています。直近100件のコミットでも<strong>2番目に多い17コミット</strong>を記録しており、現在のEC-CUBE開発を支える中心メンバーの一人です。</p>
+<h2>EC-CUBEが直面する課題</h2>
+<h3>人材面の深刻な状況</h3>
+<p>直近100件のコミット活動を見ると、アクティブな開発者が限られていることがわかります。</p>
+<pre><code>dotani1111:      64 commits
+nobuhiko:        17 commits
+dependabot[bot]: 15 commits
+</code></pre>
+<p>かつてのトップコントリビューターである chihiro-adachi氏（2位）、k-yamamura氏（3位）、kiy0taka氏（5位）などの名前が最近の活動には見られません。</p>
+<h3>バス係数（Bus Factor）の問題</h3>
+<p>「バス係数」とは、プロジェクトメンバーが何人いなくなったらプロジェクトが停止するかを示す指標です。EC-CUBEの場合、大河内氏の貢献度を考えると、この数字は危険なほど低い可能性があります。</p>
+<p>これは：<br />
+- <strong>強み</strong>: 一貫した設計思想、高い品質管理<br />
+- <strong>弱み</strong>: 知識とコンテキストが特定個人に集中</p>
+<h3>市場環境の変化</h3>
+<ul>
+<li><strong>SaaS型ECの台頭</strong>: Shopify、BASE、STORESなどが中小規模市場を席巻</li>
+<li><strong>「自前で構築する」ニーズの縮小</strong>: 運用コストの観点からSaaSを選ぶ企業が増加</li>
+<li><strong>大規模市場の分化</strong>: エンタープライズはSalesforce Commerce、commercetoolsなどへ</li>
+</ul>
+<h2>EC-CUBEが生き残るための戦略</h2>
+<h3>1. 大河内さん依存からの脱却</h3>
+<p>10年間で6,867コミットという貢献は<strong>替えが効かない</strong>レベルです。この知識とコンテキストを組織としてどう継承するかが最重要課題です。</p>
+<p><strong>具体策</strong>:<br />
+- コアアーキテクチャのドキュメント化（設計思想の言語化）<br />
+- ペアプログラミング/メンタリングによる技術継承<br />
+- 複数人がコア領域を触れる体制の構築</p>
+<h3>2. 新規コントリビューターの獲得</h3>
+<p>現状、新規参入のハードルが高い状況です。</p>
+<p><strong>課題</strong>:<br />
+- Symfony + Doctrine の習熟が必要<br />
+- 独自の設計パターンの理解<br />
+- テスト環境構築の複雑さ</p>
+<p><strong>改善案</strong>:<br />
+- Good First Issue の整備と積極的なラベリング<br />
+- コントリビューションガイドの充実<br />
+- 若手向けハンズオンイベント（EC-CUBE Meetup の復活）<br />
+- 初心者向けのアーキテクチャ解説記事</p>
+<h3>3. 差別化ポイントの明確化</h3>
+<p>Shopify等と真正面から戦うのではなく、EC-CUBEならではの強みを活かす戦略が必要です。</p>
+<p><strong>EC-CUBEの強み</strong>:<br />
+- <strong>日本のBtoB商慣習への対応</strong>: 掛け売り、見積、請求書払い<br />
+- <strong>完全なソースコード所有</strong>: クラウド移行不可のエンタープライズ向け<br />
+- <strong>カスタマイズの自由度</strong>: SaaSでは対応不可な独自業務フロー<br />
+- <strong>データの自社管理</strong>: セキュリティポリシー上SaaS不可な企業向け</p>
+<h3>4. 収益モデルの強化</h3>
+<p>オープンソースプロジェクトの持続には安定した資金が必要です。</p>
+<p><strong>収益源の多様化</strong>:<br />
+- EC-CUBE.co（SaaS版）の拡大<br />
+- エンタープライズサポート契約<br />
+- 認定パートナー制度の強化<br />
+- GitHub Sponsorsの活用</p>
+<h3>5. 技術的モダナイゼーション</h3>
+<p><strong>取り組むべき領域</strong>:<br />
+- ヘッドレスEC対応の強化（API-First設計）<br />
+- コンテナ/Kubernetes対応の公式化<br />
+- PHP 8.x / Symfony 7.x への追従<br />
+- AIエージェント時代への準備（構造化データ出力、MCP連携）</p>
+<h3>6. コミュニティの再構築</h3>
+<ul>
+<li>オンライン/オフラインのMeetup定期開催</li>
+<li>技術ブログの活性化</li>
+<li>SNSでの情報発信強化</li>
+<li>成功事例の共有</li>
+</ul>
+<h2>まとめ</h2>
+<p>EC-CUBEは大河内健太郎氏（GitHub上で2,165コミット）を筆頭に、木元伸彦氏（317コミット）など、献身的なコントリビューターに支えられてきました。特に大河内氏はSubversion時代の2007年頃から約18年間、継続的に貢献しており、オープンソースコミュニティにおいても稀有な存在です。</p>
+<p>木元氏も同様にSubversion時代から貢献を続けており、現在も活発に活動しているコントリビューターの存在は心強いですが、かつての主要メンバーが離れている現状を考えると、コミュニティ全体での取り組みが必要です。</p>
+<p>EC-CUBEが今後も日本のECプラットフォームとして生き残るためには：</p>
+<ol>
+<li><strong>知識の継承と分散</strong>: 主要コントリビューターの頭の中にある設計思想を組織知化する</li>
+<li><strong>新しい血の注入</strong>: 次世代のコアコントリビューターを育成する</li>
+<li><strong>明確な差別化</strong>: SaaSとは異なる価値を提供する</li>
+<li><strong>持続可能な収益モデル</strong>: 開発を継続するための資金を確保する</li>
+</ol>
+<p>大河内氏、木元氏をはじめとする貢献者への感謝とともに、EC-CUBEコミュニティ全体で未来を作っていく必要があります。</p>
+<p>この記事が、EC-CUBEの将来について考えるきっかけになれば幸いです。</p>
+<hr />
+<h2>📩 EC-CUBE開発・カスタマイズのご相談</h2>
+<p>以下のような案件、お気軽にご相談ください。</p>
+<ul>
+<li>プラグイン開発・既存プラグインの改修</li>
+<li>EC-CUBE 4系へのバージョンアップ対応</li>
+<li>カスタマイズ・機能追加</li>
+<li>エンタープライズ向け開発・導入支援</li>
+</ul>
+<p>👉 <strong><a href="https://a-zumi.net/contact/">お問い合わせはこちら</a></strong></p>
+<hr />
+</body>
+</html>

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>note 変換プレビュー</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h2>実践例：ポイント倍率プラグインの開発</h2>
+<p>実際に Claude Code を使ってプラグインを開発してみましょう。</p>
+<h3>ステップ1: 要件を伝える</h3>
+<pre><code>あなた: 商品ごとにポイント倍率を設定できるプラグインを作成して。
+       管理画面の商品編集ページに倍率入力欄を追加し、
+       購入時にポイントを倍率に応じて付与する機能が欲しい。
+</code></pre>
+<h3>ステップ2: 生成されるコード</h3>
+<h4>ProductTrait（エンティティ拡張）</h4>
+<pre><code class="language-php">&lt;?php
+
+namespace Plugin\PointMultiplier\Entity;
+
+use Doctrine\ORM\Mapping as ORM;
+use Eccube\Annotation\EntityExtension;
+
+/**
+ * @EntityExtension(&quot;Eccube\Entity\Product&quot;)
+ */
+trait ProductTrait
+{
+    #[ORM\Column(type: 'decimal', precision: 3, scale: 1, nullable: true, options: ['default' =&gt; 1.0])]
+    private ?string $point_multiplier = '1.0';
+
+    public function getPointMultiplier(): float
+    {
+        return (float) ($this-&gt;point_multiplier ?? 1.0);
+    }
+
+    public function setPointMultiplier(?float $pointMultiplier): self
+    {
+        $this-&gt;point_multiplier = $pointMultiplier !== null ? (string) $pointMultiplier : '1.0';
+        return $this;
+    }
+}
+</code></pre>
+<h4>FormExtension（フォーム拡張）</h4>
+<pre><code class="language-php">&lt;?php
+
+namespace Plugin\PointMultiplier\Form\Extension;
+
+use Eccube\Form\Type\Admin\ProductType;
+use Symfony\Component\Form\AbstractTypeExtension;
+use Symfony\Component\Form\Extension\Core\Type\NumberType;
+use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Validator\Constraints as Assert;
+
+class ProductTypeExtension extends AbstractTypeExtension
+{
+    public static function getExtendedTypes(): iterable
+    {
+        yield ProductType::class;
+    }
+
+    public function buildForm(FormBuilderInterface $builder, array $options): void
+    {
+        $builder-&gt;add('point_multiplier', NumberType::class, [
+            'label' =&gt; 'ポイント倍率',
+            'required' =&gt; false,
+            'scale' =&gt; 1,
+            'attr' =&gt; [
+                'placeholder' =&gt; '1.0',
+            ],
+            'constraints' =&gt; [
+                new Assert\Range([
+                    'min' =&gt; 0.1,
+                    'max' =&gt; 10.0,
+                    'notInRangeMessage' =&gt; '{{ min }}〜{{ max }}の範囲で入力してください。',
+                ]),
+            ],
+        ]);
+    }
+}
+</code></pre>
+<h4>PurchaseFlow Processor（ポイント計算）</h4>
+<pre><code class="language-php">&lt;?php
+
+namespace Plugin\PointMultiplier\Service\PurchaseFlow\Processor;
+
+use Eccube\Annotation\ShoppingFlow;
+use Eccube\Entity\ItemHolderInterface;
+use Eccube\Entity\Order;
+use Eccube\Service\PurchaseFlow\ItemHolderPreprocessor;
+use Eccube\Service\PurchaseFlow\PurchaseContext;
+
+/**
+ * @ShoppingFlow
+ */
+class PointMultiplierProcessor implements ItemHolderPreprocessor
+{
+    public function process(ItemHolderInterface $itemHolder, PurchaseContext $context): void
+    {
+        if (!$itemHolder instanceof Order) {
+            return;
+        }
+
+        $totalPoint = 0;
+        foreach ($itemHolder-&gt;getProductOrderItems() as $orderItem) {
+            $product = $orderItem-&gt;getProduct();
+            if ($product === null) {
+                continue;
+            }
+
+            $basePoint = $orderItem-&gt;getPoint() ?? 0;
+            $multiplier = $product-&gt;getPointMultiplier();
+            $totalPoint += (int) floor($basePoint * $multiplier);
+        }
+
+        $itemHolder-&gt;setAddPoint($totalPoint);
+    }
+}
+</code></pre>
+<h3>ステップ3: テストコードも生成</h3>
+<pre><code>あなた: このプラグインのPHPUnitテストを作成して
+</code></pre>
+<pre><code class="language-php">&lt;?php
+
+namespace Plugin\PointMultiplier\Tests;
+
+use Eccube\Tests\EccubeTestCase;
+use Plugin\PointMultiplier\Entity\ProductTrait;
+
+class PointMultiplierTest extends EccubeTestCase
+{
+    public function testPointMultiplierDefault(): void
+    {
+        $Product = $this-&gt;createProduct();
+        $this-&gt;assertEquals(1.0, $Product-&gt;getPointMultiplier());
+    }
+
+    public function testPointMultiplierSet(): void
+    {
+        $Product = $this-&gt;createProduct();
+        $Product-&gt;setPointMultiplier(2.5);
+        $this-&gt;assertEquals(2.5, $Product-&gt;getPointMultiplier());
+    }
+}
+</code></pre>
+<h2>Claude Code を使う際のコツ</h2>
+<h3>1. CLAUDE.md を活用する</h3>
+<p>プロジェクトルートに <code>CLAUDE.md</code> を配置すると、Claude Code がプロジェクトのルールを理解します。</p>
+<pre><code class="language-markdown"># EC-CUBE プラグイン開発ルール
+
+## 対象バージョン
+- EC-CUBE 4.3 以上
+- PHP 8.1 以上
+
+## コーディング規約
+- PSR-12 に準拠
+- 型宣言を必ず使用
+- コアエンティティは Trait で拡張
+- コアフォームは FormExtension で拡張
+</code></pre>
+<h3>2. 具体的な指示を出す</h3>
+<pre><code>❌ 悪い例: 会員機能を作って
+
+✅ 良い例: 会員にVIP/通常の2種類のランクを設定できる機能を作って。
+          管理画面で会員ごとにランクを変更でき、
+          VIP会員は全商品10%オフで購入できるようにして。
+</code></pre>
+<h3>3. 段階的に開発する</h3>
+<p>一度に全てを作ろうとせず、段階的に機能を追加していきます。</p>
+<pre><code>1回目: まず会員ランクのエンティティとマイグレーションを作成して
+2回目: 管理画面で会員ランクを編集できるようにして
+3回目: VIP会員の割引処理を実装して
+</code></pre>
+<h3>4. EC-CUBE のドキュメントを参照させる</h3>
+<pre><code>あなた: EC-CUBE公式ドキュメント https://doc4.ec-cube.net/ を参照して、
+       正しいプラグインの作り方で実装して
+</code></pre>
+<h2>スラッシュコマンドの活用</h2>
+<p>Claude Code には便利なスラッシュコマンドがあります。</p>
+<table>
+<thead>
+<tr>
+<th>コマンド</th>
+<th>説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/init</code></td>
+<td>CLAUDE.md を生成</td>
+</tr>
+<tr>
+<td><code>/compact</code></td>
+<td>会話履歴を要約してコンテキストを節約</td>
+</tr>
+<tr>
+<td><code>/clear</code></td>
+<td>会話をリセット</td>
+</tr>
+<tr>
+<td><code>/cost</code></td>
+<td>現在のセッションのコストを表示</td>
+</tr>
+</tbody>
+</table>
+<h2>注意点</h2>
+<h3>セキュリティの確認</h3>
+<p>AI が生成したコードは必ずセキュリティ面を確認してください。</p>
+<ul>
+<li>SQLインジェクション対策</li>
+<li>XSS対策</li>
+<li>CSRF対策</li>
+</ul>
+<p>EC-CUBE には <code>@csrf_token_check</code> アノテーションなど、セキュリティ機能が用意されています。</p>
+<h3>動作確認は必須</h3>
+<p>生成されたコードは必ず実際に動作確認を行ってください。AI は完璧ではなく、EC-CUBE 固有の仕様を誤解している場合があります。</p>
+<h3>バージョン互換性</h3>
+<p>EC-CUBE 4.2 と 4.3 では一部の API が異なります。対象バージョンを明確に伝えましょう。</p>
+<h2>まとめ</h2>
+<p>Claude Code を活用することで、EC-CUBE プラグイン開発を大幅に効率化できます。</p>
+<ul>
+<li>雛形生成の時間短縮</li>
+<li>EC-CUBE の仕様理解をサポート</li>
+<li>テストコードの自動生成</li>
+<li>リファクタリングの提案</li>
+</ul>
+<p>ただし、AI は補助ツールです。最終的な品質は開発者自身が責任を持って確認しましょう。</p>
+<h2>参考リンク</h2>
+<ul>
+<li><a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code 公式ドキュメント</a></li>
+<li><a href="https://doc4.ec-cube.net/">EC-CUBE 4 開発者向けドキュメント</a></li>
+<li><a href="https://doc4.ec-cube.net/plugin">EC-CUBE プラグイン仕様</a></li>
+</ul>
+<hr />
+<h2>📩 EC-CUBE開発・カスタマイズのご相談</h2>
+<p>以下のような案件、お気軽にご相談ください。</p>
+<ul>
+<li>プラグイン開発・既存プラグインの改修</li>
+<li>EC-CUBE 4系へのバージョンアップ対応</li>
+<li>カスタマイズ・機能追加</li>
+<li>エンタープライズ向け開発・導入支援</li>
+</ul>
+<p>👉 <strong><a href="https://a-zumi.net/contact/">お問い合わせはこちら</a></strong></p>
+<hr />
+</body>
+</html>

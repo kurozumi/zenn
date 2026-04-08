@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>EC-CUBEプラグインが売れなくなった理由を考察する【2026年】</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h1>EC-CUBEプラグインが売れなくなった理由を考察する【2026年】</h1>
+<blockquote>
+<p>この記事は EC-CUBE 4.3 以上を対象としています。<br />
+また、<a href="https://claude.ai/claude-code">Claude Code</a> を使って書かれています。内容に誤りがある場合はコメントでお知らせください。</p>
+</blockquote>
+<h2>はじめに</h2>
+<p>EC-CUBEプラグインの開発・販売を行っている筆者ですが、2026年に入ってから売上が大幅に減少しています。</p>
+<p>この記事では、なぜEC-CUBEプラグインが売れなくなったのかを分析し、今後のプラグイン開発者としての生存戦略を考察します。</p>
+<h2>売上減少の要因分析</h2>
+<h3>1. SaaS型ECプラットフォームへの移行トレンド</h3>
+<p>最も大きな要因は、<strong>EC-CUBEからShopifyなどのSaaS型プラットフォームへの移行</strong>が加速していることです。</p>
+<p><a href="https://web-kanji.com/posts/eccube-shopify-compare">Web幹事の調査</a>によると、ECシステムのトレンドは自社でサーバーを持つ「オープンソース型（EC-CUBE）」から、保守管理不要の「SaaS型（Shopify）」へと大きくシフトしています。</p>
+<p><strong>移行が進む理由：</strong></p>
+<table>
+<thead>
+<tr>
+<th>項目</th>
+<th>EC-CUBE</th>
+<th>Shopify</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>サーバー管理</td>
+<td>自社で必要</td>
+<td>不要</td>
+</tr>
+<tr>
+<td>セキュリティ対応</td>
+<td>自社で必要</td>
+<td>自動</td>
+</tr>
+<tr>
+<td>アップデート</td>
+<td>手動</td>
+<td>自動</td>
+</tr>
+<tr>
+<td>初期費用</td>
+<td>高め</td>
+<td>低め</td>
+</tr>
+<tr>
+<td>運用コスト</td>
+<td>変動</td>
+<td>定額</td>
+</tr>
+</tbody>
+</table>
+<p>EC-CUBEの年間流通総額は2,100億円（2023年）である一方、makeshopは3,428億円（2025年4月）と、SaaS型プラットフォームが市場シェアを拡大しています。</p>
+<h3>2. AIコーディングツールの普及</h3>
+<p><a href="https://claude.ai/claude-code">Claude Code</a>や<a href="https://cursor.sh/">Cursor</a>などのAIコーディングツールの普及により、<strong>「プラグインを買う」から「自分で作る」への転換</strong>が起きています。</p>
+<p><a href="https://www.hexabase.com/column/ai-driven-development-cursor-claude-code-report">Hexabaseの実践レポート</a>では、AIツールを使えばプログラミング初心者でも本格的なWebサイトやECサイトが作れるようになったと報告されています。</p>
+<p>これまでプラグインを購入していた層が、以下の理由で自作を選ぶようになっています：</p>
+<ul>
+<li><strong>コスト削減</strong>：プラグイン購入費 vs AI利用料</li>
+<li><strong>カスタマイズ性</strong>：自分の要件にぴったり合ったものが作れる</li>
+<li><strong>学習効果</strong>：AIに教えてもらいながら学べる</li>
+<li><strong>継続的な改善</strong>：自分で修正・機能追加が可能</li>
+</ul>
+<pre><code class="language-php">// 例：AIに「会員をグループ分けする機能を作って」と依頼するだけで
+// 以下のようなコードが生成される時代
+
+namespace Customize\Entity;
+
+use Doctrine\ORM\Mapping as ORM;
+use Eccube\Entity\Customer;
+
+/**
+ * @ORM\Entity
+ * @ORM\Table(name=&quot;plg_customer_group&quot;)
+ */
+class CustomerGroup
+{
+    // ... AIが自動生成
+}
+</code></pre>
+<h3>3. 景気・消費動向の影響</h3>
+<p><a href="https://www.jcer.or.jp/j-column/column-komine/20260128.html">日本経済研究センター</a>によると、2026年の実質GDP成長率は前年比+0.8%と緩やかな成長が見込まれています。</p>
+<p>しかし、実態としては：</p>
+<ul>
+<li>西松屋チェーンやカワチ薬品が下方修正</li>
+<li>しまむらは12月の既存店売上高が約2.2%減（9ヶ月ぶりの前年割れ）</li>
+<li>ワークマンも同2.0%減</li>
+</ul>
+<p><strong>大企業・輸出企業・富裕層は上向き、中小企業・低中所得層は下向き</strong>という二極化が深刻化しており、EC-CUBEを利用する中小EC事業者の投資意欲が減退していると考えられます。</p>
+<h3>4. EC-CUBE自体の市場変化</h3>
+<p>EC-CUBEは「月商1000万円以上で利用されているカートシステム」の利用数でNo.1を獲得していますが、新規導入は減少傾向にあります。</p>
+<p><a href="https://bindec.jp/media/555953136009/">BiNDec FEED</a>の調査では、BASEはショップ開設数240万店舗以上を誇り、ネットショップ開設実績5年連続No.1を獲得。手軽に始められるプラットフォームに新規参入者が流れています。</p>
+</body>
+</html>

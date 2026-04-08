@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>note 変換プレビュー</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h2>エラーの原因</h2>
+<h3>EC-CUBEのページ管理の仕組み</h3>
+<p>EC-CUBEでは、フロント画面のすべてのページが <code>dtb_page</code> テーブルで管理されています。このテーブルには以下の情報が格納されています。</p>
+<ul>
+<li>ページ名</li>
+<li>URL（ルート名）</li>
+<li>ファイル名</li>
+<li>レイアウト情報</li>
+<li>メタ情報（description等）</li>
+</ul>
+<h3>TwigInitializeListenerの処理</h3>
+<p>フロント画面にアクセスすると、<code>TwigInitializeListener</code> がリクエストを処理し、ルート名から対応する <code>Page</code> エンティティを取得します。</p>
+<pre><code class="language-php">// src/Eccube/EventListener/TwigInitializeListener.php
+
+public function setFrontVariables(RequestEvent $event)
+{
+    $request = $event-&gt;getRequest();
+    $route = $attributes-&gt;get('_route');
+
+    // URLからPageを取得
+    $Page = $this-&gt;pageRepository-&gt;getPageByRoute($route);
+
+    // Twigグローバル変数に設定
+    $this-&gt;twig-&gt;addGlobal('Page', $Page);
+    // ...
+}
+</code></pre>
+<h3>PageRepositoryの挙動</h3>
+<p><code>PageRepository::getPageByRoute()</code> は、指定されたルート名で <code>dtb_page</code> を検索します。</p>
+<pre><code class="language-php">// src/Eccube/Repository/PageRepository.php
+
+public function getPageByRoute($route)
+{
+    try {
+        $Page = $qb
+            -&gt;where('p.url = :url')
+            -&gt;setParameter('url', $route)
+            -&gt;getSingleResult();
+    } catch (\Exception $e) {
+        // 見つからない場合は空のPageを返す
+        return $this-&gt;newPage();
+    }
+
+    return $Page;
+}
+
+public function newPage()
+{
+    $Page = new Page();
+    $Page-&gt;setEditType(Page::EDIT_TYPE_USER);  // edit_type = 0
+
+    return $Page;
+}
+</code></pre>
+<p><strong>ポイント</strong>: <code>dtb_page</code> にルートが登録されていない場合、<code>url</code> プロパティが空の <code>Page</code> エンティティが返されます。</p>
+<h3>meta.twigでのエラー発生</h3>
+<p>テンプレートの <code>meta.twig</code> では、canonical URLを生成する際に <code>Page.url</code> を使用しています。</p>
+<pre><code class="language-twig">{# src/Eccube/Resource/template/default/meta.twig #}
+
+{% elseif Page is defined and Page.edit_type == 0 and Page.url is defined and Page.url is not empty %}
+    {% set meta_canonical = url('user_data', {'route': Page.url}) %}
+{% endif %}
+</code></pre>
+<p><code>dtb_page</code> に登録されていないカスタムルートでは、<code>Page.url</code> が空になるため、<code>url('user_data', {'route': ''})</code> が呼ばれてしまい、<code>user_data</code> ルートの要件（<code>route</code> パラメータが必須）を満たせずエラーが発生します。</p>
+<h2>対処法</h2>
+<h3>方法1: dtb_pageにページを登録する（推奨）</h3>
+<p>最も正しい方法は、カスタムルートを <code>dtb_page</code> に登録することです。</p>
+<pre><code class="language-php">// app/Customize/Controller/HomeController.php
+
+namespace Customize\Controller;
+
+use Eccube\Controller\AbstractController;
+use Eccube\Annotation\EntityExtension;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
+use Symfony\Component\Routing\Annotation\Route;
+
+class HomeController extends AbstractController
+{
+    /**
+     * @Route(&quot;/home&quot;, name=&quot;homepage2&quot;, methods={&quot;GET&quot;})
+     * @Template(&quot;home.twig&quot;)
+     */
+    public function index()
+    {
+        return [];
+    }
+}
+</code></pre>
+<p>マイグレーションファイルを作成して、<code>dtb_page</code> にレコードを追加します。</p>
+<pre><code class="language-php">// app/DoctrineMigrations/Version20240101000000.php
+
+namespace DoctrineMigrations;
+
+use Doctrine\DBAL\Schema\Schema;
+use Doctrine\Migrations\AbstractMigration;
+
+final class Version20240101000000 extends AbstractMigration
+{
+    public function up(Schema $schema): void
+    {
+        // dtb_pageにページを登録
+        $this-&gt;addSql(&quot;INSERT INTO dtb_page (
+            master_page_id, page_name, url, file_name, edit_type,
+            create_date, update_date, meta_robots, discriminator_type
+        ) VALUES (
+            NULL, 'ホーム', 'homepage2', 'home', 2,
+            NOW(), NOW(), 'noindex', 'page'
+        )&quot;);
+
+        // dtb_page_layoutにレイアウトを紐付け
+        $pageId = $this-&gt;connection-&gt;lastInsertId();
+        $this-&gt;addSql(&quot;INSERT INTO dtb_page_layout (
+            page_id, layout_id, device_type_id, sort_no, discriminator_type
+        ) VALUES (
+            {$pageId}, 1, 10, 0, 'pagelayout'
+        )&quot;);
+    }
+
+    public function down(Schema $schema): void
+    {
+        $this-&gt;addSql(&quot;DELETE FROM dtb_page WHERE url = 'homepage2'&quot;);
+    }
+}
+</code></pre>
+<h3>方法2: プラグインの場合はPluginManager で登録</h3>
+<p>プラグイン開発の場合は、<code>PluginManager</code> の <code>enable</code> メソッドでページを登録します。</p>
+<pre><code class="language-php">// PluginManager.php
+
+namespace Plugin\MyPlugin;
+
+use Eccube\Entity\Layout;
+use Eccube\Entity\Page;
+use Eccube\Entity\PageLayout;
+use Eccube\Plugin\AbstractPluginManager;
+use Eccube\Repository\LayoutRepository;
+use Eccube\Repository\PageRepository;
+use Eccube\Repository\PageLayoutRepository;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+
+class PluginManager extends AbstractPluginManager
+{
+    public function enable(array $meta, ContainerInterface $container)
+    {
+        $em = $container-&gt;get('doctrine.orm.entity_manager');
+        $pageRepository = $container-&gt;get(PageRepository::class);
+        $layoutRepository = $container-&gt;get(LayoutRepository::class);
+        $pageLayoutRepository = $container-&gt;get(PageLayoutRepository::class);
+
+        // ページの作成
+        $Page = $pageRepository-&gt;findOneBy(['url' =&gt; 'myplugin_index']);
+        if (null === $Page) {
+            $Page = new Page();
+            $Page-&gt;setName('マイプラグイン');
+            $Page-&gt;setUrl('myplugin_index');
+            $Page-&gt;setFileName('MyPlugin/index');
+            $Page-&gt;setEditType(Page::EDIT_TYPE_DEFAULT);
+            $Page-&gt;setMetaRobots('noindex');
+            $em-&gt;persist($Page);
+            $em-&gt;flush();
+
+            // レイアウトとの紐付け
+            $Layout = $layoutRepository-&gt;find(Layout::DEFAULT_LAYOUT_UNDERLAYER_PAGE);
+            $PageLayout = new PageLayout();
+            $PageLayout-&gt;setPage($Page);
+            $PageLayout-&gt;setLayout($Layout);
+            $PageLayout-&gt;setDeviceTypeId(\Eccube\Entity\Master\DeviceType::DEVICE_TYPE_PC);
+            $PageLayout-&gt;setSortNo(0);
+            $em-&gt;persist($PageLayout);
+            $em-&gt;flush();
+        }
+    }
+
+    public function disable(array $meta, ContainerInterface $container)
+    {
+        $em = $container-&gt;get('doctrine.orm.entity_manager');
+        $pageRepository = $container-&gt;get(PageRepository::class);
+
+        $Page = $pageRepository-&gt;findOneBy(['url' =&gt; 'myplugin_index']);
+        if (null !== $Page) {
+            $em-&gt;remove($Page);
+            $em-&gt;flush();
+        }
+    }
+}
+</code></pre>
+<h3>方法3: レイアウトを使用しないページの場合</h3>
+<p>管理画面のようにレイアウトを使用しないページの場合は、Twigテンプレートで <code>default_frame.twig</code> を継承せずに独自のテンプレートを使用します。</p>
+<pre><code class="language-twig">{# app/template/default/Home/index.twig #}
+
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;カスタムページ&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;カスタムページ&lt;/h1&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<pre><code class="language-php">// コントローラー側
+
+/**
+ * @Route(&quot;/home&quot;, name=&quot;homepage2&quot;, methods={&quot;GET&quot;})
+ */
+public function index()
+{
+    return $this-&gt;render('Home/index.twig');
+}
+</code></pre>
+<p>この方法では <code>meta.twig</code> が読み込まれないため、エラーは発生しません。ただし、EC-CUBEの共通レイアウト（ヘッダー、フッター、ブロック等）が使用できなくなります。</p>
+<h2>なぜdtb_pageへの登録が必要なのか</h2>
+<p>EC-CUBEのフロント画面では、<code>dtb_page</code> テーブルが以下の役割を担っています。</p>
+<table>
+<thead>
+<tr>
+<th>機能</th>
+<th>説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>レイアウト管理</td>
+<td>ページごとにヘッダー・フッター・サイドバーのレイアウトを設定</td>
+</tr>
+<tr>
+<td>ブロック配置</td>
+<td>ページごとにブロックの表示/非表示を制御</td>
+</tr>
+<tr>
+<td>SEO設定</td>
+<td>メタタグ（description, robots等）の管理</td>
+</tr>
+<tr>
+<td>canonical URL</td>
+<td>正規URLの生成</td>
+</tr>
+<tr>
+<td>ページ名管理</td>
+<td>パンくずリストやタイトルに使用</td>
+</tr>
+</tbody>
+</table>
+<p><code>dtb_page</code> に登録することで、これらの機能が正しく動作するようになります。</p>
+<h2>まとめ</h2>
+<ul>
+<li>EC-CUBE 4でカスタムルートを作成する際は、<code>dtb_page</code> テーブルへの登録が必要</li>
+<li>登録しないと <code>meta.twig</code> でcanonical URL生成時にエラーが発生する</li>
+<li>プラグイン開発では <code>PluginManager</code> でページを登録するのがベストプラクティス</li>
+<li>管理画面で「ページ管理」からも追加可能だが、プログラムで管理する方が保守性が高い</li>
+</ul>
+<h2>参考リンク</h2>
+<ul>
+<li><a href="https://github.com/EC-CUBE/ec-cube/issues/6504">GitHub Issue: dtb_pageに登録していないルートを作成し、アクセスするとエラーになる</a></li>
+<li><a href="https://doc4.ec-cube.net/">EC-CUBE 4 開発者向けドキュメント - ページ管理</a></li>
+</ul>
+<hr />
+<h2>📩 EC-CUBE開発・カスタマイズのご相談</h2>
+<p>以下のような案件、お気軽にご相談ください。</p>
+<ul>
+<li>プラグイン開発・既存プラグインの改修</li>
+<li>EC-CUBE 4系へのバージョンアップ対応</li>
+<li>カスタマイズ・機能追加</li>
+<li>エンタープライズ向け開発・導入支援</li>
+</ul>
+<p>👉 <strong><a href="https://a-zumi.net/contact/">お問い合わせはこちら</a></strong></p>
+<hr />
+</body>
+</html>

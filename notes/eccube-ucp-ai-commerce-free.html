@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>EC-CUBE 4でAIエージェント対応を実現する - Universal Commerce Protocol（UCP）入門</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h1>EC-CUBE 4でAIエージェント対応を実現する - Universal Commerce Protocol（UCP）入門</h1>
+<blockquote>
+<p>この記事は EC-CUBE 4.3 以上を対象としています。<br />
+また、<a href="https://claude.ai/claude-code">Claude Code</a> を使って書かれています。内容に誤りがある場合はコメントでお知らせください。</p>
+</blockquote>
+<h2>はじめに：AIがショッピングを変える時代</h2>
+<p>「AIに頼んで買い物してもらう」</p>
+<p>そんな未来が、もう目の前に来ています。</p>
+<p>Google の AI Mode in Search や Gemini アプリでは、ユーザーが「〇〇を買いたい」と話しかけるだけで、AIエージェントが商品を探し、比較し、購入まで完了してくれる世界が実現しつつあります。</p>
+<p>この「AIエージェントによるショッピング」を可能にするのが、<strong>Universal Commerce Protocol（UCP）</strong> です。</p>
+<h2>UCPとは何か？</h2>
+<p><strong>UCP（Universal Commerce Protocol）</strong> は、Google と Shopify が中心となり、Etsy、Walmart、Target、Wayfair などの業界大手と共同開発した<strong>オープンソースのプロトコル</strong>です。</p>
+<p>https://ucp.dev/</p>
+<h3>支持・参加企業</h3>
+<p>UCP には以下のような企業が参加・支持しています：</p>
+<ul>
+<li><strong>共同開発</strong>: Google、Shopify、Etsy、Wayfair、Target、Walmart</li>
+<li><strong>決済プロバイダー</strong>: Stripe、Adyen、PayPal、Mastercard、Visa、American Express、Klarna、Affirm</li>
+<li><strong>小売企業</strong>: Best Buy、The Home Depot、Gap、Macy's、Zalando、Flipkart</li>
+</ul>
+<p>40社以上がこのプロトコルを支持しており、<strong>事実上の業界標準</strong>になりつつあります。</p>
+<h3>UCPが解決する問題</h3>
+<p>従来、AIエージェントが EC サイトで買い物をするには、サイトごとに個別の連携が必要でした。これは N × N の複雑性を生み出します。</p>
+<p>UCPは「共通言語」を定義することで、<strong>一度の実装で、あらゆるAIエージェントと連携</strong>できるようになります。</p>
+<pre><code>従来: AIエージェントA × ECサイト1 + AIエージェントA × ECサイト2 + ...
+UCP: AIエージェント ← UCP → ECサイト（共通インターフェース）
+</code></pre>
+<h3>UCPの技術的特徴</h3>
+<ul>
+<li><strong>REST / JSON-RPC</strong> によるシンプルな API</li>
+<li><strong>OAuth 2.0</strong> による認証</li>
+<li><strong>Agent Payments Protocol (AP2)</strong> による安全な決済</li>
+<li><strong>Agent2Agent (A2A)</strong> / <strong>Model Context Protocol (MCP)</strong> との互換性</li>
+<li><strong><code>/.well-known/ucp</code></strong> マニフェストによる機能の自動検出</li>
+</ul>
+</body>
+</html>

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>note 変換プレビュー</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h2>仕組み：コンパイラーパスによる自動検出</h2>
+<p>内部実装としては <code>RegisterCustomTypePass</code> というコンパイラーパスが追加され、DIコンテナのビルド時に <code>#[AsDoctrineType]</code> 属性を持つクラスを自動検出し、<code>doctrine.dbal.connection_factory.types</code> に登録します。</p>
+<p>Symfonyの <code>#[AsTaggedItem]</code> や <code>#[AutoconfigureTag]</code> と同じ思想の拡張です。EC-CUBEでも <code>#[AsEccubeNav]</code> や <code>#[AsEccubeAdminNav]</code> といった属性ベースの自動設定が使われており、同じパターンです。</p>
+<hr />
+<h2>EC-CUBEプラグイン開発への影響</h2>
+<p>EC-CUBEのプラグインでカスタムDoctrineタイプを使うケースは意外と多いです。</p>
+<table>
+<thead>
+<tr>
+<th>ユースケース</th>
+<th>カスタムタイプの例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>金額を専用の値オブジェクトで扱う</td>
+<td><code>MoneyType</code></td>
+</tr>
+<tr>
+<td>複数の設定値をJSONで1カラムに格納</td>
+<td><code>SettingsType</code></td>
+</tr>
+<tr>
+<td>Enumをそのままカラムに保存</td>
+<td><code>OrderStatusType</code></td>
+</tr>
+<tr>
+<td>暗号化が必要なカラム</td>
+<td><code>EncryptedStringType</code> ※</td>
+</tr>
+</tbody>
+</table>
+<p>これらがすべて <code>doctrine.yaml</code> の記述なしで動くようになります。</p>
+<h3>現在のEC-CUBEでの対応策</h3>
+<p>このPRがマージされてもEC-CUBE 4.3（Symfony 6.4ベース）では使えません。現時点では以下の方法でカスタムタイプを登録してください。</p>
+<pre><code class="language-yaml"># app/Plugin/AcmePlugin/Resource/config/services.yaml で登録するか
+# app/Plugin/AcmePlugin/Resource/config/doctrine.yaml に記載する
+
+doctrine:
+  dbal:
+    types:
+      money: Plugin\AcmePlugin\Doctrine\Type\MoneyType
+      settings: Plugin\AcmePlugin\Doctrine\Type\SettingsType
+</code></pre>
+<p>または、プラグインの <code>ServiceProvider</code> で動的に登録する方法もあります。</p>
+<pre><code class="language-php">// PluginManager.php
+use Doctrine\DBAL\Types\Type;
+
+public function install(array $meta, ContainerInterface $container): void
+{
+    if (!Type::hasType('money')) {
+        Type::addType('money', MoneyType::class);
+    }
+}
+</code></pre>
+<hr />
+<h2>EC-CUBEのSymfony 7.4移行が進行中（PR #6686）</h2>
+<p>実は、EC-CUBE本体でも大規模なアップグレードが進んでいます。</p>
+<p><strong><a href="https://github.com/EC-CUBE/ec-cube/pull/6686">EC-CUBE PR #6686: Upgrade to Symfony 7.4 / Doctrine ORM 3.6 / DBAL 4.4</a></strong></p>
+<table>
+<thead>
+<tr>
+<th>対象</th>
+<th>現在</th>
+<th>アップグレード後</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Symfony</td>
+<td>6.4</td>
+<td><strong>7.4 LTS</strong>（PHP 8.2+必須）</td>
+</tr>
+<tr>
+<td>Doctrine ORM</td>
+<td>2.x</td>
+<td><strong>3.6</strong></td>
+</tr>
+<tr>
+<td>Doctrine DBAL</td>
+<td>3.x</td>
+<td><strong>4.4</strong></td>
+</tr>
+<tr>
+<td>Monolog</td>
+<td>2.x</td>
+<td>3.x</td>
+</tr>
+</tbody>
+</table>
+<h3><code>getName()</code> はDBAL 4.4で完全に削除される</h3>
+<p>前述のコード例で触れた <code>getName()</code> メソッドは、DBAL 3.x では非推奨でしたが、<strong>DBAL 4.4では削除されます</strong>。EC-CUBE PR #6686 がマージされると、<code>getName()</code> を実装しているカスタムタイプはエラーになります。</p>
+<p>既存プラグインのカスタムDoctrineタイプを持っている場合、<code>getName()</code> を削除する対応が必要になります。</p>
+<pre><code class="language-php">// DBAL 4.x 対応後は getName() を削除する
+// （タイプ名はTypeRegistryで管理されるため不要）
+final class MoneyType extends Type
+{
+    public function getSQLDeclaration(array $column, AbstractPlatform $platform): string
+    {
+        return 'DECIMAL(10, 2)';
+    }
+
+    // getName() は不要（削除する）
+}
+</code></pre>
+<h3>既存プラグインの互換性</h3>
+<p>PR #6686 では<strong>4つの互換レイヤー</strong>が実装されており、<code>@ORM</code> アノテーション記法のプラグインも当面は動作するよう設計されています。</p>
+<table>
+<thead>
+<tr>
+<th>互換レイヤー</th>
+<th>対応内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>HybridMappingDriver</code></td>
+<td><code>@ORM</code> アノテーションと属性の両方に対応</td>
+</tr>
+<tr>
+<td><code>HybridAnnotationClassLoader</code></td>
+<td><code>@Route</code> アノテーション互換</td>
+</tr>
+<tr>
+<td><code>TemplateAnnotationListener</code></td>
+<td><code>@Template</code> アノテーション互換</td>
+</tr>
+<tr>
+<td><code>PluginReturnTypeCompatLoader</code></td>
+<td>プラグインメソッドへの戻り値型を自動補完</td>
+</tr>
+</tbody>
+</table>
+<p>ただし、長期的にはアノテーション記法から<strong>PHP 8属性</strong>への移行が推奨されます。</p>
+<blockquote>
+<p>PR #6686 は2026年3月時点でオープン中で、<code>4.3-symfony7</code> ブランチで開発中です。正式リリース時期は未確定ですが、プラグイン開発者は今から対応を意識しておくと安心です。</p>
+</blockquote>
+<hr />
+<h2>まとめ</h2>
+<table>
+<thead>
+<tr>
+<th>比較軸</th>
+<th>現在（Symfony 6.4）</th>
+<th>PR #63774後（Symfony 8.1〜）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>登録方法</td>
+<td><code>doctrine.yaml</code> に手動追記</td>
+<td><code>#[AsDoctrineType]</code> 属性1行</td>
+</tr>
+<tr>
+<td>追記漏れリスク</td>
+<td>あり（実行時エラー）</td>
+<td>なし（自動検出）</td>
+</tr>
+<tr>
+<td>タイプ追加時の作業</td>
+<td>PHPファイル＋YAMLの2ファイル</td>
+<td>PHPファイルのみ</td>
+</tr>
+<tr>
+<td>EC-CUBE 4.3対応</td>
+<td>今すぐ使える</td>
+<td>将来のバージョンアップ後</td>
+</tr>
+</tbody>
+</table>
+<p>属性ベースの自動設定はSymfonyの流れであり、EC-CUBEもこの恩恵を受けるのは時間の問題です。今のうちにカスタムDoctrineタイプのパターンを把握しておくと、将来のバージョンアップ時にスムーズに移行できます。</p>
+<hr />
+<h2>📩 EC-CUBE開発・カスタマイズのご相談</h2>
+<p>以下のような案件、お気軽にご相談ください。</p>
+<ul>
+<li>プラグイン開発・既存プラグインの改修</li>
+<li>EC-CUBE 4系へのバージョンアップ対応</li>
+<li>カスタマイズ・機能追加</li>
+<li>エンタープライズ向け開発・導入支援</li>
+</ul>
+<p>👉 <strong><a href="https://a-zumi.net/contact/">お問い合わせはこちら</a></strong></p>
+<hr />
+</body>
+</html>

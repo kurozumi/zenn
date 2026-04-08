@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>EC-CUBEプラグインで「ブロックごとに異なるフォーム」をCollectionTypeで実装する</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+  line-height: 1.85;
+  color: #333;
+  font-size: 16px;
+}
+h1 { font-size: 1.7em; margin-top: 0; margin-bottom: 0.5em; }
+h2 { font-size: 1.35em; margin-top: 2.2em; border-bottom: 1px solid #e8e8e8; padding-bottom: 0.3em; }
+h3 { font-size: 1.15em; margin-top: 1.8em; }
+p  { margin: 0.9em 0; }
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+pre {
+  background: #f3f3f3;
+  padding: 16px 18px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1.2em 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85em; }
+blockquote {
+  border-left: 4px solid #d0d0d0;
+  margin: 1.2em 0;
+  padding: 0.6em 1em;
+  color: #555;
+  background: #fafafa;
+  border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 0.3em 0; }
+hr { border: none; border-top: 1px solid #e0e0e0; margin: 2em 0; }
+ul, ol { padding-left: 1.6em; margin: 0.8em 0; }
+li { margin: 0.4em 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+th { background: #f3f3f3; font-weight: 600; }
+a { color: #0070f3; text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; border-radius: 4px; }
+.info-box {
+  text-align: center;
+  background: #e8f4ff;
+  border: 1px solid #b3d7ff;
+  border-radius: 8px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  font-size: 14px;
+  color: #0055aa;
+}
+</style>
+</head>
+<body>
+<div class="info-box">📋 <strong>Cmd+A</strong> で全選択 → <strong>Cmd+C</strong> でコピー → note エディタに貼り付け</div>
+<h1>EC-CUBEプラグインで「ブロックごとに異なるフォーム」をCollectionTypeで実装する</h1>
+<blockquote>
+<p>この記事は EC-CUBE 4.3 以上を対象としています。<br />
+また、<a href="https://claude.ai/claude-code">Claude Code</a> を使って書かれています。内容に誤りがある場合はコメントでお知らせください。</p>
+</blockquote>
+<p>「テキストブロック・画像ブロック・ボタンブロックをひとつのコレクションで管理したい」——EC-CUBEのコンテンツ管理プラグインや商品オプション実装で、こういった要件に直面したことはありませんか？</p>
+<p>現在の Symfony <code>CollectionType</code> は<strong>全アイテムに同一の FormType</strong>しか使えません。これを無理やり実装しようとすると、JavaScript や hidden フィールドで型を判定するハック的なコードが生まれます。</p>
+<p>Symfony PR <a href="https://github.com/symfony/symfony/pull/63487">#63487</a> では <code>entry_types</code> オプションが追加され、<strong>アイテムごとに異なる FormType を使えるようになります</strong>。</p>
+<blockquote>
+<p><strong>この記事のポイント（TL;DR）</strong><br />
+- 現在の <code>CollectionType</code> は <code>entry_type</code>（単数）で全アイテムに同一 FormType しか使えない<br />
+- PR #63487（Symfony 8.1向け）で <code>entry_types</code>（複数）オプションが追加される<br />
+- <code>EntryTypeProviderInterface</code> でデータに応じて型を切り替える<br />
+- EC-CUBE のコンテンツ管理・商品オプション・BtoB 受発注などポリモーフィックなフォームに有用</p>
+</blockquote>
+<h2>現状の課題：<code>entry_type</code> は1種類しか指定できない</h2>
+<p>EC-CUBE では <code>CollectionType</code> を多くの場所で使っています。例えば注文フォームの配送先リスト、商品規格マトリクスなどです。</p>
+<p>現在の <code>CollectionType</code> には <code>entry_type</code> オプションがありますが、<strong>配列内の全アイテムに同一の FormType が適用されます</strong>。</p>
+<pre><code class="language-php">// 現在（Symfony 6.4）：全アイテムが同じ FormType
+$builder-&gt;add('items', CollectionType::class, [
+    'entry_type' =&gt; TextType::class, // 全部これ
+    'allow_add' =&gt; true,
+    'allow_delete' =&gt; true,
+]);
+</code></pre>
+<p>「テキスト入力・数値入力・日付入力が混在するコレクション」を実装しようとすると、1つの FormType にすべての入力パターンを詰め込むか、JavaScript でフォームを動的に差し替えるかという苦肉の策になります。</p>
+<h3>現状の回避策（Symfony 6.4）</h3>
+<p>よくある回避策として「type 判別フィールドを持つ統合 FormType」を使う方法があります。</p>
+<pre><code class="language-php">// ContentBlockType：すべてのブロックタイプを1つに詰め込む
+class ContentBlockType extends AbstractType
+{
+    public function buildForm(FormBuilderInterface $builder, array $options): void
+    {
+        $builder
+            -&gt;add('type', HiddenType::class)
+            -&gt;add('text', TextareaType::class, ['required' =&gt; false])
+            -&gt;add('imageUrl', UrlType::class, ['required' =&gt; false])
+            -&gt;add('buttonLabel', TextType::class, ['required' =&gt; false]);
+    }
+}
+
+// コレクションに使う
+$builder-&gt;add('blocks', CollectionType::class, [
+    'entry_type' =&gt; ContentBlockType::class,
+]);
+</code></pre>
+<p>不要なフィールドも全部レンダリングされるため、JavaScript でブロックタイプに応じて表示/非表示を切り替える必要があります。コードが複雑になりがちです。</p>
+<hr />
+<h2>PR #63487 で何が変わるか：<code>entry_types</code> オプション</h2>
+<p>Symfony PR #63487 では <code>entry_types</code> オプションが追加されます。キー付き配列で複数の FormType を登録し、<code>EntryTypeProviderInterface</code> でデータに応じて型を選択します。</p>
+<pre><code class="language-php">// Symfony 8.1 以降（予定）
+use Symfony\Component\Form\EntryTypeProviderInterface;
+
+$builder-&gt;add('blocks', CollectionType::class, [
+    'entry_types' =&gt; [
+        'text'   =&gt; TextBlockType::class,
+        'image'  =&gt; ImageBlockType::class,
+        'button' =&gt; ButtonBlockType::class,
+    ],
+    'entry_type_provider' =&gt; new class implements EntryTypeProviderInterface {
+        public function forModelData(mixed $data): int|string
+        {
+            // エンティティからタイプを判定
+            return $data-&gt;getType(); // 'text', 'image', 'button'
+        }
+
+        public function forSubmittedData(mixed $data): int|string
+        {
+            // 送信データからタイプを判定
+            return $data['type'] ?? 'text';
+        }
+    },
+    'allow_add' =&gt; true,
+    'allow_delete' =&gt; true,
+]);
+</code></pre>
+<h3>EntryTypeProviderInterface</h3>
+<pre><code class="language-php">// PR #63487 で追加されるインターフェース
+namespace Symfony\Component\Form;
+
+interface EntryTypeProviderInterface
+{
+    // 既存エンティティ（モデルデータ）からタイプキーを返す
+    public function forModelData(mixed $data): int|string;
+
+    // フォーム送信データからタイプキーを返す
+    public function forSubmittedData(mixed $data): int|string;
+}
+</code></pre>
+<p>2つのメソッドを実装する理由：「既存データの表示」と「新規追加時のフォーム送信データ処理」でデータ構造が異なるためです。</p>
+<h3>タイプごとのオプション設定</h3>
+<p><code>entry_type_options</code> でタイプ別にオプションを設定できます。</p>
+<pre><code class="language-php">$builder-&gt;add('blocks', CollectionType::class, [
+    'entry_types' =&gt; [
+        'text'  =&gt; TextBlockType::class,
+        'image' =&gt; ImageBlockType::class,
+    ],
+    'entry_type_provider' =&gt; /* ... */,
+    'entry_type_options' =&gt; [
+        'text'  =&gt; ['attr' =&gt; ['maxlength' =&gt; 500]],
+        'image' =&gt; ['attr' =&gt; ['accept' =&gt; 'image/*']],
+    ],
+]);
+</code></pre>
+<h3>Twig テンプレートでのプロトタイプ</h3>
+<p><code>entry_types</code> を使うと、各タイプのプロトタイプが <code>data-prototype-{タイプ名}</code> 属性として HTML に出力されます。</p>
+<pre><code class="language-html">&lt;div id=&quot;page_blocks&quot;
+     data-prototype-text=&quot;&lt;div&gt;...テキストブロックのプロトタイプ...&lt;/div&gt;&quot;
+     data-prototype-image=&quot;&lt;div&gt;...画像ブロックのプロトタイプ...&lt;/div&gt;&quot;
+     data-prototype-button=&quot;&lt;div&gt;...ボタンブロックのプロトタイプ...&lt;/div&gt;&quot;
+&gt;
+</code></pre>
+<p>JavaScript からタイプに応じた適切なプロトタイプを取得して DOM に追加できます。</p>
+<pre><code class="language-javascript">// 追加ボタンのクリック時
+const type = 'text'; // ユーザーが選択したタイプ
+const prototype = form.dataset[`prototype${type.charAt(0).toUpperCase() + type.slice(1)}`];
+const newItem = prototype.replace(/__name__/g, index);
+form.appendChild(createElementFromHTML(newItem));
+</code></pre>
+<hr />
+</body>
+</html>
