@@ -41,13 +41,8 @@ jobs:
             if grep -q "^published: true" "$file"; then
               slug=$(basename "$file" .md)
               output="notes/${slug}.md"
-              if grep -q "<!-- paywall -->" "$file"; then
-                python3 scripts/zenn-to-note.py "$file" -o "$output" --paid
-                echo "変換（有料分割）: $file → notes/${slug}-free.md / notes/${slug}-paid.md"
-              else
-                python3 scripts/zenn-to-note.py "$file" -o "$output"
-                echo "変換: $file → $output"
-              fi
+              python3 scripts/zenn-to-note.py "$file" -o "$output" --paid
+              echo "変換（有料分割）: $file → notes/${slug}-free.md / notes/${slug}-paid.md"
               converted=$((converted + 1))
             else
               echo "スキップ（未公開）: $file"
