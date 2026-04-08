@@ -1,33 +1,3 @@
-## 概要
-
-`bin/console eccube:plugin:generate` コマンドでプラグインを生成すると、以下のファイルが自動的に作成されます。
-
-- `.github/workflows/release.yml` - リリース自動化ワークフロー
-- `.gitattributes` - パッケージング除外設定
-
-これらを使うことで、GitHubでリリースを公開するだけでtar.gzファイルが自動生成されます。
-
-## ディレクトリ構成
-
-```
-app/Plugin/Sample/
-├── .github/
-│   └── workflows/
-│       └── release.yml     # GitHub Actions ワークフロー
-├── .gitattributes          # パッケージング除外設定
-├── .gitignore
-├── composer.json
-├── Controller/
-├── Entity/
-├── Event.php
-├── Form/
-├── Nav.php
-├── PluginManager.php
-├── Repository/
-├── Resource/
-└── TwigBlock.php
-```
-
 ## release.yml の解説
 
 GitHubでリリースを公開したときに自動実行されるワークフローです。

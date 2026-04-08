@@ -1,32 +1,3 @@
-## 結論：100行のセッション管理コードが、3行になった
-
-**「あなたのEC-CUBEプロジェクトに、こんなコードはありませんか？」**
-
-- セッションに一時データを保存
-- ステップごとにリダイレクト制御
-- 戻るボタンの状態復元
-- バリデーションエラー時の再表示...
-
-**これ、全部いらなくなります。**
-
-Symfony 7.4で導入された**Form Flows**を使えば、上記の処理がすべて自動化されます。
-
-```php
-// Before: セッションに保存、リダイレクト、状態管理...約100行
-// After: たった3行
-$builder->addStep('shipping', ShippingType::class);
-$builder->addStep('payment', PaymentType::class);
-$builder->addStep('confirm', ConfirmType::class);
-```
-
-**これだけです。**
-
-## 前提条件
-
-- PHP 8.2以上
-- Symfony 7.4以上
-- EC-CUBE 4.3以上（将来的にSymfony 7.x対応時に利用可能）
-
 ## Form Flowsの基本
 
 ### AbstractFlowTypeを継承する

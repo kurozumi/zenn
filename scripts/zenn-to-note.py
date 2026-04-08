@@ -79,10 +79,13 @@ def split_paywall(body: str) -> tuple[str, str]:
         parts = body.split(PAYWALL_MARKER, 1)
         return parts[0].strip(), parts[1].strip()
 
-    # マーカーがない場合: 最初の ## 見出しの前で分割
-    match = re.search(r"^## ", body, re.MULTILINE)
-    if match:
-        return body[:match.start()].strip(), body[match.start():].strip()
+    # マーカーがない場合: 3番目の ## 見出しの直前で分割
+    # （1番目は広告、2番目は最初の本文セクションを無料に含める）
+    matches = list(re.finditer(r"^## ", body, re.MULTILINE))
+    if len(matches) >= 3:
+        return body[:matches[2].start()].strip(), body[matches[2].start():].strip()
+    elif len(matches) >= 1:
+        return body[:matches[0].start()].strip(), body[matches[0].start():].strip()
 
     # 見出しもない場合: 全文を無料とする
     return body, ""
