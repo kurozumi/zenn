@@ -48,7 +48,7 @@ private $last_buy_date;    // 最終購入日
 private $point = '0';      // 保有ポイント
 ```
 
-これらは `OrderRepository::updateOrderSummary()` によって、注文ステータスが「新規注文・入金済み・発送済み・対応中」に変化するたびに再集計される。
+これらは `OrderRepository::updateOrderSummary()` によって再集計される。ただし呼び出しタイミングに注意が必要だ。
 
 ```php
 // src/Eccube/Repository/OrderRepository.php
@@ -89,7 +89,18 @@ public function updateOrderSummary(Customer $Customer, array $OrderStatuses = [
 }
 ```
 
-つまり `dtb_customer.buy_total` は常に最新のLTVを示している。
+**呼び出し元は管理画面のみ。** `updateOrderSummary()` は `Admin/Order/EditController`（受注編集）と `Admin/Order/OrderController`（受注一覧のクイック更新）からしか呼ばれていない。フロントエンドの購入完了時（`ShoppingController`）には呼ばれない。
+
+つまり更新タイミングは次のとおりだ。
+
+| タイミング | buy_total の更新 |
+|---|---|
+| 顧客がフロントで購入完了 | ❌ 更新されない |
+| 管理画面で受注のステータスを変更 | ✅ 更新される |
+
+「新規→入金済み」「入金済み→発送済み」など、どのステータス変更でも呼ばれる。集計対象は `NEW / PAID / DELIVERED / IN_PROGRESS` の受注で、管理者がその受注を一度でも操作した後に初めて `buy_total` へ反映される。
+
+> **注意:** 顧客が購入してから管理者がステータスを変更するまでの間、`buy_total` は古い値のままになる。リアルタイム性が必要な分析には、`dtb_order` を直接集計するクエリを使うほうが正確だ。
 
 ## 管理画面でLTV上位顧客を抽出する
 
