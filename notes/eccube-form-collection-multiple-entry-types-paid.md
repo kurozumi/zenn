@@ -4,46 +4,11 @@
 
 ページ編集画面でブロックタイプ（テキスト・画像・動画・ボタン）ごとに専用フォームを持つ構成。
 
-```php
-// コンテンツブロックのエンティティ
-class ContentBlock
-{
-    private string $type; // 'text', 'image', 'video', 'button'
-    // ...
-    public function getType(): string { return $this->type; }
-}
-
-// ページフォーム
-class PageType extends AbstractType
-{
-    public function buildForm(FormBuilderInterface $builder, array $options): void
-    {
-        $builder->add('blocks', CollectionType::class, [
-            'entry_types' => [
-                'text'   => TextBlockType::class,
-                'image'  => ImageBlockType::class,
-                'button' => ButtonBlockType::class,
-            ],
-            'entry_type_provider' => new ContentBlockTypeProvider(),
-        ]);
-    }
-}
-```
 
 ### BtoB受発注プラグイン
 
 注文明細に「通常商品・カスタム品・サービス」など異なる入力フォームが必要なケース。
 
-```php
-$builder->add('orderItems', CollectionType::class, [
-    'entry_types' => [
-        'product' => OrderProductItemType::class,  // 在庫から選択
-        'custom'  => OrderCustomItemType::class,   // 品番・仕様を手入力
-        'service' => OrderServiceItemType::class,  // サービス内容・工数
-    ],
-    'entry_type_provider' => new OrderItemTypeProvider(),
-]);
-```
 
 ---
 

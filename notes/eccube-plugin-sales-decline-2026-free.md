@@ -42,24 +42,6 @@ EC-CUBEの年間流通総額は2,100億円（2023年）である一方、makesho
 - **学習効果**：AIに教えてもらいながら学べる
 - **継続的な改善**：自分で修正・機能追加が可能
 
-```php
-// 例：AIに「会員をグループ分けする機能を作って」と依頼するだけで
-// 以下のようなコードが生成される時代
-
-namespace Customize\Entity;
-
-use Doctrine\ORM\Mapping as ORM;
-use Eccube\Entity\Customer;
-
-/**
- * @ORM\Entity
- * @ORM\Table(name="plg_customer_group")
- */
-class CustomerGroup
-{
-    // ... AIが自動生成
-}
-```
 
 ### 3. 景気・消費動向の影響
 

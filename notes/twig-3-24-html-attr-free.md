@@ -15,31 +15,11 @@
 
 ### Before（従来の書き方）
 
-```twig
-<button
-    class="{{ classes|join(' ') }}"
-    {% if id %}id="{{ id }}"{% endif %}
-    {% if disabled %}disabled{% endif %}
-    {% if ariaLabel %}aria-label="{{ ariaLabel }}"{% endif %}
->
-    送信
-</button>
-```
 
 条件分岐だらけで読みにくいですね。
 
 ### After（html_attr を使った書き方）
 
-```twig
-<button {{ html_attr({
-    class: classes,
-    id: id,
-    disabled: disabled,
-    'aria-label': ariaLabel
-}) }}>
-    送信
-</button>
-```
 
 スッキリしました。`html_attr`が以下を自動で処理してくれます。
 

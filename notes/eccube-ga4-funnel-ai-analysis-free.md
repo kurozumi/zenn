@@ -31,16 +31,5 @@ EC-CUBE の購入フローは以下のステップで構成されています。
 
 GA4 のeコマース計測で使う標準イベントの順序はこうなります。
 
-```
-add_to_cart
-    ↓
-begin_checkout
-    ↓
-add_shipping_info
-    ↓
-add_payment_info
-    ↓
-purchase
-```
 
 各ステップのユーザー数と離脱率を GA4 のファネル探索レポートで可視化できます。

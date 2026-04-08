@@ -4,89 +4,16 @@
 
 通常のフォームが`AbstractType`を継承するのに対し、Form Flowsでは`AbstractFlowType`を継承します。
 
-```php
-use Symfony\Component\Form\Flow\AbstractFlowType;
-use Symfony\Component\Form\Flow\FormFlowBuilderInterface;
-use Symfony\Component\OptionsResolver\OptionsResolver;
-
-class CheckoutFlowType extends AbstractFlowType
-{
-    public function buildFormFlow(FormFlowBuilderInterface $builder, array $options): void
-    {
-        // ステップを順番に追加
-        $builder->addStep('shipping', ShippingType::class);
-        $builder->addStep('payment', PaymentType::class);
-        $builder->addStep('confirm', ConfirmType::class);
-
-        // ナビゲーションボタン
-        $builder->add('navigator', CheckoutNavigatorType::class);
-    }
-
-    public function configureOptions(OptionsResolver $resolver): void
-    {
-        $resolver->setDefaults([
-            'data_class' => CheckoutData::class,
-            'step_property_path' => 'currentStep',
-        ]);
-    }
-}
-```
 
 ### 各ステップは通常のフォーム
 
 各ステップは普通の`AbstractType`として定義します。既存のフォームをそのまま再利用できます。
 
-```php
-use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
-
-class ShippingType extends AbstractType
-{
-    public function buildForm(FormBuilderInterface $builder, array $options): void
-    {
-        $builder
-            ->add('name01', TextType::class, ['label' => '姓'])
-            ->add('name02', TextType::class, ['label' => '名'])
-            ->add('postal_code', TextType::class, ['label' => '郵便番号'])
-            ->add('addr01', TextType::class, ['label' => '都道府県・市区町村'])
-            ->add('addr02', TextType::class, ['label' => '番地・建物名']);
-    }
-}
-```
 
 ### コントローラーでの使い方
 
 通常のフォームと同じ感覚で使えます。
 
-```php
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Attribute\Route;
-
-class CheckoutController extends AbstractController
-{
-    #[Route('/checkout', name: 'checkout')]
-    public function __invoke(Request $request): Response
-    {
-        $checkoutData = new CheckoutData();
-
-        $flow = $this->createForm(CheckoutFlowType::class, $checkoutData)
-            ->handleRequest($request);
-
-        // 全ステップ完了時
-        if ($flow->isSubmitted() && $flow->isValid() && $flow->isFinished()) {
-            // 注文処理を実行
-            return $this->redirectToRoute('checkout_complete');
-        }
-
-        return $this->render('checkout/flow.html.twig', [
-            'form' => $flow->getStepForm(), // 現在のステップのフォームのみ
-        ]);
-    }
-}
-```
 
 **ポイント:**
 - `isFinished()` で全ステップ完了を判定
@@ -96,87 +23,12 @@ class CheckoutController extends AbstractController
 
 ### データクラスの定義
 
-```php
-namespace Customize\Entity;
-
-use Symfony\Component\Validator\Constraints as Assert;
-
-class CheckoutData
-{
-    public string $currentStep = 'shipping';
-
-    #[Assert\Valid(groups: ['shipping'])]
-    public ShippingData $shipping;
-
-    #[Assert\Valid(groups: ['payment'])]
-    public PaymentData $payment;
-
-    public function __construct()
-    {
-        $this->shipping = new ShippingData();
-        $this->payment = new PaymentData();
-    }
-}
-
-class ShippingData
-{
-    #[Assert\NotBlank(groups: ['shipping'], message: '姓を入力してください')]
-    public string $name01 = '';
-
-    #[Assert\NotBlank(groups: ['shipping'], message: '名を入力してください')]
-    public string $name02 = '';
-
-    #[Assert\NotBlank(groups: ['shipping'], message: '郵便番号を入力してください')]
-    #[Assert\Regex(pattern: '/^\d{3}-?\d{4}$/', groups: ['shipping'], message: '郵便番号の形式が正しくありません')]
-    public string $postal_code = '';
-
-    #[Assert\NotBlank(groups: ['shipping'], message: '住所を入力してください')]
-    public string $addr01 = '';
-
-    public string $addr02 = '';
-}
-
-class PaymentData
-{
-    #[Assert\NotBlank(groups: ['payment'], message: '支払い方法を選択してください')]
-    public ?int $paymentMethodId = null;
-}
-```
 
 ℹ️ **バリデーショングループの自動設定**
 ℹ️ Form Flowsでは、ステップ名（`shipping`、`payment`など）が自動的にバリデーショングループとして使用されます。各ステップで必要なバリデーションのみが実行されます。
 
 ### ナビゲーションボタンの定義
 
-```php
-namespace Customize\Form\Type;
-
-use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\Form\Extension\Core\Type\Flow\NextFlowType;
-use Symfony\Component\Form\Extension\Core\Type\Flow\PreviousFlowType;
-use Symfony\Component\Form\Extension\Core\Type\Flow\FinishFlowType;
-
-class CheckoutNavigatorType extends AbstractType
-{
-    public function buildForm(FormBuilderInterface $builder, array $options): void
-    {
-        $builder
-            ->add('previous', PreviousFlowType::class, [
-                'label' => '戻る',
-                'attr' => ['class' => 'ec-blockBtn--cancel'],
-            ])
-            ->add('next', NextFlowType::class, [
-                'label' => '次へ',
-                'attr' => ['class' => 'ec-blockBtn--action'],
-            ])
-            ->add('finish', FinishFlowType::class, [
-                'label' => '注文する',
-                'attr' => ['class' => 'ec-blockBtn--action'],
-            ]);
-    }
-}
-```
 
 | ボタンタイプ | 用途 |
 |------------|------|
@@ -187,140 +39,19 @@ class CheckoutNavigatorType extends AbstractType
 
 ### 支払い方法選択フォーム
 
-```php
-namespace Customize\Form\Type;
-
-use Eccube\Repository\PaymentRepository;
-use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\FormBuilderInterface;
-use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
-
-class PaymentType extends AbstractType
-{
-    public function __construct(
-        private PaymentRepository $paymentRepository,
-    ) {
-    }
-
-    public function buildForm(FormBuilderInterface $builder, array $options): void
-    {
-        $payments = $this->paymentRepository->findAllArray();
-
-        $builder->add('paymentMethodId', ChoiceType::class, [
-            'label' => '支払い方法',
-            'choices' => array_column($payments, 'id', 'method'),
-            'expanded' => true,
-            'placeholder' => false,
-        ]);
-    }
-}
-```
 
 ### 確認画面フォーム
 
 確認画面ではフォーム入力は不要ですが、ステップとして定義します。
 
-```php
-namespace Customize\Form\Type;
-
-use Symfony\Component\Form\AbstractType;
-
-class ConfirmType extends AbstractType
-{
-    // 確認画面なのでフォーム要素は不要
-    // テンプレートでデータを表示するだけ
-}
-```
 
 ### Twigテンプレート
 
-```twig
-{# templates/checkout/flow.html.twig #}
-{% extends 'default_frame.twig' %}
-
-{% block main %}
-<div class="ec-role">
-    <div class="ec-pageHeader">
-        <h1>ご注文手続き</h1>
-    </div>
-
-    {# ステップインジケーター #}
-    <ol class="ec-progress">
-        <li class="{{ form.vars.data.currentStep == 'shipping' ? 'is-complete' : '' }}">
-            お届け先
-        </li>
-        <li class="{{ form.vars.data.currentStep == 'payment' ? 'is-complete' : '' }}">
-            お支払い方法
-        </li>
-        <li class="{{ form.vars.data.currentStep == 'confirm' ? 'is-complete' : '' }}">
-            ご注文確認
-        </li>
-    </ol>
-
-    {{ form_start(form) }}
-
-    {# 現在のステップに応じた表示 #}
-    {% if form.vars.data.currentStep == 'shipping' %}
-        <div class="ec-borderedDefs">
-            {{ form_row(form.name01) }}
-            {{ form_row(form.name02) }}
-            {{ form_row(form.postal_code) }}
-            {{ form_row(form.addr01) }}
-            {{ form_row(form.addr02) }}
-        </div>
-    {% elseif form.vars.data.currentStep == 'payment' %}
-        <div class="ec-borderedDefs">
-            {{ form_row(form.paymentMethodId) }}
-        </div>
-    {% elseif form.vars.data.currentStep == 'confirm' %}
-        {# 確認画面：入力内容を表示 #}
-        <div class="ec-orderConfirm">
-            <h2>お届け先</h2>
-            <p>{{ form.vars.data.shipping.name01 }} {{ form.vars.data.shipping.name02 }}</p>
-            <p>〒{{ form.vars.data.shipping.postal_code }}</p>
-            <p>{{ form.vars.data.shipping.addr01 }} {{ form.vars.data.shipping.addr02 }}</p>
-        </div>
-    {% endif %}
-
-    {# ナビゲーションボタン #}
-    <div class="ec-registerRole__actions">
-        {% if form.vars.data.currentStep != 'shipping' %}
-            {{ form_widget(form.navigator.previous) }}
-        {% endif %}
-
-        {% if form.vars.data.currentStep == 'confirm' %}
-            {{ form_widget(form.navigator.finish) }}
-        {% else %}
-            {{ form_widget(form.navigator.next) }}
-        {% endif %}
-    </div>
-
-    {{ form_end(form) }}
-</div>
-{% endblock %}
-```
 
 ## 条件付きステップ
 
 特定の条件でステップをスキップすることも可能です。
 
-```php
-public function buildFormFlow(FormFlowBuilderInterface $builder, array $options): void
-{
-    $builder->addStep('shipping', ShippingType::class);
-    $builder->addStep('payment', PaymentType::class);
-
-    // 代引き選択時のみ表示するステップ（paymentの後に配置）
-    $builder->addStep('cod_confirm', CodConfirmType::class, [
-        'include_if' => function (CheckoutData $data): bool {
-            // 支払い方法が代引き（ID: 4）の場合のみ表示
-            return $data->payment->paymentMethodId === 4;
-        },
-    ]);
-
-    $builder->addStep('confirm', ConfirmType::class);
-}
-```
 
 ## 従来の方法との比較
 
@@ -350,74 +81,11 @@ public function buildFormFlow(FormFlowBuilderInterface $builder, array $options)
 
 EC-CUBEのPurchaseFlowは、集計処理とバリデーションを統一的に管理するフレームワークです。
 
-```
-PurchaseFlow
-├── ItemValidator（明細単位の検証：価格変更、公開ステータス）
-├── ItemHolderValidator（全体検証：在庫、販売制限数）
-├── ItemHolderPreprocessor（送料・手数料追加）
-├── DiscountProcessor（値引き処理）
-├── ItemHolderPostValidator（最終検証：マイナスチェック）
-└── PurchaseProcessor（在庫・ポイント更新）
-```
 
 ### 組み合わせた実装例
 
 Form FlowsでUI遷移を管理し、各ステップでPurchaseFlowを呼び出します。
 
-```php
-namespace Customize\Controller;
-
-use Eccube\Service\PurchaseFlow\PurchaseContext;
-use Eccube\Service\PurchaseFlow\PurchaseFlow;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Attribute\Route;
-
-class CheckoutController extends AbstractController
-{
-    public function __construct(
-        private PurchaseFlow $cartPurchaseFlow,
-    ) {}
-
-    #[Route('/checkout', name: 'checkout')]
-    public function __invoke(Request $request, Cart $cart): Response
-    {
-        $checkoutData = new CheckoutData();
-
-        // Form Flowsでフォーム遷移を管理
-        $flow = $this->createForm(CheckoutFlowType::class, $checkoutData)
-            ->handleRequest($request);
-
-        // 各ステップでPurchaseFlowの集計処理を実行
-        if ($flow->isSubmitted() && $flow->isValid()) {
-            $context = new PurchaseContext($cart, $this->getUser());
-            $result = $this->cartPurchaseFlow->validate($cart, $context);
-
-            if ($result->hasError()) {
-                // PurchaseFlowのエラーをフォームに追加
-                foreach ($result->getErrors() as $error) {
-                    $this->addFlash('eccube.front.error', $error->getMessage());
-                }
-                return $this->redirectToRoute('cart');
-            }
-        }
-
-        // 全ステップ完了時：注文確定
-        if ($flow->isFinished()) {
-            // PurchaseFlowで確定処理
-            $this->cartPurchaseFlow->commit($cart, $context);
-
-            return $this->redirectToRoute('checkout_complete');
-        }
-
-        return $this->render('checkout/flow.html.twig', [
-            'form' => $flow->getStepForm(),
-            'Cart' => $cart,
-        ]);
-    }
-}
-```
 
 ### 各ステップでの処理分担
 
@@ -438,18 +106,6 @@ class CheckoutController extends AbstractController
 ℹ️ - 支払い方法IDは、コントローラー側でデータベースに存在するか必ず確認してください
 ℹ️ - 入力フィールドには適切な文字数制限（`Assert\Length`）を設定することを推奨します
 
-```php
-// コントローラーでの支払い方法検証（重要）
-if ($flow->isSubmitted() && $flow->isValid() && $flow->isFinished()) {
-    // 支払い方法の存在確認
-    $payment = $this->paymentRepository->find($checkoutData->payment->paymentMethodId);
-    if (!$payment) {
-        throw $this->createNotFoundException('無効な支払い方法です');
-    }
-
-    // 注文処理を実行
-}
-```
 
 ## まとめ
 

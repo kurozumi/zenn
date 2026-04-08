@@ -2,32 +2,6 @@
 
 GitHubでリリースを公開したときに自動実行されるワークフローです。
 
-```yaml
-name: Packaging for EC-CUBE Plugin
-on:
-  release:
-    types: [ published ]
-jobs:
-  deploy:
-    name: Build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Packaging
-        run: |
-          git archive HEAD --format=tar.gz > ../${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.tar.gz
-
-      - name: Upload binaries to release of TGZ
-        uses: svenstaro/upload-release-action@v1-release
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ runner.workspace }}/${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.tar.gz
-          asset_name: ${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.tar.gz
-          tag: ${{ github.ref }}
-          overwrite: true
-```
 
 ### ワークフローの流れ
 
@@ -38,9 +12,6 @@ jobs:
 
 ### git archive コマンド
 
-```bash
-git archive HEAD --format=tar.gz > プラグイン名-バージョン.tar.gz
-```
 
 このコマンドは、Gitで管理されているファイルのみをアーカイブします。`.gitignore` で無視されているファイルや、`.gitattributes` で `export-ignore` 指定されたファイルは含まれません。
 
@@ -48,12 +19,6 @@ git archive HEAD --format=tar.gz > プラグイン名-バージョン.tar.gz
 
 `.gitattributes` はGitの属性を設定するファイルです。`export-ignore` 属性を指定すると、`git archive` でパッケージングする際にそのファイルを除外できます。
 
-```
-/.gitattributes             export-ignore
-/.github                    export-ignore
-/.gitignore                 export-ignore
-/dummy                      export-ignore
-```
 
 ### デフォルトで除外されるファイル
 
@@ -68,52 +33,9 @@ git archive HEAD --format=tar.gz > プラグイン名-バージョン.tar.gz
 
 開発用のファイルやテストファイルなど、配布パッケージに含めたくないものがあれば追加できます。
 
-```
-# デフォルトの除外設定
-/.gitattributes             export-ignore
-/.github                    export-ignore
-/.gitignore                 export-ignore
-
-# 追加の除外設定
-/tests                      export-ignore
-/phpunit.xml                export-ignore
-/phpstan.neon               export-ignore
-/.php-cs-fixer.php          export-ignore
-/Makefile                   export-ignore
-/docker-compose.yml         export-ignore
-/README.md                  export-ignore
-/CHANGELOG.md               export-ignore
-/docs                       export-ignore
-```
 
 ### よくある除外パターン
 
-```
-# テスト関連
-/tests                      export-ignore
-/phpunit.xml                export-ignore
-/phpunit.xml.dist           export-ignore
-
-# 静的解析・コード整形
-/phpstan.neon               export-ignore
-/.php-cs-fixer.php          export-ignore
-/.php-cs-fixer.dist.php     export-ignore
-
-# CI/CD
-/.github                    export-ignore
-/.gitlab-ci.yml             export-ignore
-
-# 開発環境
-/docker-compose.yml         export-ignore
-/Makefile                   export-ignore
-/.env.example               export-ignore
-
-# ドキュメント（必要に応じて）
-/README.md                  export-ignore
-/CHANGELOG.md               export-ignore
-/docs                       export-ignore
-/LICENSE                    export-ignore
-```
 
 ## リリースの手順
 
@@ -121,28 +43,9 @@ git archive HEAD --format=tar.gz > プラグイン名-バージョン.tar.gz
 
 `composer.json` のバージョンを更新します。
 
-```json
-{
-  "name": "ec-cube/sample",
-  "version": "1.0.1",
-  "description": "EC-CUBE Sample Plugin",
-  "type": "eccube-plugin",
-  "require": {
-    "ec-cube/plugin-installer": "~0.0.7 || ^2.0"
-  },
-  "extra": {
-    "code": "Sample"
-  }
-}
-```
 
 ### 2. 変更をコミット・プッシュ
 
-```bash
-git add composer.json
-git commit -m "Bump version to 1.0.1"
-git push origin main
-```
 
 ### 3. GitHubでリリースを作成
 
@@ -170,30 +73,6 @@ git push origin main
 
 tar.gzとzipの両方を作成する例です。
 
-```yaml
-- name: Packaging
-  run: |
-    git archive HEAD --format=tar.gz > ../${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.tar.gz
-    git archive HEAD --format=zip > ../${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.zip
-
-- name: Upload TGZ
-  uses: svenstaro/upload-release-action@v2
-  with:
-    repo_token: ${{ secrets.GITHUB_TOKEN }}
-    file: ${{ runner.workspace }}/${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.tar.gz
-    asset_name: ${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.tar.gz
-    tag: ${{ github.ref }}
-    overwrite: true
-
-- name: Upload ZIP
-  uses: svenstaro/upload-release-action@v2
-  with:
-    repo_token: ${{ secrets.GITHUB_TOKEN }}
-    file: ${{ runner.workspace }}/${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.zip
-    asset_name: ${{ github.event.repository.name }}-${{ github.event.release.tag_name }}.zip
-    tag: ${{ github.ref }}
-    overwrite: true
-```
 
 ## トラブルシューティング
 
@@ -205,9 +84,6 @@ tar.gzとzipの両方を作成する例です。
 
 `.gitattributes` に `export-ignore` を追加してください。
 
-```
-/不要なファイル    export-ignore
-```
 
 ### ワークフローが実行されない
 
@@ -218,11 +94,6 @@ tar.gzとzipの両方を作成する例です。
 
 `.gitattributes` の変更後はコミットが必要です。
 
-```bash
-git add .gitattributes
-git commit -m "Update .gitattributes"
-git push
-```
 
 ## まとめ
 

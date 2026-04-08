@@ -9,87 +9,9 @@
 
 **AIの提案:**
 
-```php
-<?php
 
-// 1. 外部API連携は専用クライアントに分離
-namespace Plugin\YourPlugin\Service;
 
-class ExternalApiClient
-{
-    public function __construct(
-        private HttpClientInterface $httpClient,
-        private string $apiEndpoint
-    ) {
-    }
 
-    public function fetchData(string $id): array
-    {
-        $response = $this->httpClient->request('GET', $this->apiEndpoint . '/' . $id);
-        return $response->toArray();
-    }
-}
-```
-
-```php
-<?php
-
-// 2. データ加工はトランスフォーマーとして分離
-namespace Plugin\YourPlugin\Service;
-
-class DataTransformer
-{
-    public function transform(array $rawData): ProcessedData
-    {
-        // 加工ロジック
-        return new ProcessedData(/* ... */);
-    }
-}
-```
-
-```php
-<?php
-
-// 3. メール送信は通知サービスとして分離
-namespace Plugin\YourPlugin\Service;
-
-class NotificationService
-{
-    public function __construct(
-        private MailService $mailService
-    ) {
-    }
-
-    public function sendCompletionNotice(Customer $customer, ProcessedData $data): void
-    {
-        // メール送信ロジック
-    }
-}
-```
-
-```php
-<?php
-
-// 4. オーケストレーションは専用サービスで
-namespace Plugin\YourPlugin\Service;
-
-class SampleOrchestrator
-{
-    public function __construct(
-        private ExternalApiClient $apiClient,
-        private DataTransformer $transformer,
-        private NotificationService $notification
-    ) {
-    }
-
-    public function execute(string $id, Customer $customer): void
-    {
-        $rawData = $this->apiClient->fetchData($id);
-        $processedData = $this->transformer->transform($rawData);
-        $this->notification->sendCompletionNotice($customer, $processedData);
-    }
-}
-```
 
 単一責任の原則に基づいた分割案を即座に提示してもらえました。
 
@@ -100,54 +22,7 @@ class SampleOrchestrator
 
 **AIの回答:**
 
-```php
-<?php
 
-// シンプルなロールチェックなら #[IsGranted] で十分
-namespace Plugin\YourPlugin\Controller\Admin;
-
-use Symfony\Component\Security\Http\Attribute\IsGranted;
-
-class SampleController extends AbstractController
-{
-    #[Route(
-        path: '/%eccube_admin_route%/sample',
-        name: 'admin_sample_index'
-    )]
-    #[IsGranted('ROLE_ADMIN')]
-    public function index(): Response
-    {
-        // ...
-    }
-}
-```
-
-```php
-<?php
-
-// 複雑な条件（リソースの所有者チェックなど）がある場合は Voter を使う
-namespace Plugin\YourPlugin\Security\Voter;
-
-use Symfony\Component\Security\Core\Authorization\Voter\Voter;
-
-class SampleVoter extends Voter
-{
-    public const EDIT = 'SAMPLE_EDIT';
-
-    protected function supports(string $attribute, mixed $subject): bool
-    {
-        return $attribute === self::EDIT && $subject instanceof Sample;
-    }
-
-    protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token): bool
-    {
-        $user = $token->getUser();
-
-        // リソースの作成者のみ編集可能
-        return $subject->getCreatedBy() === $user;
-    }
-}
-```
 
 要件に応じた使い分けの基準を明確にできました。
 
@@ -157,131 +32,10 @@ class SampleVoter extends Voter
 
 **Before（問題のあるコード）:**
 
-```php
-<?php
-
-public function register(Request $request): Response
-{
-    // フォーム処理（20行）
-    $form = $this->createForm(SampleType::class);
-    $form->handleRequest($request);
-    // ...validation...
-
-    // データ取得（25行）
-    $existingData = $this->repository->findBy([/* ... */]);
-    // ...filtering...
-    // ...sorting...
-
-    // 計算処理（30行）
-    $total = 0;
-    foreach ($items as $item) {
-        // ...complex calculation...
-    }
-
-    // 外部API連携（25行）
-    $response = $this->httpClient->request(/* ... */);
-    // ...error handling...
-
-    // DB保存（20行）
-    $entity = new Sample();
-    // ...setting properties...
-    $this->entityManager->persist($entity);
-    $this->entityManager->flush();
-
-    return $this->redirectToRoute('admin_sample_index');
-}
-```
 
 **After（リファクタ後）:**
 
-```php
-<?php
 
-namespace Plugin\YourPlugin\Controller\Admin;
-
-class SampleController extends AbstractController
-{
-    public function __construct(
-        private SampleService $sampleService
-    ) {
-    }
-
-    #[Route(
-        path: '/%eccube_admin_route%/sample/register',
-        name: 'admin_sample_register',
-        methods: ['GET', 'POST']
-    )]
-    public function register(Request $request): Response
-    {
-        $form = $this->createForm(SampleType::class);
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            try {
-                $this->sampleService->register($form->getData());
-                $this->addSuccess('admin.common.save_complete', 'admin');
-
-                return $this->redirectToRoute('admin_sample_index');
-            } catch (SampleException $e) {
-                $this->addError($e->getMessage(), 'admin');
-            }
-        }
-
-        return $this->render('@YourPlugin/admin/sample_register.twig', [
-            'form' => $form->createView(),
-        ]);
-    }
-}
-```
-
-```php
-<?php
-
-namespace Plugin\YourPlugin\Service;
-
-class SampleService
-{
-    public function __construct(
-        private SampleRepository $repository,
-        private Calculator $calculator,
-        private ExternalApiClient $apiClient,
-        private EntityManagerInterface $entityManager
-    ) {
-    }
-
-    public function register(SampleDto $dto): Sample
-    {
-        $existingData = $this->fetchExistingData($dto);
-        $calculatedValue = $this->calculator->calculate($existingData);
-        $externalData = $this->apiClient->fetch($dto->getExternalId());
-
-        $sample = $this->createSample($dto, $calculatedValue, $externalData);
-
-        $this->entityManager->persist($sample);
-        $this->entityManager->flush();
-
-        return $sample;
-    }
-
-    private function fetchExistingData(SampleDto $dto): array
-    {
-        return $this->repository->findByConditions($dto->toSearchCriteria());
-    }
-
-    private function createSample(
-        SampleDto $dto,
-        int $calculatedValue,
-        array $externalData
-    ): Sample {
-        $sample = new Sample();
-        $sample->setName($dto->getName());
-        $sample->setValue($calculatedValue);
-        $sample->setExternalData($externalData);
-
-        return $sample;
-    }
-}
-```
 
 Controller は薄く保ち、ビジネスロジックは Service に移動しました。
 
@@ -289,50 +43,10 @@ Controller は薄く保ち、ビジネスロジックは Service に移動しま
 
 **Before:**
 
-```php
-<?php
-
-public function __construct(
-    private EntityManagerInterface $entityManager,
-    private SampleRepository $sampleRepository,
-    private AnotherRepository $anotherRepository,
-    private MailService $mailService,
-    private HttpClientInterface $httpClient,
-    private LoggerInterface $logger,
-    private TranslatorInterface $translator,
-    private RouterInterface $router
-) {
-}
-```
 
 **After:**
 
-```php
-<?php
 
-// コントローラーには本当に必要なものだけ
-public function __construct(
-    private SampleService $sampleService
-) {
-}
-```
-
-```php
-<?php
-
-// サービス側で必要な依存を持つ
-namespace Plugin\YourPlugin\Service;
-
-class SampleService
-{
-    public function __construct(
-        private SampleRepository $sampleRepository,
-        private NotificationService $notificationService,
-        private ExternalApiClient $apiClient
-    ) {
-    }
-}
-```
 
 依存の数が減り、テストも書きやすくなりました。
 
@@ -342,41 +56,9 @@ class SampleService
 
 **Before:**
 
-```markdown
-## 変更内容
-- SampleService を追加
-- SampleController を修正
-- SampleType を追加
-```
 
 **After:**
 
-```markdown
-## 背景・目的
-
-現状、サンプル登録処理がコントローラーに集中しており、以下の問題がありました。
-
-- テストが書きにくい（HTTP リクエストが必要）
-- 処理の再利用ができない
-- 変更時の影響範囲が把握しにくい
-
-本 PR では、ビジネスロジックをサービス層に分離し、保守性を向上させます。
-
-## 変更内容
-
-### 新規追加
-- `SampleService`: 登録ロジックを担当
-- `SampleType`: バリデーション定義
-
-### 修正
-- `SampleController`: サービス呼び出しに変更（ロジック削除）
-
-## 影響範囲
-
-- 管理画面 > サンプル管理 > 登録機能
-- 既存データへの影響なし
-- 外部連携への影響なし
-```
 
 レビュアーが「なぜこの変更が必要か」を理解しやすくなりました。
 

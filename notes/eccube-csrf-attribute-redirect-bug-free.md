@@ -17,32 +17,9 @@
 
 Symfony 6.4 で追加された、コントローラーメソッドへの属性です。フォーム送信の CSRF 検証を簡潔に書けます。
 
-```php
-use Symfony\Component\Security\Http\Attribute\IsCsrfTokenValid;
-
-class AdminFooController extends AbstractController
-{
-    #[Route('/admin/foo/{id}/delete', methods: ['POST'])]
-    #[IsCsrfTokenValid('delete-foo')]
-    public function delete(Foo $foo): Response
-    {
-        // CSRFトークンが有効な場合のみここに到達する
-        $this->entityManager->remove($foo);
-        $this->entityManager->flush();
-
-        return $this->redirectToRoute('admin_foo_list');
-    }
-}
-```
 
 フォーム側では hidden フィールドでトークンを送ります。
 
-```twig
-<form method="post" action="{{ path('admin_foo_delete', {id: foo.id}) }}">
-    <input type="hidden" name="_token" value="{{ csrf_token('delete-foo') }}">
-    <button type="submit">削除</button>
-</form>
-```
 
 一見シンプルですが、**CSRF トークンが不正なときに予期しない動作をします**。
 
@@ -52,22 +29,9 @@ class AdminFooController extends AbstractController
 
 `#[IsCsrfTokenValid]` が失敗したとき、内部で `Symfony\Component\Security\Core\Exception\InvalidCsrfTokenException` が投げられます。
 
-```php
-// Symfony 6.4 の IsCsrfTokenValidAttributeListener.php（実際のコード）
-use Symfony\Component\Security\Core\Exception\InvalidCsrfTokenException;
-
-if (!$csrfTokenManager->isTokenValid($csrfToken)) {
-    throw new InvalidCsrfTokenException();
-}
-```
 
 この例外は `AuthenticationException` を継承しています。
 
-```
-InvalidCsrfTokenException（Security\Core）
-  ↳ AuthenticationException
-      ↳ RuntimeException
-```
 
 Symfony の Security コンポーネントは `AuthenticationException` をキャッチすると**認証が必要と判断してログインページへリダイレクト**します。その結果：
 

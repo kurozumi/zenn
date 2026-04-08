@@ -41,6 +41,9 @@ def zenn_to_note(text: str) -> tuple[str, str]:
 
     # --- Zenn 固有の記法を変換 ---
 
+    # コードブロック（```...```）→ 削除
+    text = re.sub(r"```.*?```\n?", "", text, flags=re.DOTALL)
+
     # :::message alert ... ::: → 削除（note では宣伝ブロックを除去）
     text = re.sub(
         r":::message alert\n.*?:::\n?",

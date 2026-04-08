@@ -20,25 +20,8 @@ EC-CUBE 4では、プラグインディレクトリ内に `Resource/config/bundl
 
 ### ディレクトリ構成
 
-```
-app/Plugin/SamplePlugin/
-├── Resource/
-│   └── config/
-│       ├── bundles.php     # バンドル登録ファイル
-│       └── services.yaml   # バンドルの設定ファイル
-├── PluginManager.php
-├── composer.json
-└── ...
-```
 
 ### Resource/config/bundles.php
 
-```php
-<?php
-
-return [
-    Nelmio\ApiDocBundle\NelmioApiDocBundle::class => ['all' => true],
-];
-```
 
 これだけでプラグイン有効化時にバンドルが自動的に登録されます。

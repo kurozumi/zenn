@@ -20,146 +20,24 @@ EC-CUBE の GitHub に、すでに [UCP 対応の Issue](https://github.com/EC-C
 
 UCPでは、以下の3つのエンドポイントを実装します：
 
-```
-POST   /checkout-sessions           # セッション作成
-PUT    /checkout-sessions/{id}      # セッション更新（配送先変更など）
-POST   /checkout-sessions/{id}/complete  # 注文確定
-```
 
 ### 1. セッション作成 (`POST /checkout-sessions`)
 
 AIエージェントが「この商品を買いたい」とリクエストすると、EC-CUBE がチェックアウトセッションを作成します。
 
-```php
-// イメージ（実際の実装は要設計）
-#[Route('/checkout-sessions', name: 'ucp_checkout_session_create', methods: ['POST'])]
-public function createSession(Request $request): JsonResponse
-{
-    $data = json_decode($request->getContent(), true);
-
-    // カートを作成
-    $cart = $this->cartService->createCartFromUCP($data['cart']);
-
-    // セッションを作成
-    $session = new CheckoutSession();
-    $session->setCart($cart);
-    $session->setStatus('incomplete');
-    $session->setExpiresAt(new \DateTime('+30 minutes'));
-
-    $this->entityManager->persist($session);
-    $this->entityManager->flush();
-
-    return $this->json([
-        'id' => $session->getSessionId(),
-        'total' => $this->formatAmount($cart->getTotal()),
-        'currency' => 'JPY',
-        'links' => [
-            ['rel' => 'privacy_policy', 'href' => $this->baseInfo->getPrivacyPolicyUrl()],
-            ['rel' => 'terms_of_service', 'href' => $this->baseInfo->getTermsOfServiceUrl()],
-        ],
-    ]);
-}
-```
 
 ### 2. セッション更新 (`PUT /checkout-sessions/{id}`)
 
 配送先住所が更新されたら、送料や税金を再計算します。
 
-```php
-#[Route('/checkout-sessions/{id}', name: 'ucp_checkout_session_update', methods: ['PUT'])]
-public function updateSession(string $id, Request $request): JsonResponse
-{
-    $session = $this->checkoutSessionRepository->findBySessionId($id);
-    $data = json_decode($request->getContent(), true);
-
-    // 配送先を更新
-    if (isset($data['fulfillment']['address'])) {
-        $session->setFulfillmentData($data['fulfillment']);
-
-        // PurchaseFlow で送料・税金を再計算
-        $this->purchaseFlow->calculate($session->getCart());
-    }
-
-    return $this->json([
-        'id' => $session->getSessionId(),
-        'subtotal' => $this->formatAmount($session->getSubtotal()),
-        'tax' => $this->formatAmount($session->getTax()),
-        'shipping' => $this->formatAmount($session->getShipping()),
-        'total' => $this->formatAmount($session->getTotal()),
-        'shipping_options' => $this->getShippingOptions($session),
-    ]);
-}
-```
 
 ### 3. セッション完了 (`POST /checkout-sessions/{id}/complete`)
 
 ユーザーが「注文する」と言ったら、注文を確定します。
 
-```php
-#[Route('/checkout-sessions/{id}/complete', name: 'ucp_checkout_session_complete', methods: ['POST'])]
-public function completeSession(string $id, Request $request): JsonResponse
-{
-    $session = $this->checkoutSessionRepository->findBySessionId($id);
-
-    // 注文を作成
-    $order = $this->orderHelper->createOrderFromCheckoutSession($session);
-
-    // PurchaseFlow で購入処理
-    $this->purchaseFlow->commit($order);
-
-    $session->setOrder($order);
-    $session->setStatus('completed');
-
-    $this->entityManager->flush();
-
-    return $this->json([
-        'order_id' => $order->getOrderNo(),
-        'order_url' => $this->generateUrl('mypage_history', [
-            'order_no' => $order->getOrderNo()
-        ], UrlGeneratorInterface::ABSOLUTE_URL),
-    ]);
-}
-```
 
 ### 必要な新規エンティティ
 
-```php
-#[ORM\Entity(repositoryClass: CheckoutSessionRepository::class)]
-#[ORM\Table(name: 'dtb_checkout_session')]
-class CheckoutSession
-{
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
-    private ?int $id = null;
-
-    #[ORM\Column(length: 255, unique: true)]
-    private string $sessionId;
-
-    #[ORM\Column(length: 20)]
-    private string $status = 'incomplete';
-
-    #[ORM\Column(length: 3)]
-    private string $currency = 'JPY';
-
-    #[ORM\Column(type: 'datetime')]
-    private \DateTimeInterface $expiresAt;
-
-    #[ORM\ManyToOne(targetEntity: Order::class)]
-    private ?Order $Order = null;
-
-    #[ORM\Column(type: 'json', nullable: true)]
-    private ?array $buyerData = null;
-
-    #[ORM\Column(type: 'json', nullable: true)]
-    private ?array $fulfillmentData = null;
-
-    #[ORM\Column(type: 'json', nullable: true)]
-    private ?array $paymentData = null;
-
-    // ... getter/setter
-}
-```
 
 ## 実装ロードマップ（提案）
 

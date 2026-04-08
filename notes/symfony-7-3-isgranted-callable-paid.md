@@ -2,24 +2,6 @@
 
 ### シンプルな例：投稿者チェック
 
-```php
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\Security\Http\Attribute\IsGrantedContext;
-
-class PostController extends AbstractController
-{
-    #[IsGranted(static function (IsGrantedContext $context, mixed $subject): bool {
-        // 投稿の作成者のみアクセス可能
-        return $context->user === $subject->getAuthor();
-    }, subject: 'post')]
-    public function edit(Post $post): Response
-    {
-        // 編集処理
-    }
-}
-```
 
 ### IsGrantedContext が提供するもの
 
@@ -46,172 +28,29 @@ class PostController extends AbstractController
 
 EC-CUBEで特定のメンバーが作成した商品のみ編集可能にする例です：
 
-```php
-namespace Customize\Controller\Admin;
-
-use Eccube\Entity\Member;
-use Eccube\Entity\Product;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\Security\Http\Attribute\IsGrantedContext;
-
-class ProductController extends AbstractController
-{
-    #[Route('/admin/product/{id}/edit', name: 'admin_product_edit')]
-    #[IsGranted(static function (IsGrantedContext $context, mixed $subject): bool {
-        // 管理者は全商品を編集可能
-        if ($context->isGranted('ROLE_ADMIN')) {
-            return true;
-        }
-
-        // メンバーでなければアクセス拒否
-        if (!$context->user instanceof Member) {
-            return false;
-        }
-
-        // 商品作成者のみ編集可能
-        return $subject->getCreator() === $context->user;
-    }, subject: 'product')]
-    public function edit(Product $product): Response
-    {
-        // 編集フォームを表示
-    }
-}
-```
 
 ### 例2: 注文の閲覧権限（顧客側）
 
 マイページで自分の注文のみ閲覧可能にする例：
 
-```php
-namespace Customize\Controller;
-
-use Eccube\Entity\Customer;
-use Eccube\Entity\Order;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\Security\Http\Attribute\IsGrantedContext;
-
-class MyPageOrderController extends AbstractController
-{
-    #[Route('/mypage/order/{id}', name: 'mypage_order_detail')]
-    #[IsGranted(static function (IsGrantedContext $context, mixed $subject): bool {
-        // 顧客でなければアクセス拒否
-        if (!$context->user instanceof Customer) {
-            return false;
-        }
-
-        // 自分の注文のみ閲覧可能
-        return $subject->getCustomer()?->getId() === $context->user->getId();
-    }, subject: 'order')]
-    public function detail(Order $order): Response
-    {
-        return $this->render('Mypage/order_detail.twig', [
-            'Order' => $order,
-        ]);
-    }
-}
-```
 
 ### 例3: 複雑な条件分岐
 
 公開状態に応じたアクセス制御：
 
-```php
-namespace Customize\Controller;
-
-use Eccube\Entity\Master\ProductStatus;
-use Eccube\Entity\Product;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\Security\Http\Attribute\IsGrantedContext;
-
-class ProductDetailController extends AbstractController
-{
-    #[Route('/products/{id}', name: 'product_detail')]
-    #[IsGranted(static function (IsGrantedContext $context, mixed $subject): bool {
-        /** @var Product $product */
-        $product = $subject;
-
-        // 公開中の商品は誰でも閲覧可能
-        $status = $product->getStatus();
-        if ($status !== null && $status->getId() === ProductStatus::DISPLAY_SHOW) {
-            return true;
-        }
-
-        // 非公開商品は管理者のみ
-        return $context->isGranted('ROLE_ADMIN');
-    }, subject: 'product')]
-    public function detail(Product $product): Response
-    {
-        return $this->render('Product/detail.twig', [
-            'Product' => $product,
-        ]);
-    }
-}
-```
 
 ## subject パラメータの柔軟な指定
 
 `subject` パラメータにもコーラブルを使用できます：
 
-```php
-#[IsGranted(
-    static function (IsGrantedContext $context, mixed $subject): bool {
-        return $context->user === $subject['order']->getCustomer();
-    },
-    subject: static function (array $args): array {
-        return [
-            'order' => $args['order'],
-            'items' => $args['order']->getOrderItems(),
-        ];
-    }
-)]
-public function show(Order $order): Response
-{
-    // ...
-}
-```
 
 ## 従来の方法との比較
 
 ### Voter を使う場合（従来）
 
-```php
-// App/Security/Voter/ProductVoter.php
-class ProductVoter extends Voter
-{
-    protected function supports(string $attribute, mixed $subject): bool
-    {
-        return $attribute === 'EDIT' && $subject instanceof Product;
-    }
-
-    protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token): bool
-    {
-        $user = $token->getUser();
-        return $subject->getCreator() === $user;
-    }
-}
-
-// Controller
-#[IsGranted('EDIT', subject: 'product')]
-public function edit(Product $product): Response { }
-```
 
 ### コーラブルを使う場合（Symfony 7.3+）
 
-```php
-#[IsGranted(static function (IsGrantedContext $context, mixed $subject): bool {
-    return $subject->getCreator() === $context->user;
-}, subject: 'product')]
-public function edit(Product $product): Response { }
-```
 
 ### 比較表
 
