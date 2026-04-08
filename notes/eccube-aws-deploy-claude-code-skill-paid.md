@@ -69,7 +69,6 @@ aws configure
 # Default output format: json
 ```
 
-⚠️ `aws configure` で設定した認証情報は `~/.aws/credentials` にプレーンテキストで保存されます。本番環境のEC2やECSから実行する場合は、IAMロール（ECS Task Role）を使用し、アクセスキーをファイルに保存しないことを推奨します。
 
 ### 3. Docker
 
@@ -151,7 +150,6 @@ git push origin main
 
 これで `upstream` が EC-CUBE本家、`origin` が自分のリポジトリと明確に分かれます。誤って本家にPull Requestを送るリスクがなくなります。
 
-⚠️ `git push upstream` は絶対に実行しないでください。本家リポジトリへの直接プッシュを試みることになります。
 
 リモートの設定を確認する場合は以下のコマンドを使います。
 
@@ -259,7 +257,6 @@ docker-compose*.yml
 tests/
 ```
 
-⚠️ `.env` には `DATABASE_URL` や `APP_SECRET` などの機密情報が含まれます。必ず `.dockerignore` に追加してください。ECRにプッシュしたイメージに認証情報が含まれるのは深刻なセキュリティリスクです。
 
 ### 機密情報はAWSで管理する
 
@@ -497,7 +494,6 @@ export ECS_SERVICE="eccube-service"
 source ~/.bashrc  # または source ~/.zshrc
 ```
 
-⚠️ `ECR_REPOSITORY_URI` には接続先情報が含まれますが、AWSアクセスキーやシークレットキーは環境変数に直接書かないでください。`aws configure` で設定した認証情報が自動的に使われます。
 
 ℹ️ 実際のチーム運用では、**GitHub ActionsのCI/CDパイプラインをデプロイのトリガーにする**のがベストプラクティスです。mainブランチへのマージを契機に自動でデプロイが走る設計にすることで、テストをパスしたコードだけが本番に反映されます。
 ℹ️ 
@@ -571,7 +567,6 @@ gh pr create --title "$ARGUMENTS" --body "## 変更内容\n\n"
 
 `allowed-tools` に `Bash(aws *)` や `Bash(docker *)` を含めないことで、メンバーがAWS操作系のコマンドを実行できないよう制限できます。
 
-⚠️ ただし、スキルによる制限はあくまで **Claude Codeの操作制限** です。本質的な防衛線は **AWS IAM** にあります。メンバーのIAMユーザーにはECR/ECSの権限を付与しないことが、本当の意味での安全策です。スキルとIAMの両方で二重に制限することを推奨します。
 
 ### メンバーの参加方法
 

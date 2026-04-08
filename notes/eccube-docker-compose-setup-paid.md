@@ -243,7 +243,6 @@ docker compose exec ec-cube composer run-script compile
 docker compose exec -u www-data ec-cube bin/console eccube:install -n
 ```
 
-⚠️ `eccube:install`コマンドは必ず`www-data`ユーザで実行してください。rootユーザで実行すると、ファイルのパーミッションの問題が発生します。
 
 ### Step 4: 動作確認
 

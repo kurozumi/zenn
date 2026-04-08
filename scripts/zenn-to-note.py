@@ -41,10 +41,10 @@ def zenn_to_note(text: str) -> tuple[str, str]:
 
     # --- Zenn 固有の記法を変換 ---
 
-    # :::message alert ... ::: → ⚠️ 付きテキスト
+    # :::message alert ... ::: → 削除（note では宣伝ブロックを除去）
     text = re.sub(
-        r":::message alert\n(.*?):::",
-        lambda m: "⚠️ " + m.group(1).strip().replace("\n", "\n⚠️ "),
+        r":::message alert\n.*?:::\n?",
+        "",
         text,
         flags=re.DOTALL,
     )

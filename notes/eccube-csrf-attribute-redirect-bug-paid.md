@@ -96,7 +96,6 @@ class InvalidCsrfTokenException extends HttpException
 
 `HttpException`（403）を継承するため、ログインリダイレクトは起きなくなります。`#[IsCsrfTokenValid]` 属性のリスナーも新しい例外クラスを使うよう変更されます。
 
-⚠️ PR #57622 は **Symfony 8.1 向けのオープン中のPR** です。EC-CUBE 4.3（Symfony ^6.4）では現時点で使えません。EC-CUBE の Symfony アップグレード対応（PR #6686 で Symfony 7.4 への移行が進行中）後、さらに将来のバージョンで利用可能になる予定です。
 
 ---
 

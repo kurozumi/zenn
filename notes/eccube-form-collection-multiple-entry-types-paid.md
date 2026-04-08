@@ -49,7 +49,6 @@ $builder->add('orderItems', CollectionType::class, [
 
 ## 現在の EC-CUBE での対応
 
-⚠️ PR #63487 は **Symfony 8.1 向けのオープン中のPR** です。EC-CUBE 4.3（Symfony ^6.4）では現時点で使えません。EC-CUBE 本体の Symfony アップグレード（PR #6686 で 7.4 への移行が進行中）後、さらに将来のバージョンで利用可能になる予定です。
 
 Symfony 6.4 のうちは、以下のいずれかで対応します。
 

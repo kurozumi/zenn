@@ -18,7 +18,6 @@
 
 ## Symfony 8.1 で来る変化：`--with-listeners` オプション（PR #63809）
 
-⚠️ この機能は **Symfony 8.1 向けのオープン中のPR（#63809）** です。EC-CUBE 4.3（Symfony ^6.4）では現時点で使えません。将来のアップグレード後に利用可能になる予定です。
 
 Symfony PR [#63809](https://github.com/symfony/symfony/pull/63809) では、`workflow:dump` に `--with-listeners` オプションが追加される予定です。
 

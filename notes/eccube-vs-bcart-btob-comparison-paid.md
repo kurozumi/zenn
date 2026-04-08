@@ -448,9 +448,3 @@ EC-CUBE B2B、EC-CUBE Enterprise BtoB、Bカート、それぞれ優れたBtoB E
 - [EC-CUBE Enterprise BtoBリリースニュース](https://ecnomikata.com/ecnews/ec_construction/45706/)
 
 ---
-
-⚠️ **EC-CUBEのカスタマイズをお待ちしております！**
-⚠️ 
-⚠️ EC-CUBEのカスタマイズや開発のご相談は、お気軽にお問い合わせください。
-⚠️ 
-⚠️ この記事が役に立ったら、ぜひ**バッジを贈っていただけると励みになります！**

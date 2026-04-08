@@ -197,12 +197,6 @@ class ProductFeedController extends AbstractController
 }
 ```
 
-⚠️ **セキュリティ上の重要な注意**
-⚠️ 上記は概念実装です。本番環境では以下を必ず実装してください：
-⚠️ - **API認証**: OAuth 2.0 / JWT / APIキー認証
-⚠️ - **レート制限**: DoS攻撃対策（例: 100リクエスト/分）
-⚠️ - **CORS設定**: 許可するオリジンの制限
-⚠️ - **監査ログ**: 全APIリクエストの記録
 
 ### 2. Checkout APIの実装
 
