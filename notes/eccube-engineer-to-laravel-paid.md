@@ -1,5 +1,18 @@
 ## ディレクトリ構造の比較
 
+EC-CUBE / Symfony          Laravel
+────────────────────────   ─────────────────────────
+src/Controller/         →  app/Http/Controllers/
+src/Entity/             →  app/Models/
+src/Repository/         →  （Eloquentに統合）
+src/Form/               →  app/Http/Requests/
+src/EventListener/      →  app/Listeners/
+templates/              →  resources/views/
+config/services.yaml    →  app/Providers/
+config/routes.yaml      →  routes/web.php
+var/log/                →  storage/logs/
+var/cache/              →  storage/framework/cache/
+public/                 →  public/
 
 ---
 

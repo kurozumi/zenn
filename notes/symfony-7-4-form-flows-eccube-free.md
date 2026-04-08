@@ -16,6 +16,11 @@
 
 Symfony 7.4で導入された**Form Flows**を使えば、上記の処理がすべて自動化されます。
 
+// Before: セッションに保存、リダイレクト、状態管理...約100行
+// After: たった3行
+$builder->addStep('shipping', ShippingType::class);
+$builder->addStep('payment', PaymentType::class);
+$builder->addStep('confirm', ConfirmType::class);
 
 **これだけです。**
 

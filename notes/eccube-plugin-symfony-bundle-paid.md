@@ -2,6 +2,18 @@
 
 開発環境のみで使用するバンドルは、環境を指定して登録できます。
 
+<?php
+
+return [
+    // 全環境で有効
+    Some\Bundle\SomeBundle::class => ['all' => true],
+
+    // 開発環境のみ
+    Symfony\Bundle\WebProfilerBundle\WebProfilerBundle::class => ['dev' => true],
+
+    // 本番環境以外
+    Doctrine\Bundle\FixturesBundle\DoctrineFixturesBundle::class => ['dev' => true, 'test' => true],
+];
 
 ## バンドルの設定
 
@@ -9,11 +21,37 @@
 
 ### 設定ファイルの例（services.yaml）
 
+# app/Plugin/SamplePlugin/Resource/config/services.yaml
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    Plugin\SamplePlugin\:
+        resource: '../../*'
+        exclude: '../../{Entity,Resource,Tests}'
+
+# バンドルの設定
+nelmio_api_doc:
+    documentation:
+        info:
+            title: EC-CUBE API
+            description: EC-CUBE Plugin API Documentation
+            version: 1.0.0
+    areas:
+        path_patterns:
+            - ^/api(?!/doc)
 
 ## composer.jsonへの依存関係の追加
 
 プラグインが外部バンドルに依存する場合、`composer.json` に依存関係を記述します。
 
+{
+    "name": "ec-cube/sample-plugin",
+    "require": {
+        "nelmio/api-doc-bundle": "^4.0"
+    }
+}
 
 プラグインインストール時に依存パッケージも自動的にインストールされます。
 
@@ -23,20 +61,63 @@ NelmioApiDocBundleを使ってSwagger UIを提供する例を紹介します。
 
 ### 1. composer.jsonの設定
 
+{
+    "name": "ec-cube/sample-plugin",
+    "version": "1.0.0",
+    "require": {
+        "nelmio/api-doc-bundle": "^4.0"
+    }
+}
 
 ### 2. bundles.phpの作成
 
+<?php
+// app/Plugin/SamplePlugin/Resource/config/bundles.php
+
+return [
+    Nelmio\ApiDocBundle\NelmioApiDocBundle::class => ['all' => true],
+];
 
 ### 3. services.yamlでバンドルを設定
 
+# app/Plugin/SamplePlugin/Resource/config/services.yaml
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    Plugin\SamplePlugin\:
+        resource: '../../*'
+        exclude: '../../{Entity,Resource,Tests}'
+
+nelmio_api_doc:
+    documentation:
+        info:
+            title: Sample Plugin API
+            version: 1.0.0
+        servers:
+            - url: /
+              description: API Server
+    areas:
+        default:
+            path_patterns:
+                - ^/plugin/sample/api
 
 ### 4. ルーティングの設定
 
+# app/Plugin/SamplePlugin/Resource/config/routes.yaml
+app.swagger_ui:
+    path: /plugin/sample/api/doc
+    methods: GET
+    defaults:
+        _controller: nelmio_api_doc.controller.swagger_ui
 
 ## キャッシュのクリア
 
 バンドルを登録した後は、キャッシュのクリアが必要です。
 
+bin/console cache:clear --no-warmup
+bin/console cache:warmup
 
 ## 注意点
 

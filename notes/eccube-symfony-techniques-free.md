@@ -11,9 +11,72 @@ EC-CUBE 4 は Symfony をベースに構築されているため、Symfony の�
 
 ### 設定ファイル
 
+# app/Plugin/YourPlugin/Resource/config/services.yaml
+framework:
+    workflows:
+        order_review:
+            type: 'state_machine'
+            audit_trail:
+                enabled: true
+            marking_store:
+                type: 'method'
+                property: 'status'
+            supports:
+                - Plugin\YourPlugin\Entity\OrderReview
+            initial_marking: pending
+            places:
+                - pending
+                - approved
+                - rejected
+            transitions:
+                approve:
+                    from: pending
+                    to: approved
+                reject:
+                    from: pending
+                    to: rejected
 
 ### 使用例
 
+<?php
+
+namespace Plugin\YourPlugin\Controller\Admin;
+
+use Eccube\Controller\AbstractController;
+use Plugin\YourPlugin\Entity\OrderReview;
+use Plugin\YourPlugin\Repository\OrderReviewRepository;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Workflow\WorkflowInterface;
+
+class OrderReviewController extends AbstractController
+{
+    public function __construct(
+        private WorkflowInterface $orderReviewStateMachine,
+        private OrderReviewRepository $orderReviewRepository
+    ) {
+    }
+
+    #[Route(
+        path: '/%eccube_admin_route%/order_review/{id}/approve',
+        name: 'admin_order_review_approve',
+        requirements: ['id' => '\d+'],
+        methods: ['POST']
+    )]
+    public function approve(OrderReview $review): Response
+    {
+        // 遷移可能かチェック
+        if ($this->orderReviewStateMachine->can($review, 'approve')) {
+            // 状態を遷移
+            $this->orderReviewStateMachine->apply($review, 'approve');
+            $this->entityManager->flush();
+
+            $this->addSuccess('admin.common.save_complete', 'admin');
+        }
+
+        return $this->redirectToRoute('admin_order_review_list');
+    }
+}
 
 ## 2. Messenger Component - 非同期処理
 
@@ -21,8 +84,82 @@ EC-CUBE 4 は Symfony をベースに構築されているため、Symfony の�
 
 ### メッセージクラス
 
+<?php
+
+namespace Plugin\YourPlugin\Message;
+
+class SendNotificationMessage
+{
+    public function __construct(
+        private int $orderId,
+        private string $notificationType
+    ) {
+    }
+
+    public function getOrderId(): int
+    {
+        return $this->orderId;
+    }
+
+    public function getNotificationType(): string
+    {
+        return $this->notificationType;
+    }
+}
 
 ### ハンドラークラス
 
+<?php
+
+namespace Plugin\YourPlugin\MessageHandler;
+
+use Eccube\Repository\OrderRepository;
+use Plugin\YourPlugin\Message\SendNotificationMessage;
+use Symfony\Component\Messenger\Attribute\AsMessageHandler;
+
+#[AsMessageHandler]
+class SendNotificationMessageHandler
+{
+    public function __construct(
+        private OrderRepository $orderRepository,
+        private NotificationService $notificationService
+    ) {
+    }
+
+    public function __invoke(SendNotificationMessage $message): void
+    {
+        $order = $this->orderRepository->find($message->getOrderId());
+
+        if ($order) {
+            $this->notificationService->send(
+                $order,
+                $message->getNotificationType()
+            );
+        }
+    }
+}
 
 ### ディスパッチ
+
+<?php
+
+use Plugin\YourPlugin\Message\SendNotificationMessage;
+use Symfony\Component\Messenger\MessageBusInterface;
+
+class OrderEventSubscriber implements EventSubscriberInterface
+{
+    public function __construct(
+        private MessageBusInterface $messageBus
+    ) {
+    }
+
+    public function onOrderComplete(EventArgs $event): void
+    {
+        $order = $event->getArgument('Order');
+
+        // 非同期でメッセージを送信
+        $this->messageBus->dispatch(
+            new SendNotificationMessage($order->getId(), 'order_complete')
+        );
+    }
+}

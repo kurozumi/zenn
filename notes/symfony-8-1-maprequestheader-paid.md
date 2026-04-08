@@ -2,11 +2,33 @@
 
 ### シンプルな例
 
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapRequestHeader;
+use Symfony\Component\Routing\Attribute\Route;
+
+class ApiController extends AbstractController
+{
+    #[Route('/api/data')]
+    public function getData(
+        #[MapRequestHeader] string $accept,
+        #[MapRequestHeader] ?string $authorization,
+    ): Response {
+        // $accept には Accept ヘッダーの値が入る
+        // $authorization は Authorization ヘッダー（なければnull）
+    }
+}
 
 ### 名前の自動変換
 
 引数名がcamelCaseの場合、自動的にkebab-caseに変換されます。
 
+public function index(
+    #[MapRequestHeader] string $acceptLanguage,  // → Accept-Language
+    #[MapRequestHeader] string $contentType,     // → Content-Type
+    #[MapRequestHeader] string $xCustomHeader,   // → X-Custom-Header
+): Response {
+    // ...
+}
 
 これは地味に便利です。PHPの変数名規則とHTTPヘッダーの命名規則を自動的に橋渡ししてくれます。
 
@@ -14,11 +36,22 @@
 
 自動変換に頼りたくない場合は、明示的に指定できます。
 
+public function index(
+    #[MapRequestHeader('User-Agent')] string $userAgent,
+    #[MapRequestHeader('X-API-KEY')] string $apiKey,
+): Response {
+    // ...
+}
 
 ## 配列としての取得
 
 同じヘッダーが複数回送信される場合、配列で受け取れます。
 
+public function index(
+    #[MapRequestHeader] array $acceptLanguage,
+): Response {
+    // $acceptLanguage = ['ja', 'en-US', 'en']
+}
 
 これは`Accept-Language: ja, en-US, en`のようなヘッダーを解析するときに便利です。
 
@@ -26,6 +59,15 @@
 
 Accept系ヘッダーには専用のクラスがあります。
 
+use Symfony\Component\HttpFoundation\AcceptHeader;
+
+public function index(
+    #[MapRequestHeader] AcceptHeader $accept,
+    #[MapRequestHeader] AcceptHeader $acceptEncoding,
+): Response {
+    // $accept->has('application/json') で判定
+    // $accept->all() で全エントリ取得
+}
 
 `AcceptHeader`クラスは品質値（q値）の解析もしてくれるので、コンテンツネゴシエーションが簡単に実装できます。
 
@@ -33,26 +75,164 @@ Accept系ヘッダーには専用のクラスがあります。
 
 必須ヘッダーが見つからない場合、自動的に400エラーが返されます。
 
+public function index(
+    #[MapRequestHeader] string $authorization,  // 必須
+): Response {
+    // Authorization ヘッダーがなければ400
+}
 
 
 ### ステータスコードのカスタマイズ
 
 401を返したい場合など、ステータスコードを変更できます。
 
+public function index(
+    #[MapRequestHeader(validationFailedStatusCode: 401)] string $authorization,
+): Response {
+    // Authorization ヘッダーがなければ401
+}
 
 ## EC-CUBEでの実用例
 
 ### 例1: API認証ヘッダーの処理
 
+namespace Customize\Controller\Api;
+
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpKernel\Attribute\MapRequestHeader;
+use Symfony\Component\Routing\Attribute\Route;
+
+class ProductApiController extends AbstractController
+{
+    #[Route('/api/v1/products', methods: ['GET'])]
+    public function list(
+        #[MapRequestHeader('X-API-KEY', validationFailedStatusCode: 401)] string $apiKey,
+        #[MapRequestHeader] ?string $acceptLanguage,
+    ): JsonResponse {
+        // APIキーの検証（タイミング攻撃対策としてhash_equalsを使用）
+        if (!$this->apiKeyService->isValid($apiKey)) {
+            return $this->json(['error' => 'Unauthorized'], 401);
+        }
+
+        // 言語に応じた商品データを返す
+        $locale = $this->parseLocale($acceptLanguage);
+
+        return $this->json([
+            'products' => $this->productRepository->findAllLocalized($locale),
+        ]);
+    }
+}
 
 ### 例2: モバイルアプリ判定
 
+namespace Customize\Controller;
+
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapRequestHeader;
+use Symfony\Component\Routing\Attribute\Route;
+
+class ProductController extends AbstractController
+{
+    #[Route('/products/{id}')]
+    public function detail(
+        int $id,
+        #[MapRequestHeader('User-Agent')] string $userAgent,
+        #[MapRequestHeader('X-App-Version')] ?string $appVersion,
+    ): Response {
+        $product = $this->productRepository->find($id);
+
+        // モバイルアプリからのアクセスか判定
+        $isMobileApp = $appVersion !== null;
+
+        // User-Agentでモバイルブラウザ判定
+        $isMobileBrowser = str_contains($userAgent, 'Mobile');
+
+        return $this->render('Product/detail.twig', [
+            'Product' => $product,
+            'isMobileApp' => $isMobileApp,
+            'isMobileBrowser' => $isMobileBrowser,
+        ]);
+    }
+}
 
 ### 例3: キャッシュ制御
 
+namespace Customize\Controller;
+
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapRequestHeader;
+use Symfony\Component\Routing\Attribute\Route;
+
+class CatalogController extends AbstractController
+{
+    #[Route('/catalog')]
+    public function index(
+        #[MapRequestHeader('If-None-Match')] ?string $ifNoneMatch,
+        #[MapRequestHeader('If-Modified-Since')] ?string $ifModifiedSince,
+    ): Response {
+        $lastModified = $this->catalogService->getLastModified();
+        $etag = $this->catalogService->getEtag();
+
+        // クライアントキャッシュが有効か判定（hash_equalsでタイミング攻撃対策）
+        if ($ifNoneMatch !== null && hash_equals($etag, $ifNoneMatch)) {
+            return new Response('', 304);
+        }
+
+        if ($ifModifiedSince !== null) {
+            try {
+                if (new \DateTime($ifModifiedSince) >= $lastModified) {
+                    return new Response('', 304);
+                }
+            } catch (\Exception) {
+                // 無効な日付形式は無視してコンテンツを返す
+            }
+        }
+
+        $response = $this->render('Catalog/index.twig', [
+            'products' => $this->catalogService->getProducts(),
+        ]);
+
+        $response->setEtag($etag);
+        $response->setLastModified($lastModified);
+
+        return $response;
+    }
+}
 
 ### 例4: コンテンツネゴシエーション
 
+namespace Customize\Controller\Api;
+
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\AcceptHeader;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapRequestHeader;
+use Symfony\Component\Routing\Attribute\Route;
+
+class ExportController extends AbstractController
+{
+    #[Route('/api/v1/products/export')]
+    public function export(
+        #[MapRequestHeader] AcceptHeader $accept,
+    ): Response {
+        $products = $this->productRepository->findAll();
+
+        // Accept ヘッダーに基づいてフォーマットを決定
+        if ($accept->has('text/csv')) {
+            return $this->exportCsv($products);
+        }
+
+        if ($accept->has('application/xml')) {
+            return $this->exportXml($products);
+        }
+
+        // デフォルトはJSON
+        return $this->json(['products' => $products]);
+    }
+}
 
 ℹ️ **注意**: `#[MapRequestHeader]` は型の安全性を提供しますが、ヘッダーの内容の検証は行いません。APIキーや認証トークンなど、セキュリティに関わるヘッダーは必ず追加の検証を行ってください。
 
@@ -64,9 +244,30 @@ Accept系ヘッダーには専用のクラスがあります。
 
 ### Before（従来）
 
+public function index(Request $request): Response
+{
+    $accept = $request->headers->get('Accept');
+    $authorization = $request->headers->get('Authorization');
+    $userAgent = $request->headers->get('User-Agent');
+    $acceptLanguage = $request->headers->get('Accept-Language');
+
+    if ($authorization === null) {
+        throw new HttpException(401, 'Authorization required');
+    }
+
+    // 処理...
+}
 
 ### After（Symfony 8.1）
 
+public function index(
+    #[MapRequestHeader] string $accept,
+    #[MapRequestHeader(validationFailedStatusCode: 401)] string $authorization,
+    #[MapRequestHeader('User-Agent')] string $userAgent,
+    #[MapRequestHeader] ?string $acceptLanguage,
+): Response {
+    // 処理...
+}
 
 ### 比較表
 
@@ -92,6 +293,13 @@ Symfony 8.1では、リクエストデータをコントローラー引数にマ
 
 これらを組み合わせると、コントローラーの引数だけでリクエストの全データにアクセスできます。
 
+public function create(
+    #[MapRequestPayload] ProductDto $product,
+    #[MapQueryParameter] int $categoryId,
+    #[MapRequestHeader('X-API-KEY')] string $apiKey,
+): Response {
+    // $request を一切触らずに全データにアクセス
+}
 
 ## まとめ
 

@@ -21,6 +21,8 @@
 
 Symfony PR [#63809](https://github.com/symfony/symfony/pull/63809) では、`workflow:dump` に `--with-listeners` オプションが追加される予定です。
 
+# Symfony 8.1以降（予定）
+php bin/console workflow:dump order --with-listeners | dot -Tpng -o order_workflow.png
 
 このオプションを使うと、Graphviz図の各遷移ノードに対応するイベントリスナーが表示されます。
 

@@ -6,7 +6,20 @@
 - Symfonyの `CsrfTokenManagerInterface` を活用しているか
 
 ### 良い例
+// Controllerでの検証
+use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
+public function delete(Request $request, CsrfTokenManagerInterface $csrfTokenManager)
+{
+    $token = new CsrfToken('delete_item', $request->request->get('_token'));
+    if (!$csrfTokenManager->isTokenValid($token)) {
+        throw new InvalidCsrfTokenException();
+    }
+    // 処理を続行
+}
+
+{# Twigテンプレートでのトークン埋め込み #}
+<input type="hidden" name="_token" value="{{ csrf_token('delete_item') }}">
 
 ## 4. 認証・認可の適切な実装
 
@@ -16,6 +29,16 @@
 - ユーザーが他のユーザーのデータにアクセスできないか
 
 ### 良い例
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
+
+/**
+ * @Route("/admin/plugin/sample")
+ * @IsGranted("ROLE_ADMIN")
+ */
+class SampleController extends AbstractController
+{
+    // 管理者のみアクセス可能
+}
 
 ## 5. ファイルアップロードのセキュリティ
 
@@ -26,6 +49,15 @@
 - ファイル名をランダム化しているか
 
 ### 良い例
+$allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+$extension = $file->guessExtension();
+
+if (!in_array($extension, $allowedExtensions)) {
+    throw new \Exception('許可されていないファイル形式です');
+}
+
+// ファイル名をランダム化
+$newFilename = bin2hex(random_bytes(16)) . '.' . $extension;
 
 ## 6. セッション管理
 
@@ -35,6 +67,11 @@
 - セッションCookieにSecure/HttpOnly属性が設定されているか
 
 ### 設定例（config/packages/framework.yaml）
+framework:
+    session:
+        cookie_secure: auto
+        cookie_httponly: true
+        cookie_samesite: lax
 
 ## 7. 機密情報の取り扱い
 
@@ -45,6 +82,14 @@
 - エラーメッセージで内部情報を漏らしていないか
 
 ### 良い例
+// .envファイルから取得
+$apiKey = $_ENV['EXTERNAL_API_KEY'];
+
+// ログ出力時は機密情報をマスク
+$this->logger->info('API呼び出し', [
+    'endpoint' => $endpoint,
+    // 'api_key' => $apiKey,  // 絶対にログに出力しない
+]);
 
 ## 8. 入力値のバリデーション
 
@@ -54,6 +99,21 @@
 - 型、長さ、形式を適切にチェックしているか
 
 ### 良い例
+use Symfony\Component\Validator\Constraints as Assert;
+
+class SampleType extends AbstractType
+{
+    public function buildForm(FormBuilderInterface $builder, array $options)
+    {
+        $builder->add('email', EmailType::class, [
+            'constraints' => [
+                new Assert\NotBlank(),
+                new Assert\Email(),
+                new Assert\Length(['max' => 255]),
+            ],
+        ]);
+    }
+}
 
 ## 9. 依存パッケージの脆弱性管理
 
@@ -63,6 +123,11 @@
 - 使用していないパッケージを削除しているか
 
 ### 実行コマンド
+# 脆弱性チェック
+composer audit
+
+# パッケージ更新
+composer update --with-all-dependencies
 
 ## 10. ログとモニタリング
 
@@ -72,6 +137,12 @@
 - 異常なアクセスパターンを検知できるか
 
 ### 良い例
+// 認証失敗をログに記録
+$this->logger->warning('認証失敗', [
+    'ip_address' => $request->getClientIp(),
+    'attempted_user' => $username,
+    'timestamp' => new \DateTime(),
+]);
 
 ## まとめ
 

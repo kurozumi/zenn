@@ -11,6 +11,20 @@ EC-CUBEプラグイン開発において、独自のCSSやJavaScriptを同梱し
 
 ### ディレクトリ構成
 
+app/Plugin/SamplePlugin/
+├── Resource/
+│   ├── assets/           # 静的ファイルを配置
+│   │   ├── css/
+│   │   │   └── style.css
+│   │   ├── js/
+│   │   │   └── script.js
+│   │   └── img/
+│   │       └── logo.png
+│   ├── config/
+│   │   └── services.yaml
+│   └── template/
+│       └── ...
+└── ...
 
 ## インストール時の動作
 
@@ -18,3 +32,14 @@ EC-CUBEプラグイン開発において、独自のCSSやJavaScriptを同梱し
 
 **コピー元**: `app/Plugin/SamplePlugin/Resource/assets/`
 **コピー先**: `html/plugin/SamplePlugin/assets/`
+
+// EC-CUBE本体の PluginService.php より
+public function copyAssets($pluginCode)
+{
+    $assetsDir = $this->calcPluginDir($pluginCode).'/Resource/assets';
+
+    if (file_exists($assetsDir)) {
+        $file = new Filesystem();
+        $file->mirror($assetsDir, $this->eccubeConfig['plugin_html_realdir'].$pluginCode.'/assets');
+    }
+}

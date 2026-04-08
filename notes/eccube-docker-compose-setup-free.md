@@ -22,29 +22,13 @@ EC-CUBE 4の開発環境をDocker Composeで構築する際、コマンドを調
 
 以下が`eccube-docker`スキルの全内容です。
 
-bash
-docker compose -f docker-compose.yml -f ${DB_COMPOSE} up -d --build
-bash
-docker compose ps
-bash
-# Composerの依存関係をコンパイル
-docker compose -f docker-compose.yml -f ${DB_COMPOSE} exec ec-cube composer run-script compile
+---
+name: eccube-docker
+description: EC-CUBE 4 を Docker Compose で起動する。ローカル開発環境のセットアップ時に使用する。
+---
 
-# EC-CUBEインストール（www-dataユーザで非対話モード実行）
-docker compose -f docker-compose.yml -f ${DB_COMPOSE} exec -u www-data ec-cube bin/console eccube:install -n
-bash
-docker compose -f docker-compose.yml -f ${DB_COMPOSE} up -d
-bash
-docker compose ps
-bash
-docker compose -f docker-compose.yml -f ${DB_COMPOSE} down
-bash
-docker compose -f docker-compose.yml -f ${DB_COMPOSE} down
-docker compose -f docker-compose.yml -f ${DB_COMPOSE} up -d
-bash
-docker compose -f docker-compose.yml -f ${DB_COMPOSE} exec ec-cube bin/console cache:clear
-bash
-docker compose -f docker-compose.yml -f ${DB_COMPOSE} logs
-bash
-docker compose -f docker-compose.yml -f ${DB_COMPOSE} exec ec-cube chown -R www-data:www-data var/
-`
+# EC-CUBE 4 Docker Compose 環境管理
+
+あなたはEC-CUBE 4のDocker環境構築の専門家です。Docker ComposeでEC-CUBEの起動・停止・管理を行います。
+
+引数が渡された場合（`$ARGUMENTS`）はEC-CUBEのディレクトリパスまたは操作内容として解釈してください。

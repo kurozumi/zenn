@@ -11,9 +11,24 @@
 
 Symfony開発者なら、こんなコードを何度も書いてきたはずです：
 
+public function index(Request $request): Response
+{
+    $acceptLanguage = $request->headers->get('Accept-Language');
+    $userAgent = $request->headers->get('User-Agent');
+    $authorization = $request->headers->get('Authorization');
+
+    // 以下、処理...
+}
 
 Symfony 8.1で、これが劇的にシンプルになります。
 
+public function index(
+    #[MapRequestHeader] string $acceptLanguage,
+    #[MapRequestHeader('User-Agent')] string $userAgent,
+    #[MapRequestHeader] ?string $authorization,
+): Response {
+    // もう$requestを触る必要がない
+}
 
 `#[MapQueryParameter]`や`#[MapRequestPayload]`の兄弟が、ついにHTTPヘッダーにも登場しました。
 

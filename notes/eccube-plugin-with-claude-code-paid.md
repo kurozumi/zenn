@@ -4,21 +4,145 @@
 
 ### ステップ1: 要件を伝える
 
+あなた: 商品ごとにポイント倍率を設定できるプラグインを作成して。
+       管理画面の商品編集ページに倍率入力欄を追加し、
+       購入時にポイントを倍率に応じて付与する機能が欲しい。
 
 ### ステップ2: 生成されるコード
 
 #### ProductTrait（エンティティ拡張）
 
+<?php
+
+namespace Plugin\PointMultiplier\Entity;
+
+use Doctrine\ORM\Mapping as ORM;
+use Eccube\Annotation\EntityExtension;
+
+/**
+ * @EntityExtension("Eccube\Entity\Product")
+ */
+trait ProductTrait
+{
+    #[ORM\Column(type: 'decimal', precision: 3, scale: 1, nullable: true, options: ['default' => 1.0])]
+    private ?string $point_multiplier = '1.0';
+
+    public function getPointMultiplier(): float
+    {
+        return (float) ($this->point_multiplier ?? 1.0);
+    }
+
+    public function setPointMultiplier(?float $pointMultiplier): self
+    {
+        $this->point_multiplier = $pointMultiplier !== null ? (string) $pointMultiplier : '1.0';
+        return $this;
+    }
+}
 
 #### FormExtension（フォーム拡張）
 
+<?php
+
+namespace Plugin\PointMultiplier\Form\Extension;
+
+use Eccube\Form\Type\Admin\ProductType;
+use Symfony\Component\Form\AbstractTypeExtension;
+use Symfony\Component\Form\Extension\Core\Type\NumberType;
+use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Validator\Constraints as Assert;
+
+class ProductTypeExtension extends AbstractTypeExtension
+{
+    public static function getExtendedTypes(): iterable
+    {
+        yield ProductType::class;
+    }
+
+    public function buildForm(FormBuilderInterface $builder, array $options): void
+    {
+        $builder->add('point_multiplier', NumberType::class, [
+            'label' => 'ポイント倍率',
+            'required' => false,
+            'scale' => 1,
+            'attr' => [
+                'placeholder' => '1.0',
+            ],
+            'constraints' => [
+                new Assert\Range([
+                    'min' => 0.1,
+                    'max' => 10.0,
+                    'notInRangeMessage' => '{{ min }}〜{{ max }}の範囲で入力してください。',
+                ]),
+            ],
+        ]);
+    }
+}
 
 #### PurchaseFlow Processor（ポイント計算）
 
+<?php
+
+namespace Plugin\PointMultiplier\Service\PurchaseFlow\Processor;
+
+use Eccube\Annotation\ShoppingFlow;
+use Eccube\Entity\ItemHolderInterface;
+use Eccube\Entity\Order;
+use Eccube\Service\PurchaseFlow\ItemHolderPreprocessor;
+use Eccube\Service\PurchaseFlow\PurchaseContext;
+
+/**
+ * @ShoppingFlow
+ */
+class PointMultiplierProcessor implements ItemHolderPreprocessor
+{
+    public function process(ItemHolderInterface $itemHolder, PurchaseContext $context): void
+    {
+        if (!$itemHolder instanceof Order) {
+            return;
+        }
+
+        $totalPoint = 0;
+        foreach ($itemHolder->getProductOrderItems() as $orderItem) {
+            $product = $orderItem->getProduct();
+            if ($product === null) {
+                continue;
+            }
+
+            $basePoint = $orderItem->getPoint() ?? 0;
+            $multiplier = $product->getPointMultiplier();
+            $totalPoint += (int) floor($basePoint * $multiplier);
+        }
+
+        $itemHolder->setAddPoint($totalPoint);
+    }
+}
 
 ### ステップ3: テストコードも生成
 
+あなた: このプラグインのPHPUnitテストを作成して
 
+<?php
+
+namespace Plugin\PointMultiplier\Tests;
+
+use Eccube\Tests\EccubeTestCase;
+use Plugin\PointMultiplier\Entity\ProductTrait;
+
+class PointMultiplierTest extends EccubeTestCase
+{
+    public function testPointMultiplierDefault(): void
+    {
+        $Product = $this->createProduct();
+        $this->assertEquals(1.0, $Product->getPointMultiplier());
+    }
+
+    public function testPointMultiplierSet(): void
+    {
+        $Product = $this->createProduct();
+        $Product->setPointMultiplier(2.5);
+        $this->assertEquals(2.5, $Product->getPointMultiplier());
+    }
+}
 
 ## Claude Code を使う際のコツ
 
@@ -26,17 +150,38 @@
 
 プロジェクトルートに `CLAUDE.md` を配置すると、Claude Code がプロジェクトのルールを理解します。
 
+# EC-CUBE プラグイン開発ルール
+
+## 対象バージョン
+- EC-CUBE 4.3 以上
+- PHP 8.1 以上
+
+## コーディング規約
+- PSR-12 に準拠
+- 型宣言を必ず使用
+- コアエンティティは Trait で拡張
+- コアフォームは FormExtension で拡張
 
 ### 2. 具体的な指示を出す
 
+❌ 悪い例: 会員機能を作って
+
+✅ 良い例: 会員にVIP/通常の2種類のランクを設定できる機能を作って。
+          管理画面で会員ごとにランクを変更でき、
+          VIP会員は全商品10%オフで購入できるようにして。
 
 ### 3. 段階的に開発する
 
 一度に全てを作ろうとせず、段階的に機能を追加していきます。
 
+1回目: まず会員ランクのエンティティとマイグレーションを作成して
+2回目: 管理画面で会員ランクを編集できるようにして
+3回目: VIP会員の割引処理を実装して
 
 ### 4. EC-CUBE のドキュメントを参照させる
 
+あなた: EC-CUBE公式ドキュメント https://doc4.ec-cube.net/ を参照して、
+       正しいプラグインの作り方で実装して
 
 ## スラッシュコマンドの活用
 

@@ -23,6 +23,10 @@
 
 木元氏の特筆すべき点は、**現在も活発に活動している**ことです。直近のコミット履歴を見ると：
 
+2026-03-02: fix(ci): add least-privilege permissions to all workflows
+2026-02-26: fix: フォーム送信済みの場合はクリックを再試行せずサーバー応答を待機
+2026-02-26: fix: プラグインボタンクリック前に Bootstrap tooltip を除去
+2026-02-19: fix: click 前に document.readyState === complete を待機
 
 CI/CDの改善やE2Eテストの安定化など、プロジェクトの品質を支える重要な貢献を続けています。直近100件のコミットでも**2番目に多い17コミット**を記録しており、現在のEC-CUBE開発を支える中心メンバーの一人です。
 
@@ -32,6 +36,9 @@ CI/CDの改善やE2Eテストの安定化など、プロジェクトの品質を
 
 直近100件のコミット活動を見ると、アクティブな開発者が限られていることがわかります。
 
+dotani1111:      64 commits
+nobuhiko:        17 commits
+dependabot[bot]: 15 commits
 
 かつてのトップコントリビューターである chihiro-adachi氏（2位）、k-yamamura氏（3位）、kiy0taka氏（5位）などの名前が最近の活動には見られません。
 

@@ -11,6 +11,12 @@ Symfony開発者なら一度は思ったことがあるはずです。
 
 Symfony 7.3で、この悩みが解消されます。`#[IsGranted]` 属性にクロージャを直接書けるようになりました。
 
+// Before: Voter + Controller で2ファイル必要
+// After: Controllerに数行追加するだけ
+#[IsGranted(static function (IsGrantedContext $context, mixed $subject): bool {
+    return $subject->getCreator() === $context->user;
+}, subject: 'product')]
+public function edit(Product $product): Response { }
 
 「で、いつ使うの？」という方のために、EC-CUBEでの実践例を紹介します。
 

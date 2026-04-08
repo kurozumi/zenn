@@ -31,6 +31,15 @@
 
 ターミナルでログの末尾を確認し、Claude Code のプロンプトに貼り付けます。
 
+# 本番: サイト全体のログ（最新50行）
+tail -50 var/log/prod/site.log
+
+# 本番: フロント/管理画面別のログ
+tail -50 var/log/prod/front.log
+tail -50 var/log/prod/admin.log
+
+# 開発: リアルタイムで確認
+tail -f var/log/dev/site.log
 
 ℹ️ EC-CUBE 4.3 では `rotating_file` ハンドラーを使用しているため、ファイル名に日付が付きます（例: `site-2026-03-30.log`）。最新ファイルを確認する場合は `ls -lt var/log/prod/` で日付を確認してください。
 
@@ -38,6 +47,7 @@
 
 プロジェクトのルートで Claude Code を起動している場合、ファイルパスを指定するだけでログを自動で読み込んで解析します。
 
+> var/log/prod/site.log を確認して、最新のエラーの原因を特定して修正して
 
 Claude Code はログファイルを読み、関連するソースコードも自動で参照しながら修正します。
 
