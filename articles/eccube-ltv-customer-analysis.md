@@ -27,7 +27,7 @@ published: false
 
 ## EC-CUBE が標準で持つ LTV データ
 
-EC-CUBE 4.3 の `Customer` エンティティ（`dtb_customer` テーブル）には、注文完了のたびに自動更新されるLTV関連フィールドが標準装備されている。
+EC-CUBE 4.3 の `Customer` エンティティ（`dtb_customer` テーブル）には、LTV関連フィールドが標準装備されている。
 
 ```php
 // src/Eccube/Entity/Customer.php
