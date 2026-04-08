@@ -17,14 +17,11 @@ note がサポートする Markdown 記法:
   # 通常変換（notes/ に出力）
   python3 scripts/zenn-to-note.py articles/foo.md
 
-  # 有料記事として無料・有料部分に分割
-  python3 scripts/zenn-to-note.py articles/foo.md --paid
-
   # 出力先ディレクトリを指定
   python3 scripts/zenn-to-note.py articles/foo.md -o notes/
 
   # バッチ処理（全記事一括変換）
-  for f in articles/*.md; do python3 scripts/zenn-to-note.py "$f" --paid --no-open; done
+  for f in articles/*.md; do python3 scripts/zenn-to-note.py "$f" --no-open; done
 """
 
 import re
@@ -32,8 +29,6 @@ import sys
 import subprocess
 import argparse
 from pathlib import Path
-
-PAYWALL_MARKER = "<!-- paywall -->"
 
 
 def extract_frontmatter(text: str) -> tuple[str, str]:
@@ -82,20 +77,6 @@ def convert_to_note_md(text: str) -> str:
     return text.strip()
 
 
-def split_paywall(text: str) -> tuple[str, str]:
-    """<!-- paywall --> で無料/有料に分割する。"""
-    if PAYWALL_MARKER in text:
-        parts = text.split(PAYWALL_MARKER, 1)
-        return parts[0].strip(), parts[1].strip()
-
-    # マーカーがない場合: 3番目の ## 見出し直前で分割
-    matches = list(re.finditer(r"^## ", text, re.MULTILINE))
-    if len(matches) >= 3:
-        return text[: matches[2].start()].strip(), text[matches[2].start():].strip()
-    if len(matches) >= 1:
-        return text[: matches[0].start()].strip(), text[matches[0].start():].strip()
-    return text, ""
-
 
 def copy_to_clipboard(text: str) -> None:
     subprocess.run(["pbcopy"], input=text.encode("utf-8"), check=True)
@@ -105,7 +86,6 @@ def main():
     parser = argparse.ArgumentParser(description="Zenn 記事を note 向け Markdown に変換する")
     parser.add_argument("input", help="変換する Zenn 記事のパス")
     parser.add_argument("-o", "--output", default="notes", help="出力先ディレクトリ（デフォルト: notes/）")
-    parser.add_argument("--paid", action="store_true", help="有料記事として無料/有料部分に分割する")
     parser.add_argument("--no-open", action="store_true", help="クリップボードコピーをスキップ（バッチ処理用）")
     args = parser.parse_args()
 
@@ -122,42 +102,17 @@ def main():
     title, body = extract_frontmatter(text)
     body = convert_to_note_md(body)
 
-    if args.paid:
-        free_md, paid_md = split_paywall(body)
+    output = f"# {title}\n\n{body}" if title else body
+    out_path = out_dir / f"{slug}.md"
+    out_path.write_text(output, encoding="utf-8")
 
-        free_path = out_dir / f"{slug}-free.md"
-        paid_path = out_dir / f"{slug}-paid.md"
+    if title:
+        print(f"タイトル: {title}")
+    print(f"✓ {out_path}")
 
-        free_path.write_text(f"# {title}\n\n{free_md}" if title else free_md, encoding="utf-8")
-        print(f"✓ 無料部分: {free_path}")
-
-        if paid_md:
-            paid_path.write_text(paid_md, encoding="utf-8")
-            print(f"✓ 有料部分: {paid_path}")
-
-        if title:
-            print(f"  タイトル: {title}")
-
-        if not args.no_open:
-            copy_to_clipboard(f"# {title}\n\n{free_md}" if title else free_md)
-            print("\n✓ 無料部分をクリップボードにコピーしました。note エディタに貼り付けてください。")
-            if paid_md:
-                input("\nEnter を押すと有料部分をコピーします: ")
-                copy_to_clipboard(paid_md)
-                print("✓ 有料部分をコピーしました。")
-
-    else:
-        output = f"# {title}\n\n{body}" if title else body
-        out_path = out_dir / f"{slug}.md"
-        out_path.write_text(output, encoding="utf-8")
-
-        if title:
-            print(f"タイトル: {title}")
-        print(f"✓ {out_path}")
-
-        if not args.no_open:
-            copy_to_clipboard(output)
-            print("\n✓ クリップボードにコピーしました。note エディタに貼り付けてください。")
+    if not args.no_open:
+        copy_to_clipboard(output)
+        print("\n✓ クリップボードにコピーしました。note エディタに貼り付けてください。")
 
 
 if __name__ == "__main__":
