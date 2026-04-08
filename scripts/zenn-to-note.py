@@ -3,8 +3,16 @@
 Zenn の記事を note に貼り付けやすい Markdown に変換するスクリプト
 
 使い方:
-  python3 scripts/zenn-to-note.py articles/eccube-ga4-funnel-ai-analysis.md
-  python3 scripts/zenn-to-note.py articles/eccube-ga4-funnel-ai-analysis.md -o output.md
+  # 通常変換（標準出力）
+  python3 scripts/zenn-to-note.py articles/foo.md
+
+  # ファイルに出力
+  python3 scripts/zenn-to-note.py articles/foo.md -o notes/foo.md
+
+  # 有料記事として無料・有料部分に分割して出力
+  python3 scripts/zenn-to-note.py articles/foo.md --paid
+
+記事内に <!-- paywall --> と書いた行が無料/有料の境界になります。
 """
 
 import re
@@ -12,8 +20,10 @@ import sys
 import argparse
 from pathlib import Path
 
+PAYWALL_MARKER = "<!-- paywall -->"
 
-def convert(text: str) -> tuple[str, str]:
+
+def zenn_to_note(text: str) -> tuple[str, str]:
     """
     Zenn markdown を note 向けに変換する。
     戻り値: (title, converted_body)
@@ -31,7 +41,7 @@ def convert(text: str) -> tuple[str, str]:
 
     # --- Zenn 固有の記法を変換 ---
 
-    # :::message alert ... ::: → 枠で囲った注意書き
+    # :::message alert ... ::: → ⚠️ 付きテキスト
     text = re.sub(
         r":::message alert\n(.*?):::",
         lambda m: "⚠️ " + m.group(1).strip().replace("\n", "\n⚠️ "),
@@ -39,7 +49,7 @@ def convert(text: str) -> tuple[str, str]:
         flags=re.DOTALL,
     )
 
-    # :::message ... ::: → ℹ️ 付きの注記
+    # :::message ... ::: → ℹ️ 付きテキスト
     text = re.sub(
         r":::message\n(.*?):::",
         lambda m: "ℹ️ " + m.group(1).strip().replace("\n", "\nℹ️ "),
@@ -47,7 +57,7 @@ def convert(text: str) -> tuple[str, str]:
         flags=re.DOTALL,
     )
 
-    # :::details タイトル\n本文\n::: → 折りたたみなし（タイトル + 本文を展開）
+    # :::details タイトル\n本文\n::: → タイトル + 本文を展開
     text = re.sub(
         r":::details (.*?)\n(.*?):::",
         lambda m: f"📋 {m.group(1).strip()}\n\n{m.group(2).strip()}",
@@ -55,16 +65,34 @@ def convert(text: str) -> tuple[str, str]:
         flags=re.DOTALL,
     )
 
-    # 先頭・末尾の空白行を整理
     text = text.strip()
-
     return title, text
+
+
+def split_paywall(body: str) -> tuple[str, str]:
+    """
+    <!-- paywall --> マーカーで無料部分と有料部分に分割する。
+    マーカーがない場合は最初の ## 見出しの直前で分割する。
+    戻り値: (free_part, paid_part)
+    """
+    if PAYWALL_MARKER in body:
+        parts = body.split(PAYWALL_MARKER, 1)
+        return parts[0].strip(), parts[1].strip()
+
+    # マーカーがない場合: 最初の ## 見出しの前で分割
+    match = re.search(r"^## ", body, re.MULTILINE)
+    if match:
+        return body[:match.start()].strip(), body[match.start():].strip()
+
+    # 見出しもない場合: 全文を無料とする
+    return body, ""
 
 
 def main():
     parser = argparse.ArgumentParser(description="Zenn 記事を note 向けに変換する")
     parser.add_argument("input", help="変換する Zenn 記事のパス")
-    parser.add_argument("-o", "--output", help="出力ファイルパス（省略時は標準出力）")
+    parser.add_argument("-o", "--output", help="出力先ディレクトリまたはファイルパス")
+    parser.add_argument("--paid", action="store_true", help="有料記事として無料/有料部分に分割する")
     args = parser.parse_args()
 
     input_path = Path(args.input)
@@ -73,20 +101,48 @@ def main():
         sys.exit(1)
 
     text = input_path.read_text(encoding="utf-8")
-    title, body = convert(text)
+    title, body = zenn_to_note(text)
+    slug = input_path.stem
 
-    output = f"# {title}\n\n{body}" if title else body
+    if args.paid:
+        # 有料記事モード: 無料部分と有料部分に分割して出力
+        free_part, paid_part = split_paywall(body)
 
-    if args.output:
-        Path(args.output).write_text(output, encoding="utf-8")
-        print(f"変換完了: {args.output}")
-        if title:
-            print(f"タイトル: {title}")
+        if args.output:
+            out_dir = Path(args.output) if Path(args.output).is_dir() else Path(args.output).parent
+            out_dir.mkdir(parents=True, exist_ok=True)
+            free_path = out_dir / f"{slug}-free.md"
+            paid_path = out_dir / f"{slug}-paid.md"
+            free_path.write_text(f"# {title}\n\n{free_part}" if title else free_part, encoding="utf-8")
+            paid_path.write_text(paid_part, encoding="utf-8")
+            print(f"【無料部分】{free_path}")
+            print(f"【有料部分】{paid_path}")
+        else:
+            sep = "=" * 60
+            print(f"【タイトル】{title}")
+            print()
+            print(f"{'─' * 60} 無料部分（ここまで無料で読める） {'─' * 60}")
+            print(f"# {title}\n\n{free_part}" if title else free_part)
+            print()
+            print(f"{'─' * 60} 有料部分（ここから購入が必要） {'─' * 60}")
+            print(paid_part)
+
     else:
-        if title:
-            print(f"【タイトル】{title}", file=sys.stderr)
-            print("-" * 40, file=sys.stderr)
-        print(output)
+        # 通常モード
+        output = f"# {title}\n\n{body}" if title else body
+
+        if args.output:
+            out_path = Path(args.output)
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_text(output, encoding="utf-8")
+            print(f"変換完了: {out_path}")
+            if title:
+                print(f"タイトル: {title}")
+        else:
+            if title:
+                print(f"【タイトル】{title}", file=sys.stderr)
+                print("-" * 40, file=sys.stderr)
+            print(output)
 
 
 if __name__ == "__main__":
