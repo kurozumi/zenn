@@ -1,0 +1,61 @@
+name: Convert to note
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "articles/*.md"
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Convert published articles to note format
+        run: |
+          mkdir -p notes
+
+          # このプッシュで変更された articles/*.md を取得
+          changed=$(git diff --name-only HEAD~1 HEAD -- 'articles/*.md')
+
+          if [ -z "$changed" ]; then
+            echo "変更された記事なし"
+            exit 0
+          fi
+
+          converted=0
+          for file in $changed; do
+            # published: true の記事のみ対象
+            if grep -q "^published: true" "$file"; then
+              slug=$(basename "$file" .md)
+              output="notes/${slug}.md"
+              python3 scripts/zenn-to-note.py "$file" -o "$output"
+              echo "変換: $file → $output"
+              converted=$((converted + 1))
+            else
+              echo "スキップ（未公開）: $file"
+            fi
+          done
+
+          echo "converted=$converted" >> "$GITHUB_ENV"
+
+      - name: Commit note files
+        if: env.converted != '0'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add notes/
+          git diff --cached --quiet || git commit -m "Convert articles to note format [skip ci]"
+          git push
