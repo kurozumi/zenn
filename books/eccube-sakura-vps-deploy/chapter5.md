@@ -256,10 +256,15 @@ NGINX
 set -euo pipefail
 cd /var/www/eccube
 echo '=== デプロイ開始 ==='
+touch .maintenance
+echo 'メンテナンスモード: ON'
 git fetch origin && git reset --hard origin/main
 composer install --no-dev --optimize-autoloader
 php bin/console cache:clear --env=prod --no-debug
+php bin/console cache:warmup --env=prod --no-debug
 chmod -R 775 /var/www/eccube/var
+rm -f .maintenance
+echo 'メンテナンスモード: OFF'
 echo '=== デプロイ完了！ ==='
 DEPLOY
   chmod +x /var/www/eccube/deploy.sh
