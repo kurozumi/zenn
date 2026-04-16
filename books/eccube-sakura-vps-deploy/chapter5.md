@@ -27,7 +27,7 @@ mkdir -p ~/.claude/skills/setup-eccube-vps
 name: setup-eccube-vps
 description: さくらVPS（Ubuntu 24.04）にEC-CUBE 4.3をセキュアにセットアップする
 disable-model-invocation: true
-allowed-tools: AskUserQuestion, Bash(ssh *), Bash(ssh-copy-id *)
+allowed-tools: AskUserQuestion, Bash(ssh *), Bash(ssh-copy-id *), Bash(ssh-keygen *)
 ---
 
 # EC-CUBE VPS セットアップスキル
@@ -65,7 +65,21 @@ ssh root@${VPS_IP} "
 "
 ```
 
-## Step 3: SSH公開鍵をサーバーにコピー
+## Step 3: SSH鍵ペアの作成・サーバーへのコピー
+
+ローカルマシンにSSH鍵ペアがない場合は作成します。パスフレーズを設定したい場合は、スキル実行前に以下のコマンドを手動で実行しておいてください（パスフレーズをClaude Codeに渡さずに済みます）。
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519
+```
+
+鍵が存在しない場合はパスフレーズなしで自動生成します。すでに鍵がある場合はスキップします。
+
+```bash
+test -f ~/.ssh/id_ed25519 || ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""
+```
+
+作成した公開鍵をサーバーにコピーし、鍵認証でログインできることを確認します。
 
 ```bash
 ssh-copy-id -i ~/.ssh/id_ed25519.pub ${USERNAME}@${VPS_IP}
@@ -133,28 +147,7 @@ ssh root@${VPS_IP} "
 "
 ```
 
-## Step 8: データベースの作成（手動）
-
-**このステップはClaude Codeを介さず、ユーザーが直接ターミナルでSSHして実行してください。**
-
-```bash
-ssh root@YOUR_VPS_IP
-mysql -u root
-```
-
-```sql
-CREATE DATABASE eccube CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'eccube_user'@'localhost' IDENTIFIED BY 'パスワードを設定';
-GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER,
-      CREATE TEMPORARY TABLES, LOCK TABLES
-      ON eccube.* TO 'eccube_user'@'localhost';
-FLUSH PRIVILEGES;
-EXIT;
-```
-
-設定したパスワードは後のGUIインストーラー（Step 13）で使用します。Claude Code には渡しません。完了したら `AskUserQuestion` ツールでユーザーに完了を確認し、Step 9 に進んでください。
-
-## Step 9: Composerのインストール
+## Step 8: Composerのインストール
 
 ```bash
 ssh root@${VPS_IP} "
@@ -165,7 +158,7 @@ ssh root@${VPS_IP} "
 "
 ```
 
-## Step 10: EC-CUBEのデプロイ
+## Step 9: EC-CUBEのデプロイ
 
 ```bash
 ssh root@${VPS_IP} "
@@ -183,7 +176,7 @@ ssh ${USERNAME}@${VPS_IP} "
 "
 ```
 
-## Step 11: パーミッション設定
+## Step 10: パーミッション設定
 
 ```bash
 ssh root@${VPS_IP} "
@@ -198,7 +191,7 @@ ssh root@${VPS_IP} "
 "
 ```
 
-## Step 12: Nginx設定・SSL取得
+## Step 11: Nginx設定・SSL取得
 
 ```bash
 ssh root@${VPS_IP} "
@@ -232,9 +225,29 @@ NGINX
 "
 ```
 
+## Step 12: データベースの作成（手動）
+
+ターミナルでSSH接続してデータベースを作成します。DB名・ユーザー名・パスワードはGUIインストーラー（Step 13）で使用します。
+
+```bash
+ssh root@${VPS_IP} "mysql -u root"
+```
+
+MySQLプロンプトで以下を実行してください（パスワードは任意の強力な値を設定してください）。
+
+```sql
+CREATE DATABASE eccube CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'eccube'@'localhost' IDENTIFIED BY '任意のパスワード';
+GRANT ALL PRIVILEGES ON eccube.* TO 'eccube'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+---
+
 ## Step 13: インストールウィザード
 
-ブラウザで `https://${DOMAIN}/install` を開き、インストールウィザードを完了してください。データベース設定では、Step 8 で作成した DB 名・ユーザー名・パスワードを入力してください。
+ブラウザで `https://${DOMAIN}/install` を開き、インストールウィザードを完了してください。データベース設定では、Step 12 で作成した DB 名・ユーザー名・パスワードを入力してください。
 
 完了したら `AskUserQuestion` ツールでユーザーに完了を確認し、Step 14 に進んでください。
 
@@ -258,12 +271,12 @@ ssh ${USERNAME}@${VPS_IP} "
 /setup-eccube-vps
 ```
 
-Claude Codeが`AskUserQuestion`でVPS_IP・USERNAME・DOMAINを確認してからStep 1〜13を実行します。Step 8はDBパスワードをClaude Codeに渡さずユーザーが手動で実行する手順を案内します。Step 12完了後にStep 13でブラウザのGUIインストーラーを実行します。完了後に「Step 14 を実行して」と伝えると最終確認が実行されます。
+Claude Codeが`AskUserQuestion`でVPS_IP・USERNAME・DOMAINを確認してからStep 1〜13を実行します。Step 12はDBパスワードをClaude Codeに渡さずユーザーが手動で実行する手順を案内します。Step 11完了後にStep 12でデータベースを手動作成し、Step 13でブラウザのGUIインストーラーを実行します。完了後に「Step 14 を実行して」と伝えると最終確認が実行されます。
 
 ## スキルのカスタマイズ
 
 SKILL.md を編集することで、自分の環境に合わせてカスタマイズできます。
 
 - **複数ドメイン対応**: Step 12のNginx設定を複数サーバーブロックに変更
-- **PostgreSQL対応**: Step 8のMySQL設定をPostgreSQLに置き換え
+- **PostgreSQL対応**: Step 7のMySQL設定をPostgreSQLに置き換え
 - **PHP-FPMチューニング追加**: Step 7の後にチューニングステップを追加
