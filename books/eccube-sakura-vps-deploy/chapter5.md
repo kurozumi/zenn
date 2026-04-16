@@ -12,6 +12,43 @@ title: "Claude Codeスキルで1コマンド自動化"
 | 手順の抜け漏れが起きやすい | 毎回同じ手順で確実に実行 |
 | 2回目のサーバー構築も同じ手間 | SKILL.mdを使い回せる |
 
+## スキル実行前の事前準備
+
+スキルを実行する前に、以下を手動で済ませておいてください。
+
+### さくらVPSの契約・初期設定
+
+- さくらVPSを契約し、Ubuntu 24.04 をインストール
+- root パスワードを控えておく
+
+### ドメインの準備
+
+- 使用するドメインのDNS Aレコードを VPS の IP アドレスに向けておく
+- DNS の反映を確認してからスキルを実行する
+
+### データベースの作成
+
+スキルの途中（MySQL インストール後）で一度停止するので、その際に直接 SSH して以下を実行します。
+
+```bash
+ssh root@YOUR_VPS_IP
+mysql -u root
+```
+
+```sql
+CREATE DATABASE eccube CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'eccube_user'@'localhost' IDENTIFIED BY 'パスワードを設定';
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER,
+      CREATE TEMPORARY TABLES, LOCK TABLES
+      ON eccube.* TO 'eccube_user'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+設定したパスワードは後の GUI インストーラーで使用します。Claude Code には渡しません。
+
+---
+
 ## スキルファイルの作成
 
 ローカルマシンで以下のディレクトリとファイルを作成します。
@@ -133,29 +170,7 @@ ssh root@${VPS_IP} "
 "
 ```
 
-## Step 8: データベースの作成（手動）
-
-**このステップはClaude Codeを介さず、ユーザーが直接ターミナルでSSHして実行してください。**
-
-```bash
-# ユーザーがターミナルで直接実行
-ssh root@YOUR_VPS_IP
-mysql -u root
-```
-
-```sql
-CREATE DATABASE eccube CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'eccube_user'@'localhost' IDENTIFIED BY 'パスワードを設定';
-GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER,
-      CREATE TEMPORARY TABLES, LOCK TABLES
-      ON eccube.* TO 'eccube_user'@'localhost';
-FLUSH PRIVILEGES;
-EXIT;
-```
-
-設定したパスワードは後のGUIインストーラー（Step 11）で使用します。完了したら `AskUserQuestion` ツールでユーザーに完了を確認し、Step 9 に進んでください。
-
-## Step 9: Composerのインストール
+## Step 8: Composerのインストール
 
 ```bash
 ssh root@${VPS_IP} "
@@ -166,7 +181,7 @@ ssh root@${VPS_IP} "
 "
 ```
 
-## Step 10: EC-CUBEのデプロイ
+## Step 9: EC-CUBEのデプロイ
 
 ```bash
 ssh root@${VPS_IP} "
@@ -184,7 +199,7 @@ ssh ${USERNAME}@${VPS_IP} "
 "
 ```
 
-## Step 11: パーミッション設定
+## Step 10: パーミッション設定
 
 ```bash
 ssh root@${VPS_IP} "
@@ -199,7 +214,7 @@ ssh root@${VPS_IP} "
 "
 ```
 
-## Step 12: Nginx設定・SSL取得
+## Step 11: Nginx設定・SSL取得
 
 ```bash
 ssh root@${VPS_IP} "
@@ -236,7 +251,7 @@ NGINX
 コマンドが完了したら、`AskUserQuestion` ツールでユーザーに以下を伝えてください：
 
 **「ブラウザで `https://${DOMAIN}/install` を開き、インストールウィザードを完了してください。**
-**完了したら「Step 13 を実行して」と教えてください。」**
+**完了したら「Step 12 を実行して」と教えてください。」**
 
 インストールウィザードは6ステップです。入力が必要な項目は以下の通りです。
 
@@ -266,7 +281,7 @@ NGINX
 | ユーザ名 | eccube_user |
 | パスワード | Step 8 で設定したパスワード |
 
-## Step 13: デプロイスクリプト設置
+## Step 12: デプロイスクリプト設置
 
 ```bash
 ssh root@${VPS_IP} "
@@ -297,7 +312,7 @@ DEPLOY
 "
 ```
 
-## Step 14: 完了確認
+## Step 13: 完了確認
 
 ```bash
 ssh ${USERNAME}@${VPS_IP} "
@@ -317,7 +332,7 @@ ssh ${USERNAME}@${VPS_IP} "
 /setup-eccube-vps
 ```
 
-Claude Codeが`AskUserQuestion`でVPS_IP・USERNAME・DOMAINを確認してからStep 1〜14を実行します。DBパスワードはClaude Codeに渡しません。Step 12完了後にブラウザのGUIインストーラー操作を求められるので、完了後に「Step 13 を実行して」と伝えると残りのステップが続行されます。
+Claude Codeが`AskUserQuestion`でVPS_IP・USERNAME・DOMAINを確認してからStep 1〜13を実行します。DBパスワードはClaude Codeに渡しません。Step 11完了後にブラウザのGUIインストーラー操作を求められるので、完了後に「Step 12 を実行して」と伝えると残りのステップが続行されます。
 
 ## スキルのカスタマイズ
 
