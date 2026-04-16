@@ -4,7 +4,15 @@ title: "Claude Codeスキルで1コマンド自動化"
 
 ## スキルを使う利点
 
-前章までの手順を手動で実行すると、1〜2時間かかります。Claude Codeのカスタムスキルを使えば `/setup-eccube-vps` の1コマンドでサーバー設定からEC-CUBEのデプロイまでを自動実行できます。EC-CUBEのインストール設定はブラウザのGUIウィザードで行うため、DBパスワードや管理者情報がClaude Codeのコンテキストに入りません。
+前章までの手順を手動で実行すると、1〜2時間かかります。Claude Codeのカスタムスキルを使えば `/setup-eccube-vps` の1コマンドでサーバー設定からEC-CUBEのデプロイまでを自動実行できます。
+
+このスキルは**秘密情報をClaude Codeに渡さない**ことを原則としています。
+
+- SSHパスフレーズ → スキル実行前に自分のターミナルで設定し、macOSキーチェーンに保存
+- DBパスワード → スキル実行中にユーザーが直接MySQLプロンプトで入力
+- EC-CUBE管理者パスワード・メールアカウント → ブラウザのGUIインストーラーで入力
+
+Claude Codeが扱うのはIPアドレス・ユーザー名・ドメイン名のみです。
 
 | 手動 | スキル使用 |
 |---|---|
@@ -27,7 +35,7 @@ mkdir -p ~/.claude/skills/setup-eccube-vps
 name: setup-eccube-vps
 description: さくらVPS（Ubuntu 24.04）にEC-CUBE 4.3をセキュアにセットアップする
 disable-model-invocation: true
-allowed-tools: AskUserQuestion, Bash(ssh *), Bash(ssh-copy-id *), Bash(ssh-keygen *)
+allowed-tools: AskUserQuestion, Bash(ssh *), Bash(ssh-copy-id *)
 ---
 
 # EC-CUBE VPS セットアップスキル
@@ -67,17 +75,22 @@ ssh root@${VPS_IP} "
 
 ## Step 3: SSH鍵ペアの作成・サーバーへのコピー
 
-ローカルマシンにSSH鍵ペアがない場合は作成します。パスフレーズを設定したい場合は、スキル実行前に以下のコマンドを手動で実行しておいてください（パスフレーズをClaude Codeに渡さずに済みます）。
+**スキル実行前に、自分のターミナルで以下を実行してください。** パスフレーズの入力はClaude Codeを介さず、ターミナルで直接行います。
 
 ```bash
 ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519
 ```
 
-鍵が存在しない場合はパスフレーズなしで自動生成します。すでに鍵がある場合はスキップします。
+macOSの場合、`~/.ssh/config` に以下を追加しておくと、初回使用時にパスフレーズをキーチェーンに保存し、以降は入力不要になります。
 
-```bash
-test -f ~/.ssh/id_ed25519 || ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""
 ```
+Host *
+  AddKeysToAgent yes
+  UseKeychain yes
+  IdentityFile ~/.ssh/id_ed25519
+```
+
+スキルは鍵が存在する前提で動作します。鍵がない場合は `AskUserQuestion` ツールでユーザーに作成を促してから次へ進んでください。
 
 作成した公開鍵をサーバーにコピーし、鍵認証でログインできることを確認します。
 
