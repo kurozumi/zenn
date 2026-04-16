@@ -133,26 +133,27 @@ ssh root@${VPS_IP} "
 "
 ```
 
-## Step 8: MySQLのセットアップ
+## Step 8: データベースの作成（手動）
 
-DBパスワードはサーバー上でランダム生成します。Claude Codeには表示せず、`/root/.eccube-db-pass` に保存します。GUIインストーラー設定時にSSHで確認してください。
+**このステップはClaude Codeを介さず、ユーザーが直接ターミナルでSSHして実行してください。**
 
 ```bash
-ssh root@${VPS_IP} << 'ENDSSH'
-DB_PASS=$(openssl rand -hex 16)
-mysql -u root -e "
+# ユーザーがターミナルで直接実行
+ssh root@YOUR_VPS_IP
+mysql -u root
+```
+
+```sql
 CREATE DATABASE eccube CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'eccube_user'@'localhost' IDENTIFIED BY '${DB_PASS}';
+CREATE USER 'eccube_user'@'localhost' IDENTIFIED BY 'パスワードを設定';
 GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER,
       CREATE TEMPORARY TABLES, LOCK TABLES
       ON eccube.* TO 'eccube_user'@'localhost';
 FLUSH PRIVILEGES;
-"
-echo "${DB_PASS}" > /root/.eccube-db-pass
-chmod 600 /root/.eccube-db-pass
-echo 'DBパスワードを /root/.eccube-db-pass に保存しました。GUIインストーラーのデータベース設定時にSSHで確認してください。'
-ENDSSH
+EXIT;
 ```
+
+設定したパスワードは後のGUIインストーラー（Step 11）で使用します。完了したら `AskUserQuestion` ツールでユーザーに完了を確認し、Step 9 に進んでください。
 
 ## Step 9: Composerのインストール
 
@@ -231,7 +232,7 @@ ssh root@${VPS_IP} "
 | データベースのポート番号 | 3306 |
 | データベース名 | eccube |
 | ユーザ名 | eccube_user |
-| パスワード | `cat /root/.eccube-db-pass` で確認した値 |
+| パスワード | Step 8 で設定したパスワード |
 
 ## Step 12: Nginx設定・SSL取得・デプロイスクリプト設置
 
