@@ -37,7 +37,7 @@ allowed-tools: AskUserQuestion, Bash(ssh *), Bash(ssh-copy-id *)
 `AskUserQuestion` ツールを使って以下の3つを順番に確認してください。パスワード類はここでは聞きません。
 
 - VPSのIPアドレス（`VPS_IP`）
-- 作成する一般ユーザー名（`USERNAME`、例: `eccube-admin`）
+- 作成する一般ユーザー名（`USERNAME`、例: `eccube-admin`）※ EC-CUBEやサービス名を連想させない名前を推奨
 - EC-CUBEを公開するドメイン名（`DOMAIN`、例: `shop.example.com`）
 
 確認後、以下のコマンドで変数をセットしてから各ステップを実行してください。
