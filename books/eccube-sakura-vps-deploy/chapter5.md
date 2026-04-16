@@ -220,6 +220,42 @@ ssh ${USERNAME}@${VPS_IP} "
 "
 ```
 
+## Step 11-2: 機密情報を .env から環境変数に移動
+
+`eccube:install` が生成した `.env` にはDBパスワードや認証キーが含まれています。Claude Code はプロジェクト内のファイルを読み取れるため、機密情報をプロジェクト外に移動します。
+
+```bash
+ssh root@${VPS_IP} "
+  # .envから生成されたECCUBE_AUTH_MAGICを読み取る
+  AUTH_MAGIC=\$(grep '^ECCUBE_AUTH_MAGIC=' /var/www/eccube/.env | cut -d= -f2-)
+
+  # CLIコマンド用シークレットファイルをプロジェクト外に作成
+  mkdir -p /etc/eccube
+  cat > /etc/eccube/secrets.env << EOF
+DATABASE_URL=mysql://eccube_user:${DB_PASSWORD}@127.0.0.1:3306/eccube
+ECCUBE_AUTH_MAGIC=\${AUTH_MAGIC}
+ECCUBE_ADMIN_ROUTE=${ADMIN_ROUTE}
+EOF
+  chmod 600 /etc/eccube/secrets.env
+  chown ${USERNAME}:${USERNAME} /etc/eccube/secrets.env
+
+  # PHP-FPMプールにWebリクエスト用の環境変数を追加
+  cat >> /etc/php/8.3/fpm/pool.d/www.conf << EOF
+
+env[DATABASE_URL] = mysql://eccube_user:${DB_PASSWORD}@127.0.0.1:3306/eccube
+env[ECCUBE_AUTH_MAGIC] = \${AUTH_MAGIC}
+env[ECCUBE_ADMIN_ROUTE] = ${ADMIN_ROUTE}
+EOF
+
+  # .envから機密情報を削除
+  sed -i '/^DATABASE_URL=/d' /var/www/eccube/.env
+  sed -i '/^ECCUBE_AUTH_MAGIC=/d' /var/www/eccube/.env
+  sed -i '/^ECCUBE_ADMIN_ROUTE=/d' /var/www/eccube/.env
+
+  systemctl restart php8.3-fpm
+"
+```
+
 ## Step 12: Nginx設定・SSL取得・デプロイスクリプト設置
 
 ```bash
@@ -256,6 +292,7 @@ NGINX
 set -euo pipefail
 cd /var/www/eccube
 echo '=== デプロイ開始 ==='
+set -a; source /etc/eccube/secrets.env; set +a
 CREATED_MAINTENANCE=false
 if [ ! -f .maintenance ]; then
   touch .maintenance
