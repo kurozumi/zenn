@@ -232,10 +232,13 @@ NGINX
 "
 ```
 
-**ブラウザで `https://${DOMAIN}/install` を開き、インストールウィザードを完了してください。**
-データベース設定では、Step 8 で作成した DB 名・ユーザー名・パスワードを入力してください。
+## Step 13: インストールウィザード
 
-## Step 13: 完了確認
+ブラウザで `https://${DOMAIN}/install` を開き、インストールウィザードを完了してください。データベース設定では、Step 8 で作成した DB 名・ユーザー名・パスワードを入力してください。
+
+完了したら `AskUserQuestion` ツールでユーザーに完了を確認し、Step 14 に進んでください。
+
+## Step 14: 完了確認
 
 ```bash
 ssh ${USERNAME}@${VPS_IP} "
@@ -255,7 +258,7 @@ ssh ${USERNAME}@${VPS_IP} "
 /setup-eccube-vps
 ```
 
-Claude Codeが`AskUserQuestion`でVPS_IP・USERNAME・DOMAINを確認してからStep 1〜13を実行します。Step 8はDBパスワードをClaude Codeに渡さずユーザーが手動で実行する手順を案内します。Step 12完了後にブラウザのGUIインストーラーでEC-CUBEをインストールし、完了後に「Step 13 を実行して」と伝えると最終確認が実行されます。
+Claude Codeが`AskUserQuestion`でVPS_IP・USERNAME・DOMAINを確認してからStep 1〜13を実行します。Step 8はDBパスワードをClaude Codeに渡さずユーザーが手動で実行する手順を案内します。Step 12完了後にStep 13でブラウザのGUIインストーラーを実行します。完了後に「Step 14 を実行して」と伝えると最終確認が実行されます。
 
 ## スキルのカスタマイズ
 
