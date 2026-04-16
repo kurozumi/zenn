@@ -1,5 +1,5 @@
 ---
-title: "EC-CUBEのデプロイ（Nginx + PHP-FPM + MySQL + Let's Encrypt）"
+title: "EC-CUBEのデプロイ"
 ---
 
 この章では、EC-CUBEのソースコードをサーバーに配置し、ブラウザからアクセスできる状態にするまでの手順を説明します。
