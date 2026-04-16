@@ -66,11 +66,12 @@ ssh root@YOUR_VPS_IP "
   mkdir -p /etc/eccube
   cat > /etc/eccube/secrets.env << 'EOF'
 DB_PASSWORD=ここに強力なパスワードを設定（英大小文字・数字・記号を含む16文字以上推奨）
-ADMIN_ROUTE=ここに管理画面のURLパスを設定（推測されにくい文字列）
 EOF
   chmod 600 /etc/eccube/secrets.env
 "
 ```
+
+> **管理画面のURLパスやログイン情報はGUIインストーラー（Step 11）で設定します。**
 
 シークレットファイルの作成が完了したら、Claude Codeに「Step 1から実行して」と伝えてください。
 
@@ -206,24 +207,28 @@ ssh root@${VPS_IP} "
 "
 ```
 
-## Step 10: EC-CUBEのデプロイ
+## Step 10: EC-CUBEパッケージのダウンロードと展開
+
+GitHubリリースから最新の4.3.x パッケージを取得してサーバーに展開します。
 
 ```bash
-ssh root@${VPS_IP} "
-  mkdir -p /var/www/eccube
-  chown ${USERNAME}:www-data /var/www/eccube
-  chmod 775 /var/www/eccube
-"
-
-ssh ${USERNAME}@${VPS_IP} "
-  cd /var/www/eccube
-  git clone https://github.com/EC-CUBE/ec-cube.git .
-  git checkout \$(git tag -l '4.3.*' | sort -V | tail -1)
-  composer install --no-dev --optimize-autoloader
-"
+ssh root@${VPS_IP} bash << ENDSSH
+apt install unzip -y
+ECCUBE_VERSION=\$(curl -s 'https://api.github.com/repos/EC-CUBE/ec-cube/releases' \
+  | grep -o '"tag_name":"4\\.3\\.[^"]*"' | head -1 | cut -d'"' -f4)
+mkdir -p /var/www/eccube
+curl -L "https://github.com/EC-CUBE/ec-cube/releases/download/\${ECCUBE_VERSION}/eccube-\${ECCUBE_VERSION}.zip" \
+  -o /tmp/eccube.zip
+unzip -q /tmp/eccube.zip -d /tmp/eccube-extract
+mv /tmp/eccube-extract/eccube-\${ECCUBE_VERSION}/* /var/www/eccube/
+rm -rf /tmp/eccube.zip /tmp/eccube-extract
+chown -R ${USERNAME}:www-data /var/www/eccube
+ENDSSH
 ```
 
-## Step 11: パーミッション設定とEC-CUBEインストール
+## Step 11: パーミッション設定とGUIインストール
+
+パーミッションを設定した後、ユーザーがブラウザでインストールウィザードを完了します。
 
 ```bash
 ssh root@${VPS_IP} "
@@ -232,31 +237,37 @@ ssh root@${VPS_IP} "
   find /var/www/eccube -type f -exec chmod 644 {} \;
   chmod -R 775 /var/www/eccube/var /var/www/eccube/html \
     /var/www/eccube/app/Plugin /var/www/eccube/app/PluginData \
-    /var/www/eccube/app/proxy /var/www/eccube/app/template \
-    /var/www/eccube/vendor
-  chmod 664 /var/www/eccube/composer.json /var/www/eccube/composer.lock
+    /var/www/eccube/app/proxy /var/www/eccube/app/template
 "
-
-ssh ${USERNAME}@${VPS_IP} bash << 'ENDSSH'
-source /etc/eccube/secrets.env
-cd /var/www/eccube
-DATABASE_URL="mysql://eccube_user:${DB_PASSWORD}@127.0.0.1:3306/eccube" \
-ECCUBE_ADMIN_ROUTE="${ADMIN_ROUTE}" \
-php bin/console eccube:install --no-interaction
-chmod 600 .env
-ENDSSH
 ```
 
-## Step 11-2: ECCUBE_AUTH_MAGIC をシークレットファイルに追加
+コマンドが完了したら、ユーザーに以下を伝えてください：
 
-`eccube:install` がランダム生成した `ECCUBE_AUTH_MAGIC`（認証キー）を `.env` から取り出してシークレットファイルに追記し、PHP-FPM の環境変数にも設定します。
+**「ブラウザで `https://${DOMAIN}/install.php` を開き、インストールウィザードを完了してください。**
+**完了したら「Step 11-2 を実行して」と教えてください。」**
+
+インストールウィザードの入力項目：
+
+| ステップ | 入力項目 |
+|---|---|
+| サイト設定 | 店名・メールアドレス・管理画面ログインID・パスワード・管理画面ディレクトリ名 |
+| データベース設定 | 種類（MySQL）・ホスト（localhost）・DB名（eccube）・ユーザー名（eccube_user）・パスワード |
+
+## Step 11-2: GUIインストール後の機密情報をシークレットファイルに移動
+
+GUIインストーラーが生成した `.env` から機密情報を取り出し、シークレットファイルと PHP-FPM 設定に移動します。
 
 ```bash
 ssh root@${VPS_IP} bash << ENDSSH
 source /etc/eccube/secrets.env
 
-# eccube:installが生成したECCUBE_AUTH_MAGICを取得してシークレットファイルに追記
+# GUIインストーラーが.envに書き込んだ値を取得
+DATABASE_URL=\$(grep '^DATABASE_URL=' /var/www/eccube/.env | cut -d= -f2-)
 AUTH_MAGIC=\$(grep '^ECCUBE_AUTH_MAGIC=' /var/www/eccube/.env | cut -d= -f2-)
+ADMIN_ROUTE=\$(grep '^ECCUBE_ADMIN_ROUTE=' /var/www/eccube/.env | cut -d= -f2-)
+
+# シークレットファイルに追記
+echo "DATABASE_URL=\${DATABASE_URL}" >> /etc/eccube/secrets.env
 echo "ECCUBE_AUTH_MAGIC=\${AUTH_MAGIC}" >> /etc/eccube/secrets.env
 
 # deployスクリプト（${USERNAME}実行）がシークレットファイルを読めるよう権限を設定
@@ -266,7 +277,7 @@ chmod 640 /etc/eccube/secrets.env
 # PHP-FPMプールにWebリクエスト用の環境変数を追加
 cat >> /etc/php/8.3/fpm/pool.d/www.conf << EOF
 
-env[DATABASE_URL] = mysql://eccube_user:\${DB_PASSWORD}@127.0.0.1:3306/eccube
+env[DATABASE_URL] = \${DATABASE_URL}
 env[ECCUBE_AUTH_MAGIC] = \${AUTH_MAGIC}
 env[ECCUBE_ADMIN_ROUTE] = \${ADMIN_ROUTE}
 EOF
@@ -275,6 +286,7 @@ EOF
 sed -i '/^DATABASE_URL=/d' /var/www/eccube/.env
 sed -i '/^ECCUBE_AUTH_MAGIC=/d' /var/www/eccube/.env
 sed -i '/^ECCUBE_ADMIN_ROUTE=/d' /var/www/eccube/.env
+chmod 600 /var/www/eccube/.env
 
 systemctl restart php8.3-fpm
 ENDSSH
