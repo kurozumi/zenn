@@ -36,13 +36,12 @@ allowed-tools: Bash(ssh *), Bash(ssh-copy-id *)
 
 ユーザーに以下の情報を確認してください。確認できたら、後続のステップで使う変数として記憶してください。
 
-**DBパスワード・管理画面URLなどの機密情報はここで聞きません。** 次の Step 0-2 でユーザーが直接サーバーに設定します。
-
 | 変数名 | 説明 | 例 |
 |---|---|---|
 | `VPS_IP` | VPSのIPアドレス | `192.0.2.1` |
 | `USERNAME` | 作成するユーザー名 | `eccube-admin` |
 | `DOMAIN` | ドメイン名 | `shop.example.com` |
+| `DB_PASSWORD` | DBパスワード（強力なものを） | `Str0ng!Pass#2024` |
 
 確認後、以下のコマンドで変数をセットしてから各ステップを実行してください。
 
@@ -50,30 +49,8 @@ allowed-tools: Bash(ssh *), Bash(ssh-copy-id *)
 export VPS_IP="確認したIPアドレス"
 export USERNAME="eccube-admin"
 export DOMAIN="shop.example.com"
+export DB_PASSWORD="設定するDBパスワード"
 ```
-
----
-
-## Step 0-2: シークレットファイルの作成（手動・必須）
-
-**このステップはClaude Codeを介さず、ユーザーが直接ターミナルでSSHして実行してください。**
-
-DBパスワードや管理画面URLなどの機密情報をClaude Codeのコンテキストに渡さないよう、サーバー上のプロジェクト外に保管します。
-
-```bash
-# ユーザーがターミナルで直接実行
-ssh root@YOUR_VPS_IP "
-  mkdir -p /etc/eccube
-  cat > /etc/eccube/secrets.env << 'EOF'
-DB_PASSWORD=ここに強力なパスワードを設定（英大小文字・数字・記号を含む16文字以上推奨）
-EOF
-  chmod 600 /etc/eccube/secrets.env
-"
-```
-
-> **管理画面のURLパスやログイン情報はGUIインストーラー（Step 11）で設定します。**
-
-シークレットファイルの作成が完了したら、Claude Codeに「Step 1から実行して」と伝えてください。
 
 ---
 
@@ -162,38 +139,17 @@ ssh root@${VPS_IP} "
 
 ## Step 8: MySQLのセットアップ
 
-シークレットファイルを読み込んでDBを作成します。パスワードはサーバー上でのみ展開されます。
-
 ```bash
-ssh root@${VPS_IP} bash << 'ENDSSH'
-source /etc/eccube/secrets.env
-mysql -u root << EOF
+ssh root@${VPS_IP} "
+  mysql -u root << 'EOF'
 CREATE DATABASE eccube CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'eccube_user'@'localhost' IDENTIFIED BY "${DB_PASSWORD}";
+CREATE USER 'eccube_user'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';
 GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER,
       CREATE TEMPORARY TABLES, LOCK TABLES
       ON eccube.* TO 'eccube_user'@'localhost';
 FLUSH PRIVILEGES;
 EOF
-ENDSSH
-```
-
-## Step 8-2: MySQL認証情報ファイルの設定
-
-バックアップコマンドをパスワードなしで実行できるよう、`~/.my.cnf` を設定します。
-rootで実行し、シークレットファイルを読み込んで一般ユーザーのホームに配置します。
-
-```bash
-ssh root@${VPS_IP} bash << ENDSSH
-source /etc/eccube/secrets.env
-cat > /home/${USERNAME}/.my.cnf << EOF
-[client]
-user=eccube_user
-password=\${DB_PASSWORD}
-EOF
-chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.my.cnf
-chmod 600 /home/${USERNAME}/.my.cnf
-ENDSSH
+"
 ```
 
 ## Step 9: Composerのインストール
@@ -207,23 +163,22 @@ ssh root@${VPS_IP} "
 "
 ```
 
-## Step 10: EC-CUBEパッケージのダウンロードと展開
-
-GitHubリリースから最新の4.3.x パッケージを取得してサーバーに展開します。
+## Step 10: EC-CUBEのデプロイ
 
 ```bash
-ssh root@${VPS_IP} bash << ENDSSH
-apt install unzip -y
-ECCUBE_VERSION=\$(curl -s 'https://api.github.com/repos/EC-CUBE/ec-cube/releases' \
-  | grep -o '"tag_name":"4\\.3\\.[^"]*"' | head -1 | cut -d'"' -f4)
-mkdir -p /var/www/eccube
-curl -L "https://github.com/EC-CUBE/ec-cube/releases/download/\${ECCUBE_VERSION}/eccube-\${ECCUBE_VERSION}.zip" \
-  -o /tmp/eccube.zip
-unzip -q /tmp/eccube.zip -d /tmp/eccube-extract
-mv /tmp/eccube-extract/eccube-\${ECCUBE_VERSION}/* /var/www/eccube/
-rm -rf /tmp/eccube.zip /tmp/eccube-extract
-chown -R ${USERNAME}:www-data /var/www/eccube
-ENDSSH
+ssh root@${VPS_IP} "
+  mkdir -p /var/www/eccube
+  chown ${USERNAME}:www-data /var/www/eccube
+  chmod 775 /var/www/eccube
+"
+
+ssh ${USERNAME}@${VPS_IP} "
+  cd /var/www/eccube
+  git clone https://github.com/EC-CUBE/ec-cube.git .
+  git checkout \$(git tag -l '4.3.*' | sort -V | tail -1)
+  composer install --no-dev --optimize-autoloader
+  rm -f .env
+"
 ```
 
 ## Step 11: パーミッション設定とGUIインストール
@@ -237,14 +192,16 @@ ssh root@${VPS_IP} "
   find /var/www/eccube -type f -exec chmod 644 {} \;
   chmod -R 775 /var/www/eccube/var /var/www/eccube/html \
     /var/www/eccube/app/Plugin /var/www/eccube/app/PluginData \
-    /var/www/eccube/app/proxy /var/www/eccube/app/template
+    /var/www/eccube/app/proxy /var/www/eccube/app/template \
+    /var/www/eccube/vendor
+  chmod 664 /var/www/eccube/composer.json /var/www/eccube/composer.lock
 "
 ```
 
 コマンドが完了したら、ユーザーに以下を伝えてください：
 
 **「ブラウザで `https://${DOMAIN}/install.php` を開き、インストールウィザードを完了してください。**
-**完了したら「Step 11-2 を実行して」と教えてください。」**
+**完了したら「Step 12 を実行して」と教えてください。」**
 
 インストールウィザードの入力項目：
 
@@ -252,45 +209,6 @@ ssh root@${VPS_IP} "
 |---|---|
 | サイト設定 | 店名・メールアドレス・管理画面ログインID・パスワード・管理画面ディレクトリ名 |
 | データベース設定 | 種類（MySQL）・ホスト（localhost）・DB名（eccube）・ユーザー名（eccube_user）・パスワード |
-
-## Step 11-2: GUIインストール後の機密情報をシークレットファイルに移動
-
-GUIインストーラーが生成した `.env` から機密情報を取り出し、シークレットファイルと PHP-FPM 設定に移動します。
-
-```bash
-ssh root@${VPS_IP} bash << ENDSSH
-source /etc/eccube/secrets.env
-
-# GUIインストーラーが.envに書き込んだ値を取得
-DATABASE_URL=\$(grep '^DATABASE_URL=' /var/www/eccube/.env | cut -d= -f2-)
-AUTH_MAGIC=\$(grep '^ECCUBE_AUTH_MAGIC=' /var/www/eccube/.env | cut -d= -f2-)
-ADMIN_ROUTE=\$(grep '^ECCUBE_ADMIN_ROUTE=' /var/www/eccube/.env | cut -d= -f2-)
-
-# シークレットファイルに追記
-echo "DATABASE_URL=\${DATABASE_URL}" >> /etc/eccube/secrets.env
-echo "ECCUBE_AUTH_MAGIC=\${AUTH_MAGIC}" >> /etc/eccube/secrets.env
-
-# deployスクリプト（${USERNAME}実行）がシークレットファイルを読めるよう権限を設定
-chown root:${USERNAME} /etc/eccube/secrets.env
-chmod 640 /etc/eccube/secrets.env
-
-# PHP-FPMプールにWebリクエスト用の環境変数を追加
-cat >> /etc/php/8.3/fpm/pool.d/www.conf << EOF
-
-env[DATABASE_URL] = \${DATABASE_URL}
-env[ECCUBE_AUTH_MAGIC] = \${AUTH_MAGIC}
-env[ECCUBE_ADMIN_ROUTE] = \${ADMIN_ROUTE}
-EOF
-
-# .envから機密情報を削除
-sed -i '/^DATABASE_URL=/d' /var/www/eccube/.env
-sed -i '/^ECCUBE_AUTH_MAGIC=/d' /var/www/eccube/.env
-sed -i '/^ECCUBE_ADMIN_ROUTE=/d' /var/www/eccube/.env
-chmod 600 /var/www/eccube/.env
-
-systemctl restart php8.3-fpm
-ENDSSH
-```
 
 ## Step 12: Nginx設定・SSL取得・デプロイスクリプト設置
 
@@ -328,7 +246,6 @@ NGINX
 set -euo pipefail
 cd /var/www/eccube
 echo '=== デプロイ開始 ==='
-set -a; source /etc/eccube/secrets.env; set +a
 CREATED_MAINTENANCE=false
 if [ ! -f .maintenance ]; then
   touch .maintenance
