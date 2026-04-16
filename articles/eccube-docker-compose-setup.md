@@ -101,39 +101,24 @@ docker compose ps
 
 ec-cube コンテナが起動していることを確認してください。
 
-### 3. インストール準備
+### 3. データベーススキーマの初期化
 
 ```bash
 # Composerの依存関係をコンパイル
 docker compose -f docker-compose.yml -f ${DB_COMPOSE} exec ec-cube composer run-script compile
 
-# .envを削除してGUIインストーラーを有効化
-docker compose -f docker-compose.yml -f ${DB_COMPOSE} exec ec-cube rm -f .env
+# EC-CUBEインストール（www-dataユーザで非対話モード実行）
+docker compose -f docker-compose.yml -f ${DB_COMPOSE} exec -u www-data ec-cube bin/console eccube:install -n
 ```
 
-### 4. GUIインストーラーでセットアップ
+**重要:** `eccube:install` コマンドは必ず `www-data` ユーザで実行し、`-n`（非対話モード）オプションを使用してください。
 
-ブラウザで http://localhost:8080/install を開き、インストールウィザードを完了してください。
-
-データベース設定では以下を入力します。
-
-| 項目 | 値 |
-|------|-----|
-| データベースホスト | `mysql`（MySQLの場合） / `pgsql`（PostgreSQLの場合） |
-| データベース名 | `eccubedb` |
-| ユーザー名 | `eccube` |
-| パスワード | `password` |
-
-:::message
-ホスト名はDockerのサービス名です。`localhost` や `127.0.0.1` ではなく、上記のサービス名を入力してください。
-:::
-
-### 5. 動作確認
-
-インストール完了後、以下のURLにアクセスできます。
+### 4. 動作確認
 
 - フロント画面: http://localhost:8080/
 - 管理画面: http://localhost:8080/admin/
+  - ID: `admin`
+  - パスワード: `password`
 
 ---
 
@@ -207,7 +192,7 @@ docker compose -f docker-compose.yml -f ${DB_COMPOSE} exec ec-cube chown -R www-
 
 ### データベース接続エラーの場合
 
-データベースコンテナが完全に起動するまで待ってから、再度ブラウザで http://localhost:8080/install を開いてください。
+データベースコンテナが完全に起動するまで待ってから、再度 `eccube:install` を実行してください。
 
 ## 参考
 
@@ -302,41 +287,32 @@ docker compose ps
 
 ec-cubeコンテナが正常に起動していることを確認します。
 
-### Step 3: インストール準備
+### Step 3: データベーススキーマの初期化
 
 ```bash
 # Composerの依存関係をコンパイル
 docker compose exec ec-cube composer run-script compile
 
-# .envを削除してGUIインストーラーを有効化
-docker compose exec ec-cube rm -f .env
+# EC-CUBEインストール（www-dataユーザで非対話モード実行）
+docker compose exec -u www-data ec-cube bin/console eccube:install -n
 ```
 
-### Step 4: GUIインストーラーでセットアップ
-
-ブラウザで http://localhost:8080/install を開き、インストールウィザードを完了してください。
-
-データベース設定では以下を入力します。
-
-| 項目 | 値 |
-|------|-----|
-| データベースホスト | `mysql`（MySQLの場合） / `pgsql`（PostgreSQLの場合） |
-| データベース名 | `eccubedb` |
-| ユーザー名 | `eccube` |
-| パスワード | `password` |
-
-:::message
-ホスト名はDockerのサービス名です。`localhost` や `127.0.0.1` ではなく、上記のサービス名を入力してください。
+:::message alert
+`eccube:install`コマンドは必ず`www-data`ユーザで実行してください。rootユーザで実行すると、ファイルのパーミッションの問題が発生します。
 :::
 
-### Step 5: 動作確認
+### Step 4: 動作確認
 
-インストール完了後、以下のURLにアクセスできます。
+セットアップが完了したら、ブラウザでアクセスできます。
 
 | 画面 | URL |
 |------|-----|
 | フロント画面 | http://localhost:8080/ |
 | 管理画面 | http://localhost:8080/admin/ |
+
+管理画面のログイン情報：
+- ID: `admin`
+- パスワード: `password`
 
 ## まとめ
 
