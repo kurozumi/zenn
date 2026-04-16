@@ -230,30 +230,6 @@ NGINX
   nginx -t && systemctl reload nginx
   apt install certbot python3-certbot-nginx -y
   certbot --nginx -d ${DOMAIN} --non-interactive --agree-tos -m admin@${DOMAIN}
-  cat > /var/www/eccube/deploy.sh << 'DEPLOY'
-#!/bin/bash
-set -euo pipefail
-cd /var/www/eccube
-echo '=== デプロイ開始 ==='
-CREATED_MAINTENANCE=false
-if [ ! -f .maintenance ]; then
-  touch .maintenance
-  CREATED_MAINTENANCE=true
-  echo 'メンテナンスモード: ON'
-fi
-git fetch origin && git reset --hard origin/main
-composer install --no-dev --optimize-autoloader
-php bin/console cache:clear --env=prod --no-debug
-php bin/console cache:warmup --env=prod --no-debug
-chmod -R 775 /var/www/eccube/var
-if [ "$CREATED_MAINTENANCE" = true ]; then
-  rm -f .maintenance
-  echo 'メンテナンスモード: OFF'
-fi
-echo '=== デプロイ完了！ ==='
-DEPLOY
-  chmod +x /var/www/eccube/deploy.sh
-  chown ${USERNAME}:www-data /var/www/eccube/deploy.sh
 "
 ```
 
@@ -290,7 +266,38 @@ DEPLOY
 | ユーザ名 | eccube_user |
 | パスワード | Step 8 で設定したパスワード |
 
-## Step 13: 完了確認
+## Step 13: デプロイスクリプト設置
+
+```bash
+ssh root@${VPS_IP} "
+  cat > /var/www/eccube/deploy.sh << 'DEPLOY'
+#!/bin/bash
+set -euo pipefail
+cd /var/www/eccube
+echo '=== デプロイ開始 ==='
+CREATED_MAINTENANCE=false
+if [ ! -f .maintenance ]; then
+  touch .maintenance
+  CREATED_MAINTENANCE=true
+  echo 'メンテナンスモード: ON'
+fi
+git fetch origin && git reset --hard origin/main
+composer install --no-dev --optimize-autoloader
+php bin/console cache:clear --env=prod --no-debug
+php bin/console cache:warmup --env=prod --no-debug
+chmod -R 775 /var/www/eccube/var
+if [ \"\$CREATED_MAINTENANCE\" = true ]; then
+  rm -f .maintenance
+  echo 'メンテナンスモード: OFF'
+fi
+echo '=== デプロイ完了！ ==='
+DEPLOY
+  chmod +x /var/www/eccube/deploy.sh
+  chown ${USERNAME}:www-data /var/www/eccube/deploy.sh
+"
+```
+
+## Step 14: 完了確認
 
 ```bash
 ssh ${USERNAME}@${VPS_IP} "
@@ -299,6 +306,7 @@ ssh ${USERNAME}@${VPS_IP} "
   curl -s -o /dev/null -w 'HTTP Status: %{http_code}' https://${DOMAIN}/
 "
 ```
+
 ````
 
 ## スキルの実行方法
@@ -309,7 +317,7 @@ ssh ${USERNAME}@${VPS_IP} "
 /setup-eccube-vps
 ```
 
-Claude Codeが`AskUserQuestion`でVPS_IP・USERNAME・DOMAINを確認してからStep 1〜13を実行します。DBパスワードはサーバー上でランダム生成されるため、Claude Codeには渡しません。Step 11でブラウザのGUIインストーラー操作を求められるので、完了後に「Step 12 を実行して」と伝えると残りのステップが続行されます。
+Claude Codeが`AskUserQuestion`でVPS_IP・USERNAME・DOMAINを確認してからStep 1〜14を実行します。DBパスワードはClaude Codeに渡しません。Step 12完了後にブラウザのGUIインストーラー操作を求められるので、完了後に「Step 13 を実行して」と伝えると残りのステップが続行されます。
 
 ## スキルのカスタマイズ
 
