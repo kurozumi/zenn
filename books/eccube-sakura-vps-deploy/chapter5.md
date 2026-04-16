@@ -27,29 +27,25 @@ mkdir -p ~/.claude/skills/setup-eccube-vps
 name: setup-eccube-vps
 description: さくらVPS（Ubuntu 24.04）にEC-CUBE 4.3をセキュアにセットアップする
 disable-model-invocation: true
-allowed-tools: Bash(ssh *), Bash(ssh-copy-id *)
+allowed-tools: AskUserQuestion, Bash(ssh *), Bash(ssh-copy-id *)
 ---
 
 # EC-CUBE VPS セットアップスキル
 
 ## Step 0: セットアップ情報の確認
 
-ユーザーに以下の情報を確認してください。確認できたら、後続のステップで使う変数として記憶してください。
+`AskUserQuestion` ツールを使って以下の3つを順番に確認してください。パスワード類はここでは聞きません。
 
-| 変数名 | 説明 | 例 |
-|---|---|---|
-| `VPS_IP` | VPSのIPアドレス | `192.0.2.1` |
-| `USERNAME` | 作成するユーザー名 | `eccube-admin` |
-| `DOMAIN` | ドメイン名 | `shop.example.com` |
-| `DB_PASSWORD` | DBパスワード（強力なものを） | `Str0ng!Pass#2024` |
+- VPSのIPアドレス（`VPS_IP`）
+- 作成する一般ユーザー名（`USERNAME`、例: `eccube-admin`）
+- EC-CUBEを公開するドメイン名（`DOMAIN`、例: `shop.example.com`）
 
 確認後、以下のコマンドで変数をセットしてから各ステップを実行してください。
 
 ```bash
 export VPS_IP="確認したIPアドレス"
-export USERNAME="eccube-admin"
-export DOMAIN="shop.example.com"
-export DB_PASSWORD="設定するDBパスワード"
+export USERNAME="確認したユーザー名"
+export DOMAIN="確認したドメイン名"
 ```
 
 ---
@@ -139,17 +135,23 @@ ssh root@${VPS_IP} "
 
 ## Step 8: MySQLのセットアップ
 
+DBパスワードはサーバー上でランダム生成します。Claude Codeには表示せず、`/root/.eccube-db-pass` に保存します。GUIインストーラー設定時にSSHで確認してください。
+
 ```bash
-ssh root@${VPS_IP} "
-  mysql -u root << 'EOF'
+ssh root@${VPS_IP} << 'ENDSSH'
+DB_PASS=$(openssl rand -hex 16)
+mysql -u root -e "
 CREATE DATABASE eccube CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'eccube_user'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';
+CREATE USER 'eccube_user'@'localhost' IDENTIFIED BY '${DB_PASS}';
 GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER,
       CREATE TEMPORARY TABLES, LOCK TABLES
       ON eccube.* TO 'eccube_user'@'localhost';
 FLUSH PRIVILEGES;
-EOF
 "
+echo "${DB_PASS}" > /root/.eccube-db-pass
+chmod 600 /root/.eccube-db-pass
+echo 'DBパスワードを /root/.eccube-db-pass に保存しました。GUIインストーラーのデータベース設定時にSSHで確認してください。'
+ENDSSH
 ```
 
 ## Step 9: Composerのインストール
@@ -287,7 +289,7 @@ ssh ${USERNAME}@${VPS_IP} "
 /setup-eccube-vps
 ```
 
-Claude Codeが必要情報（VPS_IP・USERNAME・DOMAIN・DB_PASSWORD）を確認してからStep 1〜13を実行します。Step 11でブラウザのGUIインストーラー操作を求められるので、完了後に「Step 12 を実行して」と伝えると残りのステップが続行されます。
+Claude Codeが`AskUserQuestion`でVPS_IP・USERNAME・DOMAINを確認してからStep 1〜13を実行します。DBパスワードはサーバー上でランダム生成されるため、Claude Codeには渡しません。Step 11でブラウザのGUIインストーラー操作を求められるので、完了後に「Step 12 を実行して」と伝えると残りのステップが続行されます。
 
 ## スキルのカスタマイズ
 
