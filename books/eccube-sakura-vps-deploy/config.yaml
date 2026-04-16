@@ -1,7 +1,7 @@
 title: "さくらVPS + EC-CUBE 4.3 本番環境構築ガイド【Claude Codeスキルで1コマンド自動化】"
 summary: "さくらVPSの契約からEC-CUBE 4.3の本番デプロイまでを徹底解説。セキュリティ設定・チーム運用・本番運用のベストプラクティスをカバーし、Claude Codeカスタムスキルで環境構築を1コマンドに自動化する方法を紹介します。"
 topics: ["eccube", "vps", "ubuntu", "linux", "claudecode"]
-published: true
+published: false
 price: 980
 chapters:
   - intro
