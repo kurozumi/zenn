@@ -101,20 +101,36 @@ docker compose ps
 
 ec-cube コンテナが起動していることを確認してください。
 
-### 3. EC-CUBEのセットアップ
+### 3. インストール準備
 
 ```bash
+# Composerの依存関係をコンパイル
 docker compose -f docker-compose.yml -f ${DB_COMPOSE} exec ec-cube composer run-script compile
+
+# .envを削除してGUIインストーラーを有効化
 docker compose -f docker-compose.yml -f ${DB_COMPOSE} exec ec-cube rm -f .env
 ```
 
-### 4. インストールウィザード
+### 4. GUIインストーラーでセットアップ
 
-ブラウザで `http://localhost:8080/install` を開き、インストールウィザードを完了してください。データベース設定ではホスト名に `mysql`（MySQL選択時）または `pgsql`（PostgreSQL選択時）を入力してください。`localhost` ではなくDockerのサービス名を使用します。
+ブラウザで http://localhost:8080/install を開き、インストールウィザードを完了してください。
 
-完了したら `AskUserQuestion` ツールでユーザーに完了を確認してください。
+データベース設定では以下を入力します。
+
+| 項目 | 値 |
+|------|-----|
+| データベースホスト | `mysql`（MySQLの場合） / `pgsql`（PostgreSQLの場合） |
+| データベース名 | `eccubedb` |
+| ユーザー名 | `eccube` |
+| パスワード | `password` |
+
+:::message
+ホスト名はDockerのサービス名です。`localhost` や `127.0.0.1` ではなく、上記のサービス名を入力してください。
+:::
 
 ### 5. 動作確認
+
+インストール完了後、以下のURLにアクセスできます。
 
 - フロント画面: http://localhost:8080/
 - 管理画面: http://localhost:8080/admin/
@@ -286,20 +302,36 @@ docker compose ps
 
 ec-cubeコンテナが正常に起動していることを確認します。
 
-### Step 3: EC-CUBEのセットアップ
+### Step 3: インストール準備
 
 ```bash
+# Composerの依存関係をコンパイル
 docker compose exec ec-cube composer run-script compile
+
+# .envを削除してGUIインストーラーを有効化
 docker compose exec ec-cube rm -f .env
 ```
 
-### Step 4: インストールウィザード
+### Step 4: GUIインストーラーでセットアップ
 
-ブラウザで `http://localhost:8080/install` を開き、インストールウィザードを完了してください。データベース設定ではホスト名に `mysql`（MySQL選択時）または `pgsql`（PostgreSQL選択時）を入力してください。`localhost` ではなくDockerのサービス名を使用します。
+ブラウザで http://localhost:8080/install を開き、インストールウィザードを完了してください。
 
-インストール完了後、Claude Codeに「Step 5 を実行して」と伝えてください。
+データベース設定では以下を入力します。
+
+| 項目 | 値 |
+|------|-----|
+| データベースホスト | `mysql`（MySQLの場合） / `pgsql`（PostgreSQLの場合） |
+| データベース名 | `eccubedb` |
+| ユーザー名 | `eccube` |
+| パスワード | `password` |
+
+:::message
+ホスト名はDockerのサービス名です。`localhost` や `127.0.0.1` ではなく、上記のサービス名を入力してください。
+:::
 
 ### Step 5: 動作確認
+
+インストール完了後、以下のURLにアクセスできます。
 
 | 画面 | URL |
 |------|-----|
