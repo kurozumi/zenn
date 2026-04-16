@@ -152,7 +152,7 @@ FLUSH PRIVILEGES;
 EXIT;
 ```
 
-設定したパスワードは後のGUIインストーラー（Step 12）で使用します。Claude Code には渡しません。完了したら `AskUserQuestion` ツールでユーザーに完了を確認し、Step 9 に進んでください。
+設定したパスワードは後のGUIインストーラー（Step 13）で使用します。Claude Code には渡しません。完了したら `AskUserQuestion` ツールでユーザーに完了を確認し、Step 9 に進んでください。
 
 ## Step 9: Composerのインストール
 
