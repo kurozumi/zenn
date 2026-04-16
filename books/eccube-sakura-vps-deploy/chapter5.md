@@ -199,7 +199,7 @@ ssh root@${VPS_IP} "
 "
 ```
 
-## Step 12: Nginx設定・SSL取得・デプロイスクリプト設置
+## Step 12: Nginx設定・SSL取得
 
 ```bash
 ssh root@${VPS_IP} "
