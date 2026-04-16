@@ -2,7 +2,11 @@
 title: "EC-CUBEのデプロイ"
 ---
 
+この章では、EC-CUBEのソースコードをサーバーに配置し、ブラウザからアクセスできる状態にするまでの手順を説明します。
+
 ## ディレクトリの準備
+
+EC-CUBEを設置するフォルダを作成します。
 
 ```bash
 sudo mkdir -p /var/www/eccube
@@ -10,19 +14,25 @@ sudo chown eccube-admin:www-data /var/www/eccube
 sudo chmod 775 /var/www/eccube
 ```
 
-## EC-CUBEのインストール
+`chown eccube-admin:www-data` は「このフォルダの所有者を `eccube-admin`、グループを `www-data` にする」という意味です。Webサーバー（Nginx・PHP-FPM）は `www-data` というユーザーで動作するため、グループに含めることでファイルの読み書きが可能になります。
+
+## EC-CUBEのダウンロードと準備
+
+GitHubからEC-CUBEのソースコードを取得し、本番環境用の設定でインストールします。
 
 ```bash
 cd /var/www/eccube
 
+# GitHubからソースコードを取得
 git clone https://github.com/EC-CUBE/ec-cube.git .
 
-# 本番環境では最新リリースタグを指定する（開発継続中のブランチより安定）
+# 最新の安定版タグに切り替える
 git checkout $(git tag -l "4.3.*" | sort -V | tail -1)
 
+# 本番環境用に依存ライブラリをインストール
 composer install --no-dev --optimize-autoloader
 
-# .envを削除してGUIインストーラーを有効化する
+# .envを削除してブラウザのインストーラーを有効化する
 rm -f .env
 ```
 
@@ -30,45 +40,59 @@ rm -f .env
 `git checkout 4.3` ではなく最新リリースタグを指定します。`4.3` ブランチは開発が継続されているため、予期しない変更が含まれる場合があります。
 :::
 
-## パーミッションの設定
+:::message
+`.env` ファイルが存在しないと、EC-CUBEはブラウザでのインストールウィザードを表示します。後の手順でウィザードを使ってデータベース設定を行います。
+:::
 
-### www-data とは
+## パーミッション（アクセス権限）の設定
 
-`www-data` は Nginx や PHP-FPM が動作する際に使うシステムユーザーです。ブラウザからのリクエストは最終的にこのユーザーとして処理されます。
+パーミッションとは「誰がファイルを読み書きできるか」を決める設定です。設定が緩すぎると第三者がファイルを書き換えられる恐れがあり、厳しすぎるとEC-CUBEが動作しません。
+
+### Webサーバーが使うユーザー（www-data）とは
+
+`www-data` はNginxやPHP-FPMが動作する際に使うシステムユーザーです。ブラウザからのリクエストは最終的にこのユーザーとして処理されます。
 
 ```
 ブラウザ → Nginx（www-dataで動作）→ PHP-FPM（www-dataで動作）→ EC-CUBEのファイル
 ```
 
-EC-CUBE が画像のアップロードやキャッシュの生成でファイルを書き込む際も、この `www-data` ユーザーが実際に書き込みます。そのため、書き込みが必要なディレクトリには `www-data` の権限を付与する必要があります。
+EC-CUBEが商品画像のアップロードやキャッシュを生成するとき、このユーザーがファイルの書き込みを行います。書き込みが必要なフォルダには `www-data` の権限を付与する必要があります。
 
 ### 権限を設定する
 
 ```bash
+# 所有者をeccube-admin、グループをwww-dataに設定
 sudo chown -R eccube-admin:www-data /var/www/eccube
 
-# ディレクトリは755、ファイルは644を基本に設定
+# フォルダは755（所有者: 読み書き実行 / グループ・その他: 読み実行のみ）
 sudo find /var/www/eccube -type d -exec chmod 755 {} \;
+
+# ファイルは644（所有者: 読み書き / グループ・その他: 読みのみ）
 sudo find /var/www/eccube -type f -exec chmod 644 {} \;
 
-# Webサーバーが書き込む必要があるディレクトリを緩める
-sudo chmod -R 775 /var/www/eccube/var
-sudo chmod -R 775 /var/www/eccube/html
+# Webサーバーが書き込む必要があるフォルダを775に緩める
+sudo chmod -R 775 /var/www/eccube/var        # キャッシュ・ログ
+sudo chmod -R 775 /var/www/eccube/html       # 公開ディレクトリ
 sudo chmod -R 775 /var/www/eccube/app/Plugin
 sudo chmod -R 775 /var/www/eccube/app/PluginData
 sudo chmod -R 775 /var/www/eccube/app/proxy
 sudo chmod -R 775 /var/www/eccube/app/template
-# プラグインインストール時に必要
-sudo chmod -R 775 /var/www/eccube/vendor
+sudo chmod -R 775 /var/www/eccube/vendor     # プラグインインストール時に必要
 sudo chmod 664 /var/www/eccube/composer.json
 sudo chmod 664 /var/www/eccube/composer.lock
 ```
 
-## Nginxの設定
+## Webサーバー（Nginx）の設定
+
+Nginxに「このドメインへのアクセスをEC-CUBEに渡す」という設定を追加します。
+
+以下のコマンドで設定ファイルを作成します。
 
 ```bash
 sudo nano /etc/nginx/sites-available/eccube
 ```
+
+以下の内容を貼り付けてください（`your-domain.com` は自分のドメインに書き換えてください）。
 
 ```nginx
 server {
@@ -77,17 +101,20 @@ server {
     root /var/www/eccube/html;
     index index.php;
 
+    # アップロードできるファイルの最大サイズ（32MB）
     client_max_body_size 32M;
 
-    # セキュリティヘッダー
+    # セキュリティヘッダー（ブラウザへの指示）
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
+    # すべてのリクエストをEC-CUBEのindex.phpに渡す
     location / {
         try_files $uri /index.php$is_args$args;
     }
 
+    # PHPの処理をPHP-FPMに渡す
     location ~ ^/index\.php(/|$) {
         fastcgi_pass unix:/run/php/php8.3-fpm.sock;
         fastcgi_split_path_info ^(.+\.php)(/.*)$;
@@ -97,11 +124,12 @@ server {
         internal;
     }
 
-    # ドットファイル全般をブロック（.well-knownはLet's Encrypt用に除外）
+    # .envなどのドットファイルへの直接アクセスを禁止
     location ~ /\.(?!well-known) {
         deny all;
     }
 
+    # index.php以外のPHPファイルへの直接アクセスを禁止
     location ~ \.php$ {
         return 404;
     }
@@ -111,36 +139,49 @@ server {
 }
 ```
 
+設定を有効化してNginxを再起動します。
+
 ```bash
+# 設定を有効化する
 sudo ln -s /etc/nginx/sites-available/eccube /etc/nginx/sites-enabled/
+
+# 設定ファイルに問題がないか確認する
 sudo nginx -t
+
+# Nginxに設定を読み込ませる
 sudo systemctl reload nginx
 ```
 
-## SSL証明書の設定（Let's Encrypt）
+## SSL証明書の設定（HTTPS化）
 
-ドメインのDNSがVPSのIPアドレスに向いていることを確認してから実行してください。
+Let's Encryptを使って無料のSSL証明書を取得し、HTTPS（暗号化通信）を有効にします。
+
+:::message
+実行前に、ドメインのDNS設定でこのVPSのIPアドレスが設定されていることを確認してください。DNS設定が反映されていないとSSL証明書の取得に失敗します。
+:::
 
 ```bash
 sudo apt install certbot python3-certbot-nginx -y
 sudo certbot --nginx -d your-domain.com
 ```
 
-証明書の自動更新を確認します。
+SSL証明書は90日で期限切れになりますが、自動更新の設定が正しく動くか確認しておきます。
 
 ```bash
 sudo certbot renew --dry-run
 ```
 
+エラーが出なければ自動更新は正常に動作しています。
+
 ## データベースの作成
 
-MySQLにrootでログインしてデータベースとユーザーを作成します。
+EC-CUBEが使うデータベース（商品・注文などのデータを保存する場所）とMySQLのユーザーを作成します。
 
 ```bash
 sudo mysql -u root
 ```
 
-MySQLプロンプトで以下を実行してください（パスワードは任意の強力な値を設定してください）。
+MySQLのプロンプトが表示されたら、以下のコマンドを順番に実行してください。
 
 ```sql
 CREATE DATABASE eccube CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -150,42 +191,50 @@ FLUSH PRIVILEGES;
 EXIT;
 ```
 
-ここで作成する情報は次の通りです。
+作成する情報の意味は以下の通りです。
 
-| 項目 | 説明 | 例 |
+| 項目 | 意味 | 例 |
 |---|---|---|
-| データベース名 | EC-CUBEのデータを保存する入れ物の名前。任意の名前でよい | `eccube` |
-| ユーザー名 | EC-CUBEがMySQLに接続するときに使うアカウント名。OSのログインユーザーとは別物 | `eccube` |
-| パスワード | 上記ユーザーの認証用パスワード。推測されにくい強力な値を設定する | - |
+| データベース名 | データを保存する入れ物の名前。任意の名前でよい | `eccube` |
+| ユーザー名 | EC-CUBEがMySQLに接続するためのアカウント名。OSのログインユーザーとは無関係 | `eccube` |
+| パスワード | 上記ユーザーの接続用パスワード。推測されにくい強力な値を設定する | — |
 
-作成したDB名・ユーザー名・パスワードはインストールウィザードで入力するので控えておいてください。
+:::message alert
+作成したデータベース名・ユーザー名・パスワードは次のインストールウィザードで使います。必ず控えておいてください。
+:::
 
 ## インストールウィザードの実行
 
-ブラウザで `https://your-domain.com/install` を開き、インストールウィザードを完了してください。データベース設定では上記で作成したDB名・ユーザー名・パスワードを入力してください。
+ここまでの準備が整ったら、ブラウザからEC-CUBEをインストールします。
 
-インストールが完了すると `.env` が自動生成され、データベースの初期化（テーブル作成・初期データ投入）も自動で行われます。
+ブラウザで以下のURLを開いてください。
+
+```
+https://your-domain.com/install
+```
+
+画面の案内に従って設定を入力し、ウィザードを完了してください。データベース設定の画面では、上記で作成したデータベース名・ユーザー名・パスワードを入力します。
+
+インストールが完了すると、データベースへの初期データ投入と `.env` ファイルの自動生成が行われます。
 
 ## インストール後の設定
 
-### .envのアクセス権限を設定する
+### .env ファイルのアクセス権限を設定する
 
-`.env` にはDBパスワードなどの機密情報が含まれるため、所有者だけが読めるように制限します。
+`.env` にはデータベースのパスワードなど機密情報が含まれています。他のユーザーに読まれないよう、所有者だけが読める権限に変更します。
 
 ```bash
-chmod 600 .env
+chmod 600 /var/www/eccube/.env
 ```
 
-本番環境（`APP_ENV=prod`）では Symfony がキャッシュ生成時に `.env` の値を内部ファイルに展開するため、`600` にしても PHP-FPM は正常に動作します。
-
-:::message
-本番環境では `.env` に機密情報を書くより `.env.local`（`.gitignore` 対象）に書くパターンも有効です。`.env.local` は `.env` より優先されます。
-:::
+本番環境（`APP_ENV=prod`）ではSymfonyが起動時に `.env` の内容を内部ファイルに展開するため、`600` に設定してもEC-CUBEは正常に動作します。
 
 ## 動作確認
 
+以下のチェックリストをすべて確認してください。
+
 - [ ] `https://your-domain.com` でEC-CUBEのトップページが表示される
-- [ ] `https://your-domain.com/<ECCUBE_ADMIN_ROUTE>` で管理画面にログインできる
-- [ ] `.env` ファイルにブラウザからアクセスできない（403が返る）
-- [ ] HTTP（80番）にアクセスするとHTTPS（443番）にリダイレクトされる
-- [ ] `APP_DEBUG=0` になっていることを確認
+- [ ] インストール時に設定した管理画面URLで管理画面にログインできる
+- [ ] `.env` ファイルにブラウザから直接アクセスすると403エラーになる
+- [ ] `http://` でアクセスすると `https://` に自動でリダイレクトされる
+- [ ] 管理画面の「設定」→「システム設定」で `APP_DEBUG` が `0` になっている
