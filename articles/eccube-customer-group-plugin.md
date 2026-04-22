@@ -143,6 +143,13 @@ Option1 モードを有効にすると、会員は所属グループの商品だ
 
 ---
 
+## 🔌 プラグイン
+
+**[会員グループ管理プラグイン](https://www.ec-cube.net/products/detail.php?product_id=2439)**
+https://www.ec-cube.net/products/detail.php?product_id=2439
+
+---
+
 ## 📩 EC-CUBE開発・カスタマイズのご相談
 
 以下のような案件、お気軽にご相談ください。
