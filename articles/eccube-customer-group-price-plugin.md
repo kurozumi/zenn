@@ -43,7 +43,7 @@ EC-CUBE 標準では全員に同じ販売価格しか設定できませんが、
 
 - **対応バージョン**: EC-CUBE 4.2 / 4.3
 - **前提プラグイン**: [会員グループ管理プラグイン](https://www.ec-cube.net/products/detail.php?product_id=2439)（必須）
-- **ダウンロード**: [EC-CUBE オーナーズストア](#)
+- **ダウンロード**: [EC-CUBE オーナーズストア](https://www.ec-cube.net/products/detail.php?product_id=2440)
 
 :::message
 このアドオンは**会員グループ管理プラグインが有効化されていない場合はインストールできません**。先に会員グループ管理プラグインをインストールしてください。
@@ -145,6 +145,9 @@ A社の担当者がログインすると、A社向けの単価が商品一覧か
 ---
 
 ## 🔌 プラグイン
+
+**[会員グループ管理::会員グループ価格管理アドオン](https://www.ec-cube.net/products/detail.php?product_id=2440)**
+https://www.ec-cube.net/products/detail.php?product_id=2440
 
 **会員グループ管理プラグイン（前提プラグイン）**
 https://www.ec-cube.net/products/detail.php?product_id=2439
