@@ -3,7 +3,7 @@ title: "EC-CUBE BtoB必須！会員登録を承認制にして不審な申請を
 emoji: "✅"
 type: "tech"
 topics: ["eccube", "eccube4", "php", "symfony"]
-published: false
+published: true
 ---
 
 :::message alert
