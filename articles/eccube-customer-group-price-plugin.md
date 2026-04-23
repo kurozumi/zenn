@@ -19,7 +19,7 @@ published: false
 また、[Claude Code](https://claude.ai/claude-code) を使って書かれています。内容に誤りがある場合はコメントでお知らせください。
 :::
 
-[前回の記事](https://zenn.dev/a_zumi/articles/eccube-customer-group-plugin)では、会員グループ管理プラグインを使って商品・カテゴリ・ページの閲覧を会員グループ別に制限する方法を紹介しました。
+[前回の記事](https://zenn.dev/kurozumi/articles/eccube-customer-group-plugin)では、会員グループ管理プラグインを使って商品・カテゴリ・ページの閲覧を会員グループ別に制限する方法を紹介しました。
 
 今回はその拡張として、**会員グループごとに価格を変える**ことができるアドオンを紹介します。
 
