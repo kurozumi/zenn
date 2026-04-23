@@ -525,7 +525,6 @@ opcache.preload_user=www-data
 - プラグイン開発・既存プラグインの改修
 - EC-CUBE 4系へのバージョンアップ対応
 - カスタマイズ・機能追加
-- エンタープライズ向け開発・導入支援
 
 👉 **[お問い合わせはこちら](https://a-zumi.net/contact/)**
 

@@ -2,6 +2,9 @@
 """
 Zenn の記事を note 向け Markdown に変換するスクリプト
 
+note 変換時に自動削除されるブロック:
+  :::message alert  お仕事募集バナーなど（note には掲載しない）
+
 note がサポートする Markdown 記法:
   ## + スペース   大見出し
   ### + スペース  小見出し
