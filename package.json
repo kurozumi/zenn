@@ -9,7 +9,10 @@
     "new:article": "zenn new:article",
     "new:book": "zenn new:book",
     "qiita:convert": "node scripts/zenn-to-qiita.js",
-    "qiita:convert:all": "node scripts/zenn-to-qiita.js --all"
+    "qiita:convert:all": "node scripts/zenn-to-qiita.js --all",
+    "note:login": "python3 scripts/note-post.py login",
+    "note:post": "python3 scripts/note-post.py post",
+    "note:convert": "python3 scripts/zenn-to-note.py"
   },
   "keywords": [],
   "author": "",
