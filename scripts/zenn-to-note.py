@@ -73,6 +73,9 @@ def convert_to_note_md(text: str) -> str:
     # H4 以下（#### 〜）→ ### に統一（note は ## と ### のみ対応）
     text = re.sub(r"^#{4,} ", "### ", text, flags=re.MULTILINE)
 
+    # [text](https://zenn.dev/...) → text（Zenn 内部リンクはテキストのみに）
+    text = re.sub(r"\[([^\]]+)\]\(https://zenn\.dev/[^\)]+\)", r"\1", text)
+
     # *italic* → **italic**（note は italic 非対応のため太字に変換）
     # ただし **bold** は変換しない
     text = re.sub(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", r"**\1**", text)
