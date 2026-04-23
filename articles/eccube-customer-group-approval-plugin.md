@@ -99,7 +99,7 @@ EC-CUBE の標準機能では、会員登録フォームを送信すると誰で
 
 ### Step 3: 承認制アドオンをインストール
 
-[会員グループ管理【BtoB】::会員登録承認制アドオン](#)をインストールして有効化します。
+[会員グループ管理【BtoB】::会員登録承認制アドオン](https://www.ec-cube.net/products/detail.php?product_id=2443)をインストールして有効化します。
 
 有効化すると以下が自動で作成されます。
 - 承認待ち画面（`/entry/approval`）
@@ -159,6 +159,9 @@ EC-CUBE の標準機能では、会員登録フォームを送信すると誰で
 ---
 
 ## 🔌 プラグイン
+
+**[会員グループ管理【BtoB】::会員登録承認制アドオン](https://www.ec-cube.net/products/detail.php?product_id=2443)**
+https://www.ec-cube.net/products/detail.php?product_id=2443
 
 **会員グループ管理【BtoB】::会員登録アドオン（前提プラグイン）**
 https://www.ec-cube.net/products/detail.php?product_id=2442
