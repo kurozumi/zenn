@@ -65,7 +65,7 @@ EC-CUBE の標準機能では、会員登録フォームを送信すると誰で
 
 ### 法人会員限定の特典管理
 
-法人会員のみが使える割引価格やカテゴリへのアクセスを承認制で管理するケースです。[会員グループ管理プラグイン](https://zenn.dev/kurozumi/articles/eccube-customer-group-plugin)と組み合わせることで、承認済みの法人会員だけが特定の商品・カテゴリ・価格を閲覧できる環境を構築できます。
+法人会員のみが使える割引価格やカテゴリへのアクセスを承認制で管理するケースです。[会員グループ管理プラグイン](https://zenn.dev/kurozumi/articles/eccube-customer-group-plugin)と組み合わせることで、承認済みの法人会員だけが特定の商品・カテゴリ・価格を閲覧できる環境を構築できます。さらに[会員グループ価格管理アドオン](https://zenn.dev/kurozumi/articles/eccube-customer-group-price-plugin)を追加すると、法人会員向けの掛け率・割引率も設定できます。
 
 ### 招待制・クローズドな EC サイト
 
@@ -154,7 +154,7 @@ EC-CUBE の標準機能では、会員登録フォームを送信すると誰で
 - ✅ BtoB サイトで取引先の審査が完了するまで会員登録を保留できる
 - ✅ 管理者がメール1本で承認できる簡単な運用フロー
 - ✅ 承認済み会員のみが卸価格・限定商品にアクセスできる環境を構築できる
-- ✅ 会員グループ管理プラグインの価格管理・閲覧制限機能と組み合わせて本格的な BtoB EC サイトを構築できる
+- ✅ [会員グループ管理プラグイン](https://zenn.dev/kurozumi/articles/eccube-customer-group-plugin)の閲覧制限・[価格管理アドオン](https://zenn.dev/kurozumi/articles/eccube-customer-group-price-plugin)と組み合わせて本格的な BtoB EC サイトを構築できる
 
 ---
 
