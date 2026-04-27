@@ -1,0 +1,14 @@
+title: "EC-CUBEではじめるBtoB ECサイト構築ガイド【会員グループ管理プラグイン活用】"
+summary: "EC-CUBE標準では実現できないBtoB要件（法人審査・卸価格・支払い制限・配送制限）を、会員グループ管理プラグインとアドオン群でコーディング不要で解決する方法を、素人でもわかるよう丁寧に解説します。"
+topics: ["eccube", "eccube4", "php", "symfony"]
+published: false
+price: 0
+chapters:
+  - intro
+  - chapter1
+  - chapter2
+  - chapter3
+  - chapter4
+  - chapter5
+  - chapter6
+  - chapter7
