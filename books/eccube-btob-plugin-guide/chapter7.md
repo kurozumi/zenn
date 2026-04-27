@@ -80,7 +80,7 @@ BtoBとBtoCを共存させるためには、会員グループ管理プラグイ
 
 **手順**
 
-1. EC-CUBEオーナーズストア（https://www.ec-cube.net/products/detail.php?product_id=2439）で購入する
+1. [EC-CUBEオーナーズストア](https://www.ec-cube.net/products/detail.php?product_id=2439)で購入する
 2. 管理画面の「オーナーズストア」→「プラグイン」→「プラグイン一覧」からインストールして有効化する
 3. 左メニューに「会員グループ」が追加されたことを確認する
 4. 「会員グループ」→「グループ管理」から「法人会員グループ」を新規作成する
