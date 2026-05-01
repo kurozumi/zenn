@@ -106,4 +106,6 @@ EC-CUBEのインストール方法や初期設定については、[公式ドキ
 
 コードや手順に誤りを発見した場合は、Zennのコメント欄でお知らせいただけると幸いです。いただいたフィードバックを元に内容を改善してまいります。
 
+https://zenn.dev/kurozumi/books/eccube-btob-plugin-guide
+
 それでは、EC-CUBEでBtoBサイトを構築する旅をはじめましょう。
