@@ -1,0 +1,16 @@
+/* テーブルセル内の <p> タグによる余分なスペースを除去 */
+td p, th p {
+  margin: 0;
+  padding: 0;
+}
+
+/* テーブル全体のスタイル調整 */
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+td, th {
+  padding: 4px 8px;
+  vertical-align: top;
+}

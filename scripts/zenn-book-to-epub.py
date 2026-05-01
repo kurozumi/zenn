@@ -152,6 +152,8 @@ def build_epub(md_path: Path):
     """PandocでEPUBを生成する"""
     cover = BOOK_DIR / "cover.png"
 
+    css = OUTPUT_DIR / "kindle.css"
+
     cmd = [
         "pandoc",
         str(md_path),
@@ -165,6 +167,9 @@ def build_epub(md_path: Path):
         "--toc-depth=2",
         "--epub-title-page=false",
     ]
+
+    if css.exists():
+        cmd.append(f"--css={css}")
 
     if cover.exists():
         cmd.append(f"--epub-cover-image={cover}")
