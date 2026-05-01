@@ -87,6 +87,60 @@ def normalize_whitespace(text: str) -> str:
     return text.strip()
 
 
+def convert_tables_to_lists(text: str) -> str:
+    """Markdownテーブルをリスト形式に変換する"""
+
+    def parse_table(m: re.Match) -> str:
+        block = m.group(0)
+        lines = [l.strip() for l in block.strip().splitlines()]
+
+        # セル分割
+        def split_cells(line: str) -> list[str]:
+            return [c.strip() for c in line.strip("|").split("|")]
+
+        header = split_cells(lines[0])
+        # 2行目はセパレータ（|---|---| など）なのでスキップ
+        data_lines = lines[2:]
+
+        # ヘッダーが1列または空の場合はスキップ
+        if len(header) < 1:
+            return block
+
+        result_lines = []
+        for dl in data_lines:
+            if not dl.strip():
+                continue
+            cells = split_cells(dl)
+
+            # 列数を揃える
+            while len(cells) < len(header):
+                cells.append("")
+
+            col1 = cells[0].strip()
+            rest = [c.strip() for c in cells[1:] if c.strip()]
+
+            # 1列目が数字のみ → 番号付きリスト「1. 内容」
+            if re.match(r"^\d+$", col1) and rest:
+                result_lines.append(f"{col1}. {' '.join(rest)}")
+            # 1列目が短いラベル（20文字以内）で2列以上 → 「- **ラベル**: 内容」
+            elif col1 and len(col1) <= 20 and rest:
+                result_lines.append(f"- **{col1}**: {' '.join(rest)}")
+            # それ以外 → 全セルをスペース区切りでリスト項目に
+            else:
+                all_cells = [c for c in cells if c]
+                if all_cells:
+                    result_lines.append(f"- {' '.join(all_cells)}")
+
+        return "\n".join(result_lines)
+
+    # テーブルブロック全体を検出（ヘッダー行・セパレータ行・データ行）
+    table_pattern = re.compile(
+        r"^\|.+\|\n\|[-| :]+\|\n(?:\|.+\|\n?)+",
+        re.MULTILINE,
+    )
+    return table_pattern.sub(parse_table, text)
+
+
 def strip_cta_banners(text: str) -> str:
     """お仕事募集バナーと末尾CTAを除去する"""
 
@@ -124,6 +178,7 @@ def process_chapter(chapter_name: str) -> str:
 
     text = strip_zenn_syntax(text)
     text = strip_cta_banners(text)
+    text = convert_tables_to_lists(text)
     text = normalize_whitespace(text)
 
     # チャプタータイトルを H1 として先頭に追加
