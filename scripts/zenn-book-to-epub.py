@@ -41,31 +41,50 @@ def strip_frontmatter(text: str) -> tuple[str, dict]:
 def strip_zenn_syntax(text: str) -> str:
     """Zenn固有の記法を除去・変換する"""
 
-    # :::message alert ... ::: → 囲み文字に変換
-    text = re.sub(
-        r":::message alert\n(.*?):::",
-        lambda m: "\n> ⚠️ **注意**\n>\n" + "\n".join("> " + l for l in m.group(1).strip().splitlines()) + "\n",
-        text,
-        flags=re.DOTALL,
-    )
+    # :::message alert ... ::: → 囲み文字に変換（前後の空白を trim して余分な空行を防ぐ）
+    def fmt_alert(m):
+        lines = "\n".join("> " + l for l in m.group(1).strip().splitlines())
+        return f"> ⚠️ **注意**\n>\n{lines}"
+
+    text = re.sub(r":::message alert\n(.*?):::", fmt_alert, text, flags=re.DOTALL)
 
     # :::message ... ::: → 囲み文字に変換
-    text = re.sub(
-        r":::message\n(.*?):::",
-        lambda m: "\n> 📝 **メモ**\n>\n" + "\n".join("> " + l for l in m.group(1).strip().splitlines()) + "\n",
-        text,
-        flags=re.DOTALL,
-    )
+    def fmt_message(m):
+        lines = "\n".join("> " + l for l in m.group(1).strip().splitlines())
+        return f"> 📝 **メモ**\n>\n{lines}"
+
+    text = re.sub(r":::message\n(.*?):::", fmt_message, text, flags=re.DOTALL)
 
     # :::details ... ::: → 展開（Kindleはdetailsタグ非対応）
     text = re.sub(
         r":::details (.+?)\n(.*?):::",
-        lambda m: f"\n**{m.group(1).strip()}**\n\n{m.group(2).strip()}\n",
+        lambda m: f"**{m.group(1).strip()}**\n\n{m.group(2).strip()}",
         text,
         flags=re.DOTALL,
     )
 
     return text
+
+
+def normalize_whitespace(text: str) -> str:
+    """連続する空行を最大1行に正規化し、リスト前後の余分な空行を除去する"""
+
+    # 3行以上の連続空行 → 1行に圧縮
+    text = re.sub(r"\n{3,}", "\n\n", text)
+
+    # 箇条書き（- / 1.）の直前に2行以上の空行がある場合 → 1行に
+    text = re.sub(r"\n\n(\n+)([-*]|\d+\.) ", r"\n\n\1", text)
+
+    # blockquote の直前の余分な空行を1行に
+    text = re.sub(r"\n{2,}(>)", r"\n\n\1", text)
+
+    # blockquote の直後の余分な空行を1行に
+    text = re.sub(r"(>.*)\n{2,}", r"\1\n\n", text)
+
+    # --- 水平線前後の余分な空行を1行に
+    text = re.sub(r"\n{2,}---\n{2,}", r"\n\n---\n\n", text)
+
+    return text.strip()
 
 
 def strip_cta_banners(text: str) -> str:
@@ -105,12 +124,13 @@ def process_chapter(chapter_name: str) -> str:
 
     text = strip_zenn_syntax(text)
     text = strip_cta_banners(text)
+    text = normalize_whitespace(text)
 
     # チャプタータイトルを H1 として先頭に追加
     if title:
-        text = f"# {title}\n\n{text.strip()}\n"
+        text = f"# {title}\n\n{text}\n"
     else:
-        text = text.strip() + "\n"
+        text = text + "\n"
 
     return text
 
@@ -120,9 +140,12 @@ def build_combined_markdown(tmp_path: Path):
     parts = []
     for chapter in CHAPTERS:
         print(f"  Processing {chapter}.md ...")
-        parts.append(process_chapter(chapter))
+        parts.append(process_chapter(chapter).strip())
 
-    tmp_path.write_text("\n\n---\n\n".join(parts), encoding="utf-8")
+    combined = "\n\n---\n\n".join(parts)
+    # 結合後にも再度正規化（チャプター境界で生じた余分な空行を除去）
+    combined = normalize_whitespace(combined)
+    tmp_path.write_text(combined + "\n", encoding="utf-8")
 
 
 def build_epub(md_path: Path):
@@ -173,6 +196,14 @@ def main():
     build_epub(tmp_md)
     print(f"  → {OUTPUT_FILE} ({OUTPUT_FILE.stat().st_size // 1024} KB)\n")
 
+    # 検証後に削除
+    import re as _re
+    combined = tmp_md.read_text(encoding="utf-8")
+    triple = len(_re.findall(r'\n{3,}', combined))
+    if triple:
+        print(f"  ⚠️  連続空行が {triple}箇所残っています")
+    else:
+        print("  ✅ 連続空行なし")
     tmp_md.unlink()
 
     print(f"✅ 完成: {OUTPUT_FILE}")
