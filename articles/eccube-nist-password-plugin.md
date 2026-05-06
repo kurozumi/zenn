@@ -90,7 +90,6 @@ eccube_password_pattern: '/\A(?=.*?[a-z])(?=.*?\d)[!-~]+\z/i'
 ```
 app/Plugin/NistPassword43/
 ├── composer.json
-├── PluginManager.php
 ├── Resource/
 │   └── config/
 │       └── services.yaml
@@ -118,22 +117,6 @@ app/Plugin/NistPassword43/
 ```
 
 `symfony/http-client` は `NotCompromisedPassword`（HaveIBeenPwned API との通信）に必要です。EC-CUBE 4.3 が依存する Symfony ^6.4 に合わせてバージョンを指定しています。
-
-### PluginManager.php
-
-```php
-<?php
-
-declare(strict_types=1);
-
-namespace Plugin\NistPassword43;
-
-use Eccube\Plugin\AbstractPluginManager;
-
-class PluginManager extends AbstractPluginManager
-{
-}
-```
 
 ### Step 1: services.yaml でパラメータを上書き
 
