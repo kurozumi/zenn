@@ -3,7 +3,7 @@ title: "パスワードに記号必須はもう古い — EC-CUBEをNIST最新�
 emoji: "🔐"
 type: "tech"
 topics: ["eccube", "eccube4", "php", "symfony"]
-published: false
+published: true
 ---
 
 :::message alert
