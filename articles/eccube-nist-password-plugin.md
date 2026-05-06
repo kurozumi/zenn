@@ -258,7 +258,15 @@ NIST SP 800-63B-4 では、Unicodeパスワードに対して **NFKC正規化** 
 
 ## NotCompromisedPassword の仕組み
 
-`NotCompromisedPassword` は Symfony 組み込みの制約で、[Have I Been Pwned](https://haveibeenpwned.com/) の API を使って、入力されたパスワードが過去のデータ漏洩に含まれているかをチェックします。
+### Have I Been Pwned とは
+
+[Have I Been Pwned](https://haveibeenpwned.com/)（HIBP）は、世界中で発生したデータ漏洩事件で流出したパスワードを収集したデータベースサービスです。セキュリティ研究者の Troy Hunt が運営しており、数十億件以上の漏洩パスワードが登録されています。
+
+「過去に漏洩したことがあるパスワード」はすでに攻撃者の辞書に載っているため、いくら長くても危険です。NIST SP 800-63B-4 がブロックリストを必須としている背景の一つがこれです。
+
+### Symfony の NotCompromisedPassword
+
+`NotCompromisedPassword` は Symfony 組み込みの制約で、HIBP の API を使って入力されたパスワードが過去の漏洩に含まれているかをリアルタイムで照合します。
 
 プライバシーへの配慮として **k-匿名性モデル** を採用しています。パスワードのSHA-1ハッシュの先頭5文字のみをAPIに送信し、パスワード本文や完全なハッシュ値が外部に漏れない設計になっています。
 
@@ -298,11 +306,12 @@ API送信: 8BE3C（先頭5文字のみ）
 
 本記事のブロックリストはサンプルです。実運用では [SecLists](https://github.com/danielmiessler/SecLists) の `Passwords/Common-Credentials/` などを参考に、より多くの弱いパスワードを登録することを推奨します。リストが大きい場合は、定数配列ではなくファイル読み込みやキャッシュを活用してください。
 
-### HaveIBeenPwned APIの依存
+### Have I Been Pwned API は外部通信が必要
 
-`NotCompromisedPassword` はネットワーク接続が必要です。`skipOnError: true` を設定しているため、API障害時はチェックをスキップします。閉域網など外部接続ができない環境では、オフライン用のローカルブロックリストのみに頼る構成を検討してください。
+`NotCompromisedPassword` は HIBP の外部APIにリアルタイムで通信します。そのため以下の点に注意してください。
 
-なお、`skipOnError: false`（デフォルト）にするとAPI障害時に登録不能になります。可用性とセキュリティのトレードオフとして、運用環境に合わせて選択してください。
+- **閉域網環境**: インターネットへの外部接続ができない環境では使用できません。オフライン用のローカルブロックリストのみに頼る構成を検討してください
+- **API障害時**: `skipOnError: true` を設定しているため、API障害時はチェックをスキップして登録を継続します。`skipOnError: false`（デフォルト）にするとAPI障害時に登録不能になるため、可用性とセキュリティのトレードオフとして運用環境に合わせて選択してください
 
 ### パスワードハッシャーの設定
 
