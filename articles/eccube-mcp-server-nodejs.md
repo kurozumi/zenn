@@ -3,7 +3,7 @@ title: "「在庫が少ない商品を教えて」とClaudeに話しかけてEC-
 emoji: "🤖"
 type: "tech"
 topics: ["eccube", "eccube4", "nodejs", "mcp"]
-published: false
+published: true
 ---
 
 :::message alert
