@@ -2,7 +2,7 @@
 title: "EC-CUBE 4用MCPサーバーを作ってAI開発を効率化する"
 emoji: "🤖"
 type: "tech"
-topics: ["eccube", "eccube4", "php", "mcp", "ai"]
+topics: ["eccube", "eccube4", "nodejs", "mcp", "ai"]
 published: true
 ---
 
@@ -21,372 +21,299 @@ published: true
 
 ## はじめに
 
-**MCP（Model Context Protocol）** は、AIアシスタントが外部ツールやデータソースと連携するためのオープンプロトコルです。MCPサーバーを実装することで、Claude等のAIがEC-CUBEの商品データや受注情報に直接アクセスできるようになります。
+**MCP（Model Context Protocol）** は、AIアシスタントが外部ツールやデータソースと連携するためのオープンプロトコルです。MCPサーバーを実装することで、Claude等のAIがEC-CUBEの商品データや売上情報に直接アクセスできるようになります。
 
-本記事では、EC-CUBE 4用のMCPサーバーを実装し、AI駆動の開発・運用を効率化する方法を解説します。
+本記事では、EC-CUBE 4用のMCPサーバーをNode.jsで実装し、AI駆動の開発・運用を効率化する方法を解説します。
 
 :::message
 この記事で紹介するMCPサーバーは、OSSとして公開しています。
 **GitHub**: https://github.com/kurozumi/eccube-mcp-server
 :::
 
+## アーキテクチャ
+
+このMCPサーバーは **EC-CUBEのGraphQL API（Web APIプラグイン）経由** でデータにアクセスします。データベースに直接接続しないため、EC-CUBEのインストール環境を問わず利用できます。
+
+```
+Claude Desktop / Claude Code
+        │
+        │ MCP (stdio)
+        ▼
+EC-CUBE MCP Server（Node.js）
+        │
+        │ GraphQL API (HTTP)
+        ▼
+EC-CUBE 4（Web APIプラグイン）
+        │
+        ▼
+     Database
+```
+
 ## MCPサーバーで実現できること
 
 EC-CUBE用MCPサーバーを導入すると、以下のようなことが可能になります。
 
-- 「在庫切れの商品を教えて」→ AIが直接DBを検索して回答
-- 「今日の受注一覧を取得して」→ 受注データをリアルタイムで取得
-- 「商品ID:5の詳細情報を見せて」→ 商品の全情報を取得
-- EC-CUBEのバージョンアップ作業をAIが補助
+- 「在庫切れの商品を教えて」→ AIが商品コードで検索して在庫状況を回答
+- 「商品コードABC-001の在庫を50個に更新して」→ 在庫をリアルタイムで更新
+- 「先月の売上を月次で集計して」→ 売上サマリーを自動集計
+- 「今月の売れ筋商品トップ10を教えて」→ 販売数量・売上金額でランキング表示
 
-## 環境構築
-
-### 必要なもの
+## 必要なもの
 
 - EC-CUBE 4.3以上
-- PHP 8.1以上
-- Composer
+- Web APIプラグイン（Api42）インストール済み
+- Node.js 18以上
 - Claude Desktop または Claude Code
+
+## クイックセットアップ
+
+### GUIでセットアップ（推奨）
+
+コマンドラインを使わずにブラウザからセットアップできます。
+
+1. **[最新リリース](https://github.com/kurozumi/eccube-mcp-server/releases/latest)** からランチャーをダウンロード
+   - **Mac**: `launcher-mac.zip` を展開して `eccube-mcp-setup.command` をダブルクリック
+   - **Windows**: `launcher-windows.zip` を展開して `eccube-mcp-setup.bat` をダブルクリック
+2. ブラウザが自動で開きます。EC-CUBEのURLとアクセストークンを入力して「Claudeに登録する」ボタンを押すだけです
+3. Claudeを再起動すると利用できるようになります
+
+> **Macの注意**: 初回起動時にセキュリティ警告が出る場合は、右クリック→「開く」を選択してください。
+
+### コマンドラインからセットアップ
+
+```bash
+git clone https://github.com/kurozumi/eccube-mcp-server.git
+cd eccube-mcp-server
+npm install
+npm run setup
+```
+
+セットアップコマンドを実行するとブラウザが開き、GUIでEC-CUBEのURLとアクセストークンを入力できます。
+
+## アクセストークンの取得
+
+EC-CUBE管理画面の **設定 → API管理 → OAuth管理** からOAuthクライアントを登録し、アクセストークンを取得してください。
+
+アクセストークンの有効期限は1時間です。**リフレッシュトークン**・**クライアントID**・**クライアントシークレット**の3つを合わせて設定すると、期限切れ時に自動でトークンを更新します。
+
+## 実装の詳細
 
 ### プロジェクト構成
 
-EC-CUBEのプロジェクトルートに `mcp-server` ディレクトリを作成します。
-
 ```
-ec-cube/
-├── app/
+eccube-mcp-server/
 ├── src/
-├── mcp-server/          # MCPサーバー用ディレクトリ
-│   ├── composer.json
-│   ├── server.php       # MCPサーバーのエントリポイント
-│   └── src/
-│       └── Tools/       # MCPツール定義
-└── ...
+│   ├── index.ts          # エントリポイント・サーバー起動
+│   ├── tools.ts          # GraphQLクライアント・ユーティリティ
+│   ├── custom-tools.ts   # カスタムツール読み込み
+│   └── handlers/
+│       ├── search-products.ts   # 商品検索
+│       ├── check-stock.ts       # 在庫確認
+│       ├── update-stock.ts      # 在庫更新
+│       ├── analyze-sales.ts     # 売上集計
+│       └── get-sales-ranking.ts # 売上ランキング
+├── setup.js              # GUIセットアップツール
+├── package.json
+└── tsconfig.json
 ```
 
-### MCP SDKのインストール
+### GraphQLクライアント
 
-```bash
-cd /path/to/ec-cube/mcp-server
-composer init --name="myshop/eccube-mcp-server" --no-interaction
-composer require mcp/sdk
-```
+EC-CUBE GraphQL APIとの通信部分です。Bearer認証とトークン自動更新に対応しています。
 
-## MCPサーバーの実装
+```typescript
+// src/tools.ts
 
-### EC-CUBEのブートストラップ
+export function createEccubeClient(
+  apiUrl: string,
+  accessToken: string,
+  refreshConfig?: RefreshConfig
+) {
+  let currentToken = accessToken;
 
-EC-CUBEのEntityManagerを使用するため、EC-CUBEのカーネルを起動します。
+  return async function eccubeGraphQL(
+    query: string,
+    variables: Record<string, unknown> = {}
+  ): Promise<unknown> {
+    const makeRequest = (token: string) =>
+      fetch(`${apiUrl}/api`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ query, variables }),
+      });
 
-```php
-<?php
-// mcp-server/bootstrap.php
+    let response = await makeRequest(currentToken);
 
-require_once __DIR__.'/../vendor/autoload.php';
-
-use Eccube\Kernel;
-use Symfony\Component\Dotenv\Dotenv;
-
-// 環境変数の読み込み
-$dotenv = new Dotenv();
-$dotenv->loadEnv(__DIR__.'/../.env');
-
-$env = $_SERVER['APP_ENV'] ?? 'prod';
-$debug = (bool) ($_SERVER['APP_DEBUG'] ?? false);
-
-// EC-CUBEカーネルの起動
-$kernel = new Kernel($env, $debug);
-$kernel->boot();
-
-return $kernel->getContainer();
-```
-
-### 商品取得ツールの実装
-
-```php
-<?php
-// mcp-server/src/Tools/ProductTools.php
-
-namespace MyShop\MCP\Tools;
-
-use Eccube\Repository\ProductRepository;
-use Mcp\Attribute\McpTool;
-use Mcp\Attribute\ToolParameter;
-
-class ProductTools
-{
-    private ProductRepository $productRepository;
-
-    public function __construct(ProductRepository $productRepository)
-    {
-        $this->productRepository = $productRepository;
+    // 401の場合はトークンをリフレッシュして再試行
+    if (response.status === 401 && refreshConfig) {
+      const tokens = await refreshAccessToken(apiUrl, refreshConfig);
+      currentToken = tokens.accessToken;
+      response = await makeRequest(currentToken);
     }
 
-    /**
-     * 商品IDで商品情報を取得する
-     */
-    #[McpTool(
-        name: 'get_product',
-        description: '商品IDを指定して商品の詳細情報を取得します'
-    )]
-    public function getProduct(
-        #[ToolParameter(description: '商品ID', required: true)]
-        int $productId
-    ): array {
-        $product = $this->productRepository->find($productId);
+    const json = (await response.json()) as {
+      data?: unknown;
+      errors?: unknown[];
+    };
 
-        if (!$product) {
-            return ['error' => '商品が見つかりません'];
-        }
-
-        return [
-            'id' => $product->getId(),
-            'name' => $product->getName(),
-            'description' => $product->getDescriptionDetail(),
-            'price' => $product->getPrice02Min(),
-            'stock' => $this->getStockInfo($product),
-            'status' => $product->getStatus()->getName(),
-            'create_date' => $product->getCreateDate()->format('Y-m-d H:i:s'),
-        ];
+    if (json.errors) {
+      throw new Error("GraphQL エラーが発生しました");
     }
 
-    /**
-     * 商品を検索する
-     */
-    #[McpTool(
-        name: 'search_products',
-        description: '条件を指定して商品を検索します'
-    )]
-    public function searchProducts(
-        #[ToolParameter(description: '検索キーワード（商品名）', required: false)]
-        ?string $keyword = null,
-        #[ToolParameter(description: '在庫切れのみ取得するか', required: false)]
-        bool $outOfStock = false,
-        #[ToolParameter(description: '取得件数（デフォルト10件）', required: false)]
-        int $limit = 10
-    ): array {
-        $qb = $this->productRepository->createQueryBuilder('p')
-            ->select('p')
-            ->setMaxResults($limit);
-
-        if ($keyword) {
-            $qb->andWhere('p.name LIKE :keyword')
-               ->setParameter('keyword', '%'.$keyword.'%');
-        }
-
-        $products = $qb->getQuery()->getResult();
-        $results = [];
-
-        foreach ($products as $product) {
-            $stock = $this->getStockInfo($product);
-
-            if ($outOfStock && $stock['total'] > 0) {
-                continue;
-            }
-
-            $results[] = [
-                'id' => $product->getId(),
-                'name' => $product->getName(),
-                'price' => $product->getPrice02Min(),
-                'stock' => $stock['total'],
-                'status' => $product->getStatus()->getName(),
-            ];
-        }
-
-        return [
-            'count' => count($results),
-            'products' => $results,
-        ];
-    }
-
-    private function getStockInfo($product): array
-    {
-        $total = 0;
-        foreach ($product->getProductClasses() as $pc) {
-            if ($pc->isVisible() && $pc->getStock() !== null) {
-                $total += $pc->getStock();
-            }
-        }
-        return ['total' => $total];
-    }
+    return json.data;
+  };
 }
 ```
 
-### 受注取得ツールの実装
+### 商品検索ツール
 
-```php
-<?php
-// mcp-server/src/Tools/OrderTools.php
+```typescript
+// src/handlers/search-products.ts
 
-namespace MyShop\MCP\Tools;
-
-use Eccube\Repository\OrderRepository;
-use Mcp\Attribute\McpTool;
-use Mcp\Attribute\ToolParameter;
-
-class OrderTools
-{
-    private OrderRepository $orderRepository;
-
-    public function __construct(OrderRepository $orderRepository)
+export function registerSearchProducts(server: McpServer, eccubeGraphQL: EccubeGraphQL): void {
+  server.registerTool(
+    "search_products",
     {
-        $this->orderRepository = $orderRepository;
+      description:
+        "EC-CUBEの商品を商品名・商品コードで検索します。在庫数や価格も確認できます。",
+      inputSchema: {
+        keyword: z.string().describe("検索キーワード（商品名または商品コード）"),
+        limit: z.number().optional().describe("取得件数（デフォルト: 10、最大: 50）"),
+      },
+    },
+    async ({ keyword, limit = 10 }) => {
+      const safeLimit = clampLimit(limit);
+      const query = `
+        query SearchProducts($id: String, $limit: Int) {
+          products(id: $id, limit: $limit) {
+            edges {
+              node {
+                id
+                name
+                description_list
+                ProductClasses {
+                  id
+                  code
+                  stock
+                  stock_unlimited
+                  price02
+                }
+              }
+            }
+          }
+        }
+      `;
+
+      const data = await eccubeGraphQL(query, { id: keyword, limit: safeLimit });
+      // ... レスポンス処理
     }
-
-    /**
-     * 受注を検索する
-     */
-    #[McpTool(
-        name: 'search_orders',
-        description: '条件を指定して受注を検索します'
-    )]
-    public function searchOrders(
-        #[ToolParameter(description: '検索開始日（YYYY-MM-DD形式）', required: false)]
-        ?string $fromDate = null,
-        #[ToolParameter(description: '検索終了日（YYYY-MM-DD形式）', required: false)]
-        ?string $toDate = null,
-        #[ToolParameter(description: '対応状況ID（1:新規受付, 3:キャンセル, 5:発送済み, 6:入金済み）', required: false)]
-        ?int $statusId = null,
-        #[ToolParameter(description: '取得件数（デフォルト20件）', required: false)]
-        int $limit = 20
-    ): array {
-        $qb = $this->orderRepository->createQueryBuilder('o')
-            ->select('o')
-            ->orderBy('o.order_date', 'DESC')
-            ->setMaxResults($limit);
-
-        if ($fromDate) {
-            $qb->andWhere('o.order_date >= :fromDate')
-               ->setParameter('fromDate', new \DateTime($fromDate));
-        }
-
-        if ($toDate) {
-            $qb->andWhere('o.order_date <= :toDate')
-               ->setParameter('toDate', new \DateTime($toDate.' 23:59:59'));
-        }
-
-        if ($statusId) {
-            $qb->andWhere('o.OrderStatus = :status')
-               ->setParameter('status', $statusId);
-        }
-
-        $orders = $qb->getQuery()->getResult();
-        $results = [];
-
-        foreach ($orders as $order) {
-            $results[] = [
-                'id' => $order->getId(),
-                'order_no' => $order->getOrderNo(),
-                'customer_name' => $order->getName01().' '.$order->getName02(),
-                'email' => $order->getEmail(),
-                'total' => $order->getPaymentTotal(),
-                'status' => $order->getOrderStatus()->getName(),
-                'order_date' => $order->getOrderDate()->format('Y-m-d H:i:s'),
-            ];
-        }
-
-        return [
-            'count' => count($results),
-            'orders' => $results,
-        ];
-    }
-
-    /**
-     * 今日の売上サマリーを取得する
-     */
-    #[McpTool(
-        name: 'get_today_summary',
-        description: '今日の売上サマリー（受注件数、売上合計）を取得します'
-    )]
-    public function getTodaySummary(): array
-    {
-        $today = new \DateTime('today');
-        $tomorrow = new \DateTime('tomorrow');
-
-        $qb = $this->orderRepository->createQueryBuilder('o')
-            ->select('COUNT(o.id) as order_count, SUM(o.payment_total) as total_sales')
-            ->where('o.order_date >= :today')
-            ->andWhere('o.order_date < :tomorrow')
-            ->andWhere('o.OrderStatus NOT IN (:excludeStatus)')
-            ->setParameter('today', $today)
-            ->setParameter('tomorrow', $tomorrow)
-            ->setParameter('excludeStatus', [3, 8]); // キャンセル、購入処理中を除外
-
-        $result = $qb->getQuery()->getSingleResult();
-
-        return [
-            'date' => $today->format('Y-m-d'),
-            'order_count' => (int) $result['order_count'],
-            'total_sales' => (int) ($result['total_sales'] ?? 0),
-        ];
-    }
+  );
 }
 ```
 
-### MCPサーバーのエントリポイント
+### 在庫更新ツール
 
-```php
-<?php
-// mcp-server/server.php
+```typescript
+// src/handlers/update-stock.ts
 
-require_once __DIR__.'/vendor/autoload.php';
-
-use Mcp\Server\Server;
-use Mcp\Transport\StdioTransport;
-use MyShop\MCP\Tools\ProductTools;
-use MyShop\MCP\Tools\OrderTools;
-
-// EC-CUBEのコンテナを取得
-$container = require_once __DIR__.'/bootstrap.php';
-
-// リポジトリの取得
-$productRepository = $container->get(\Eccube\Repository\ProductRepository::class);
-$orderRepository = $container->get(\Eccube\Repository\OrderRepository::class);
-
-// ツールのインスタンス化
-$productTools = new ProductTools($productRepository);
-$orderTools = new OrderTools($orderRepository);
-
-// MCPサーバーの構築
-$server = Server::builder()
-    ->setServerInfo('EC-CUBE MCP Server', '1.0.0')
-    ->registerToolsFromObject($productTools)
-    ->registerToolsFromObject($orderTools)
-    ->build();
-
-// STDIOトランスポートで実行
-$transport = new StdioTransport();
-$server->run($transport);
+export function registerUpdateStock(server: McpServer, eccubeGraphQL: EccubeGraphQL): void {
+  server.registerTool(
+    "update_stock",
+    {
+      description:
+        "商品規格コードを指定して在庫数を更新します。在庫無制限にすることもできます。【重要】この操作は即座にデータベースに反映され取り消せません。実行前に必ずユーザーに内容を確認してください。",
+      inputSchema: {
+        code: z.string().describe("商品規格コード"),
+        stock: z.number().optional().describe("新しい在庫数（stock_unlimited が false の場合は必須）"),
+        stock_unlimited: z
+          .boolean()
+          .optional()
+          .describe("在庫無制限にする場合は true（デフォルト: false）"),
+      },
+    },
+    async ({ code, stock, stock_unlimited = false }) => {
+      const mutation = `
+        mutation UpdateStock($code: String!, $stock: Int, $stock_unlimited: Boolean!) {
+          updateProductStock(code: $code, stock: $stock, stock_unlimited: $stock_unlimited) {
+            id
+            stock
+            stock_unlimited
+          }
+        }
+      `;
+      // ... Mutation実行
+    }
+  );
+}
 ```
 
-### Composerのオートロード設定
+## 利用可能なツール一覧
+
+| ツール | 説明 |
+|--------|------|
+| `search_products` | キーワード（商品名・商品コード）で商品を検索。価格・在庫情報も取得 |
+| `check_stock` | 商品名または商品コードを指定して在庫数を確認 |
+| `update_stock` | 商品規格コードを指定して在庫数を更新。在庫無制限の設定も可能 |
+| `analyze_sales` | 指定期間の売上を日次・月次で集計。注文件数・売上合計・平均注文金額を取得 |
+| `get_sales_ranking` | 指定期間の売れ筋商品を販売数量・売上金額でランキング表示 |
+
+## カスタムツール
+
+`~/.eccube-mcp/custom-tools.json` にツール定義を記述するだけで、独自のGraphQLクエリをMCPツールとして追加できます。
 
 ```json
 {
-    "name": "myshop/eccube-mcp-server",
-    "autoload": {
-        "psr-4": {
-            "MyShop\\MCP\\": "src/"
-        }
-    },
-    "require": {
-        "php": ">=8.1",
-        "mcp/sdk": "^0.4"
+  "tools": [
+    {
+      "name": "get_monthly_revenue",
+      "description": "月別売上を集計",
+      "query": "{ orders { id totalPrice } }",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "from": { "type": "string", "description": "開始日(YYYY-MM-DD)" },
+          "to": { "type": "string", "description": "終了日(YYYY-MM-DD)" }
+        },
+        "required": ["from", "to"]
+      }
     }
+  ]
 }
 ```
 
-オートロードを更新します。
+ファイルが存在しない場合はエラーなく通常起動します。
 
-```bash
-composer dump-autoload
+## 手動設定
+
+GUIセットアップを使わず手動で設定することもできます。
+
+### Claude Code
+
+`~/.claude.json` を編集します。
+
+```json
+{
+  "mcpServers": {
+    "eccube": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/path/to/eccube-mcp-server/build/index.js"],
+      "env": {
+        "ECCUBE_API_URL": "https://your-eccube-site.com",
+        "ECCUBE_ACCESS_TOKEN": "your-access-token",
+        "ECCUBE_REFRESH_TOKEN": "your-refresh-token",
+        "ECCUBE_CLIENT_ID": "your-client-id",
+        "ECCUBE_CLIENT_SECRET": "your-client-secret"
+      }
+    }
+  }
+}
 ```
 
-## Claude Desktopでの設定
-
-Claude Desktopの設定ファイルにMCPサーバーを登録します。
-
-### macOSの場合
+### Claude Desktop（macOS）
 
 `~/Library/Application Support/Claude/claude_desktop_config.json` を編集します。
 
@@ -394,103 +321,69 @@ Claude Desktopの設定ファイルにMCPサーバーを登録します。
 {
   "mcpServers": {
     "eccube": {
-      "command": "php",
-      "args": ["/path/to/ec-cube/mcp-server/server.php"],
+      "command": "node",
+      "args": ["/path/to/eccube-mcp-server/build/index.js"],
       "env": {
-        "APP_ENV": "prod",
-        "APP_DEBUG": "0"
+        "ECCUBE_API_URL": "https://your-eccube-site.com",
+        "ECCUBE_ACCESS_TOKEN": "your-access-token"
       }
     }
   }
 }
 ```
 
-### Windowsの場合
+リフレッシュトークンを使わない場合は `ECCUBE_REFRESH_TOKEN`・`ECCUBE_CLIENT_ID`・`ECCUBE_CLIENT_SECRET` の3行を省略できます。
 
-`%APPDATA%\Claude\claude_desktop_config.json` を編集します。
+## 複数のEC-CUBEを使い分ける
 
-```json
-{
-  "mcpServers": {
-    "eccube": {
-      "command": "php",
-      "args": ["C:\\path\\to\\ec-cube\\mcp-server\\server.php"],
-      "env": {
-        "APP_ENV": "prod",
-        "APP_DEBUG": "0"
-      }
-    }
-  }
-}
-```
+本番環境とステージング環境など、複数のEC-CUBEを登録して使い分けることができます。セットアップ画面の「サーバー名」に区別できる名前を入力して、それぞれ登録します。
 
-設定後、Claude Desktopを再起動すると、MCPサーバーが利用可能になります。
+| サーバー名 | 用途 |
+|-----------|------|
+| `eccube-production` | 本番環境 |
+| `eccube-staging` | ステージング環境 |
 
-## 使用例
-
-Claude Desktopで以下のような質問ができるようになります。
-
-### 商品検索
+Claudeへはサーバー名を含めて話しかけると迷わず操作してもらえます。
 
 ```
-在庫切れの商品を教えて
+「eccube で在庫が10個以下の商品を教えて」
+「eccube の商品コードABC-001の在庫を50個に更新して」
+「eccube で先月の売上を月次で集計して」
+「eccube-staging の在庫を確認して」
 ```
 
-AIが `search_products` ツールを呼び出し、在庫切れ商品の一覧を返します。
+## 環境変数
 
-### 売上確認
-
-```
-今日の売上状況を教えて
-```
-
-AIが `get_today_summary` ツールを呼び出し、本日の受注件数と売上合計を返します。
-
-### 受注検索
-
-```
-今週の新規受注を一覧で見せて
-```
-
-AIが `search_orders` ツールを呼び出し、条件に合った受注データを返します。
+| 変数名 | 必須 | 説明 |
+|--------|------|------|
+| `ECCUBE_API_URL` | Yes | EC-CUBEサイトのURL（例: `https://your-eccube-site.com`） |
+| `ECCUBE_ACCESS_TOKEN` | Yes | Web APIプラグインで発行したアクセストークン |
+| `ECCUBE_REFRESH_TOKEN` | No | アクセストークン自動更新用のリフレッシュトークン |
+| `ECCUBE_CLIENT_ID` | No | OAuth クライアントID |
+| `ECCUBE_CLIENT_SECRET` | No | OAuth クライアントシークレット |
 
 ## セキュリティ上の注意
 
-MCPサーバーはEC-CUBEのデータベースに直接アクセスするため、以下の点に注意してください。
-
-1. **本番環境での使用は慎重に**: 開発・検証環境での使用を推奨
-2. **読み取り専用のツールに限定**: 更新・削除系のツールは慎重に設計
-3. **アクセス制限**: MCPサーバーは信頼できる環境でのみ実行
-4. **ログ出力**: 実行ログを記録してモニタリング
-
-## 拡張のアイデア
-
-基本的なツールを実装したら、以下のような拡張も検討できます。
-
-| ツール | 用途 |
-|--------|------|
-| `get_customer` | 会員情報の取得 |
-| `get_category_tree` | カテゴリ階層の取得 |
-| `get_plugin_list` | インストール済みプラグイン一覧 |
-| `check_system_info` | システム情報（PHP/DBバージョン等） |
-| `analyze_sales` | 売上分析（期間別、商品別） |
+1. **在庫更新は取り消せません**: `update_stock` ツールは即座にDBへ反映されます。実行前にClaudeが確認を求める設計になっています
+2. **個人情報保護**: 顧客・受注の個人情報へのアクセスは実装していません
+3. **アクセストークンの管理**: トークンは設定ファイルに平文で保存されます。ファイルのアクセス権限に注意してください
+4. **HTTPS推奨**: 本番環境では必ずHTTPSで通信してください
 
 ## まとめ
 
-- MCPサーバーを実装することで、AIがEC-CUBEのデータに直接アクセス可能に
-- 公式PHP SDKを使えば、属性ベースで簡単にツールを定義できる
-- 商品検索、受注確認、売上サマリーなど、日常業務をAIが補助
-- EC-CUBEのバージョンアップ作業もAIエージェントが支援可能に
-
-MCPサーバーは、EC-CUBEの開発・運用をAIと協働で行う新しいワークフローを実現します。
+- Node.js + TypeScript + MCP TypeScript SDK でEC-CUBE用MCPサーバーを実装
+- GraphQL API経由でアクセスするため、EC-CUBEの環境を問わず導入可能
+- GUIセットアップツール付きで、コマンドライン不要でも設定できる
+- 商品検索・在庫確認・在庫更新・売上集計・売上ランキングの5ツールを標準搭載
+- カスタムツール機能でGraphQLクエリを追加定義可能
 
 ## 参考リンク
 
 - [EC-CUBE MCP Server（GitHub）](https://github.com/kurozumi/eccube-mcp-server) - 本記事で紹介したMCPサーバーのOSS
+- [EC-CUBEとClaudeを連携させるMCPサーバーをNode.jsで作った](https://zenn.dev/kurozumi/articles/eccube-mcp-server-nodejs)
 - [GitHub Issue: MCPサーバーの実装](https://github.com/EC-CUBE/ec-cube/issues/6347)
-- [MCP公式PHP SDK](https://github.com/modelcontextprotocol/php-sdk)
+- [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
 - [Model Context Protocol](https://modelcontextprotocol.io/)
-- [MCP PHP SDK - Packagist](https://packagist.org/packages/mcp/sdk)
 
 ---
 
