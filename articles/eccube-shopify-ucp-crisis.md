@@ -23,7 +23,7 @@ published: false
 
 おそらくゼロです。それはあなたの運営が悪いのではなく、**EC-CUBE が AI に注文させる機能を持っていないから**です。
 
-2025年1月から2026年1月の1年間で、Shopify における AI 起因の注文数は **11倍**になりました。AI 由来のトラフィックは **7倍**増。複数のメディアが報じている Shopify のデータです。
+2025年1月以降、Shopify における AI 起因の注文数は **11倍**になりました。AI 由来のトラフィックは **7倍**増。Shopify 社長 Harley Finkelstein が Q3 2025 決算発表で公表し、[TechCrunch が報じた](https://techcrunch.com/2025/11/04/shopify-says-ai-traffic-is-up-7x-since-january-ai-driven-orders-are-up-11x/)データです。
 
 そして2026年4月、Shopify は Universal Commerce Protocol（UCP）を全加盟店向けに本格稼働させました。Claude・ChatGPT・Gemini などの AI エージェントが、数十億の商品を検索し、カートを作成し、チェックアウトまで完結できる環境が整いました。
 
