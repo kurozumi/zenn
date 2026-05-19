@@ -3,7 +3,7 @@ title: "あなたのEC-CUBEストア、ChatGPTから買えますか？UCP対応�
 emoji: "🤖"
 type: "tech"
 topics: ["eccube", "eccube4", "php", "mcp"]
-published: false
+published: true
 ---
 
 :::message alert
