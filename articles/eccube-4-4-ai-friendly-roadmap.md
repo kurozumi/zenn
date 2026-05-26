@@ -72,10 +72,7 @@ EC-CUBE 4.4は、オープンソースECにおける「AIネイティブ」の�
 1.  **次世代ECオープンソースの全貌発表（2026年5月28日ウェビナー）**:
     EC-CUBE公式より「AIエージェントが創るECの未来」と題したウェビナーが開催され、4.4におけるAI対応プロトコル（ACP/UCP）の導入が明言されました。
     - [【最新版EC-CUBE 4.4発表記念ウェビナー】 AIエージェントが創るECの未来と「企業と顧客の新しい関係」](https://www.ec-cube.net/event/detail.php?event_id=431)
-2.  **Adaptive Commerce Platformへの刷新（2026年3月）**:
-    プロダクトコンセプトの刷新において、AIが企業の独自ビジネスロジックに適応するための柔軟な基盤作りがコア戦略として掲げられています。
-    - [EC-CUBE、AI時代の新たなEC基盤「業務適応型コマース基盤（Adaptive Commerce Platform）」として刷新](https://prtimes.jp/main/html/rd/p/000000311.000009811.html)
-3.  **公式ロードマップ**:
+2.  **公式ロードマップ**:
     EC-CUBE 4.4の主要な開発項目として、MCP（Model Context Protocol）による管理画面のAIアシスタント機能がリストアップされています。
     - [GitHub: [WIP] EC-CUBE 4.4 Roadmap #6762](https://github.com/EC-CUBE/ec-cube/issues/6762)
 
