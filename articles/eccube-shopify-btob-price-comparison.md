@@ -3,7 +3,7 @@ title: "EC-CUBEの顧客グループ別価格、Shopifyで実現しようとし�
 emoji: "💰"
 type: "tech"
 topics: ["eccube", "eccube4", "shopify", "btob"]
-published: false
+published: true
 ---
 
 :::message alert
