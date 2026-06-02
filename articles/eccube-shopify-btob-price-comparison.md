@@ -52,36 +52,7 @@ published: false
 
 ### データモデル
 
-プラグインは `plg_customer_group_price` テーブルに、商品規格とグループの組み合わせごとの価格を保存します。
-
-```php
-/**
- * @ORM\Table(
- *     name="plg_customer_group_price",
- *     uniqueConstraints={
- *         @ORM\UniqueConstraint(name="group_product_class", columns={"group_id", "product_class_id"})
- *     }
- * )
- * @ORM\Entity(repositoryClass="Plugin\CustomerGroupPrice42\Repository\GroupPriceRepository")
- */
-class GroupPrice extends AbstractEntity
-{
-    /**
-     * @ORM\Column(type="decimal", precision=12, scale=2)
-     */
-    private $price;
-
-    /**
-     * @ORM\ManyToOne(targetEntity="Plugin\CustomerGroupPrice42\Entity\CustomerGroup42\Group")
-     */
-    private $group;
-
-    /**
-     * @ORM\ManyToOne(targetEntity="Eccube\Entity\ProductClass")
-     */
-    private $ProductClass;
-}
-```
+プラグインは `plg_customer_group_price` テーブルに、商品規格とグループの組み合わせごとの価格（DECIMAL 12,2）を保存します。`group_id` と `product_class_id` の組み合わせにユニーク制約が設けられており、同一グループ×商品規格の価格は1件のみ登録できます。
 
 既存エンティティはTraitで拡張します。
 
@@ -103,35 +74,9 @@ class GroupPrice extends AbstractEntity
 
 `Context::getPrice()` は登録された全ストラテジーを順番に評価し、最後に `supports()` が `true` を返したものの価格を採用します。
 
-```php
-// PricingInterface の実装例（DiscountPrice）
-class DiscountPrice implements PricingInterface
-{
-    public function supports(Group $group, ProductClass $ProductClass): bool
-    {
-        return $group->getDiscountRate() !== null;
-    }
-
-    public function getPrice(Group $group, ProductClass $ProductClass): int|float
-    {
-        $price = $ProductClass->getPrice02();
-        $discountRate = $group->getDiscountRate();
-        return $price * ((100 - $discountRate) / 100);
-    }
-}
-```
-
 ### 価格が切り替わる仕組み
 
-価格の切り替えはDoctrineの `postLoad` イベントで実現されています。
-
-```
-1. 商品規格（ProductClass）がDBから読み込まれる
-2. postLoad イベントで会員グループを確認
-3. 対応するグループ価格を計算
-4. price02 と price02IncTax を上書き
-5. 商品一覧・詳細・カートで自動的にグループ価格が表示される
-```
+価格の切り替えはDoctrineの `postLoad` イベントで実現されています。商品規格（ProductClass）がDBから読み込まれた直後に会員グループを確認し、対応するグループ価格を計算して `price02` と `price02IncTax` を上書きします。これにより商品一覧・詳細・カートで自動的にグループ価格が表示されます。
 
 また、EC-CUBE標準の `PriceChangeValidator`（カート内の価格変更チェック）を空実装で置き換えることで、グループ価格適用時にバリデーションエラーが発生しないよう対策されています（`PurchaseFlowPass`）。
 
@@ -175,84 +120,17 @@ Shopify PlusはB2B機能を内蔵したエンタープライズ向けプラン�
 
 Shopify PlusのB2B価格管理は、**カタログ（Catalog）** と **価格リスト（PriceList）** の2つの概念で構成されます。
 
-**エンティティ構造**:
-
-```
-Company（法人顧客）
-  └── CompanyLocation（拠点）※ 最大25カタログ割り当て可能
-        └── Catalog（商品と価格のセット）
-              └── PriceList（価格定義）
-                    ├── 固定価格（Fixed Price）
-                    └── パーセンテージ調整（Percentage Adjustment）
-```
+**エンティティ構造**: 法人顧客（Company）は複数の拠点（CompanyLocation）を持ちます。カタログは拠点単位で割り当て（1拠点最大25カタログ）、各カタログにPriceListが紐付く形です。
 
 **PriceListの価格設定方式**:
 1. **固定価格（Fixed Price）**: バリアントごとに価格を直接指定
 2. **パーセンテージ調整（Percentage Adjustment）**: 元の価格に対して割合で増減
 
-GraphQL APIでの価格リスト作成例（パーセンテージ調整）:
-
-```graphql
-mutation {
-  priceListCreate(input: {
-    name: "VIP顧客価格リスト",
-    currency: JPY,
-    parent: {
-      adjustment: {
-        type: PERCENTAGE_DECREASE,
-        value: "20"
-      }
-    }
-  }) {
-    priceList {
-      id
-      name
-    }
-    userErrors {
-      field
-      message
-    }
-  }
-}
-```
-
-:::message
-このGraphQL APIはShopify Admin APIのミューテーションです。実行にはAdminAPIアクセストークン（`write_products` スコープ）が必要です。フロントエンドから直接呼び出すことはできません。
-:::
-
-固定価格の設定（バリアント単位）:
-
-```graphql
-mutation {
-  priceListFixedPricesUpdate(
-    priceListId: "gid://shopify/PriceList/1",
-    prices: [{
-      variantId: "gid://shopify/ProductVariant/123",
-      price: { amount: "9800", currencyCode: JPY }
-    }]
-  ) {
-    prices {
-      variant { id }
-      price { amount }
-    }
-    userErrors {
-      field
-      message
-    }
-  }
-}
-```
+Admin APIのGraphQL mutationで価格リストの作成・更新・バリアント単位の固定価格設定が可能です（`write_products` スコープが必要）。
 
 ### CompanyとCompanyLocationの構造
 
-```
-Company（法人顧客エンティティ）
-  ├── CompanyContact（担当者 = 個人の顧客レコードと紐付く）
-  └── CompanyLocation（拠点）
-        ├── 独自の住所・税務番号・免税設定
-        ├── 決済条件（Net 30等）
-        └── Catalog割り当て（最大25個）
-```
+Shopify PlusのB2Bは **Company（法人）→ CompanyLocation（拠点）→ CompanyContact（担当者）** の3層構造で管理します。CompanyContactは個人の顧客レコードと紐付き、CompanyLocationには独自の住所・税務番号・免税設定・決済条件（Net 30等）・カタログを設定できます。
 
 価格はCompanyLocationレベルで割り当てるため、同じ会社でも拠点ごとに異なる価格体系を適用できます。
 
