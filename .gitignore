@@ -3,3 +3,4 @@ node_modules/
 *.log
 .note-profile/
 .note-session.json
+.claude/settings.local.json
