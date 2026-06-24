@@ -3,7 +3,7 @@ title: "EC-CUBE 4.4で動かなくなるプラグイン｜Symfony 7移行で壊�
 emoji: "⚠️"
 type: "tech"
 topics: ["eccube", "eccube4", "php", "symfony", "doctrine"]
-published: false
+published: true
 ---
 
 :::message alert
