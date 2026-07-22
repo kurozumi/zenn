@@ -3,7 +3,7 @@ title: "EC-CUBEの標準機能は対策済み、あなたのプラグインのCS
 emoji: "🛡️"
 type: "tech"
 topics: ["eccube", "eccube4", "php", "symfony"]
-published: false
+published: true
 ---
 
 :::message alert
