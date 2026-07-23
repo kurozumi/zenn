@@ -3,7 +3,7 @@ title: "EC-CUBE商品ページに★を出す方法、実は4.4で本体に組�
 emoji: "🔍"
 type: "tech"
 topics: ["eccube", "eccube4", "php", "symfony"]
-published: false
+published: true
 ---
 
 :::message alert
