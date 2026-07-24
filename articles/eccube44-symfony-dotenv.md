@@ -3,7 +3,7 @@ title: "EC-CUBE 4.4で getenv() が死ぬ? symfony/dotenv一本化の罠と高�
 emoji: "⚡"
 type: "tech"
 topics: ["eccube", "eccube4", "php", "symfony"]
-published: false
+published: true
 ---
 
 :::message alert
