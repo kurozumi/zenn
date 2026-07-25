@@ -3,7 +3,7 @@ title: "受注編集で「登録」を2回押していませんか？EC-CUBE 4.4
 emoji: "🧨"
 type: "tech"
 topics: ["eccube", "eccube4", "php", "symfony"]
-published: false
+published: true
 ---
 
 :::message alert
