@@ -43,7 +43,7 @@ grep -rnE -e '->(query|exec|executeUpdate|fetch|fetchAll|getSchemaManager|listTa
 - `DriverManager::getConnection()` が `url` パラメータを解析しなくなった（`DsnParser` で展開が必要）
 - `postConnect` イベントは廃止。接続時の初期化 SQL は **Driver Middleware** で書く
 
-## DB 種別の判定: `getName()` は消えました
+## DB 種別の判定と `getName()` の削除
 
 DBAL 3 まで、接続先が MySQL か PostgreSQL かを見る定番はこれでした。
 
@@ -113,7 +113,7 @@ PR #6855 で一括置換された内容をまとめます。プラグインの�
 
 ## 接続時の初期化は Driver Middleware へ
 
-EC-CUBE は接続確立時に「MySQL ならセッションのタイムゾーンを UTC に、PostgreSQL なら `SET TIME ZONE 'UTC'`」という初期化 SQL を流しています。4.3 まではこれを `postConnect` イベントで実装していました。
+EC-CUBE は接続確立時に初期化 SQL を流しています。MySQL ならセッションのタイムゾーンを UTC に、PostgreSQL なら `SET TIME ZONE 'UTC'`。4.3 まではこれを `postConnect` イベントで実装していました。
 
 ```php
 // 4.3: src/Eccube/Doctrine/EventSubscriber/InitSubscriber.php
@@ -259,7 +259,7 @@ doctrine:
 
 実務上、影響が出るのは次の2点です。
 
-### 既存DBは、放置すると採番が 1 からやり直しになる
+### 既存DBの採番が 1 に戻る問題
 
 すでに稼働している本番 DB のカラムは `SERIAL` のままです。ここで軽く考えてはいけません。DBAL 公式の移行ガイド（[postgresql-identity-migration](https://github.com/doctrine/dbal/blob/4.4.x/docs/en/how-to/postgresql-identity-migration.rst)）は、こう警告しています。
 
@@ -284,7 +284,7 @@ EC-CUBE を PostgreSQL のマネージドサービスで運用している場合
 
 ### シーケンス名が取れなくなる
 
-`IDENTITY` の内部シーケンスは `information_schema.sequences` に現れません。従来の「`テーブル名_pk_seq` という命名規則 + `information_schema` 検索」ではシーケンス名を取得できなくなります。
+`IDENTITY` の内部シーケンスは `information_schema.sequences` に現れません。従来のやり方、つまり `テーブル名_pk_seq` という命名規則を組み立てて `information_schema` を検索する方法では、シーケンス名を取得できなくなります。
 
 EC-CUBE 側では実際にこれで踏み抜いていて、`CsvFixture` のシーケンス振り直しが黙ってスキップされ、`fixtures:load` 後もシーケンスが初期値のまま残り、テストで作るレコードの id が既存 fixture と衝突していたそうです。4.4 では `pg_get_serial_sequence()`（SERIAL / IDENTITY 両対応）でシーケンス名を取る実装に修正されています。
 
@@ -300,11 +300,11 @@ $seq = $conn->fetchOne(
 );
 ```
 
-テーブル名を SQL 文字列に直接埋め込むと、値の出どころ次第でそのまま SQL インジェクションになります。`pg_get_serial_sequence()` は識別子を文字列引数で受け取る関数なので、バインドパラメータで渡せます。
+テーブル名を SQL 文字列に直接埋め込むと、値の出どころ次第でそのまま SQL インジェクションになります。`pg_get_serial_sequence()` は識別子を文字列の引数として受け取る関数なので、バインドパラメータで渡せます。
 
 ## ⚠️ MySQL: `lastInsertId()` が `'0'` で例外を投げる
 
-DBAL 4 では `Connection::lastInsertId()` が `'0'` を返す状況で `NoIdentityValue` 例外を投げるようになりました。DBAL 3 は単に `0` を返すだけだったので、「返り値が 0 なら採番されていない」という前提のコードは、4.4 では**例外で落ちます**。
+DBAL 4 では `Connection::lastInsertId()` が `'0'` を返す状況で `NoIdentityValue` 例外を投げるようになりました。DBAL 3 は単に `0` を返すだけでした。返り値が 0 なら採番されていない、という前提で書いたコードは、4.4 では**例外で落ちます**。
 
 DBAL 4 の `src/Driver/PDO/Connection.php` の該当箇所はこうです。
 
@@ -385,7 +385,7 @@ private function executeDdlWithMySqlWorkaround(Connection $conn, callable $ddlCa
 }
 ```
 
-さらに、composer 経由の uninstall などで「DBAL のネストレベルだけが残り、実接続にはトランザクションが無い」不整合が起きると、DBAL 4 では `flush()` 時に `There is no active transaction` 例外になります。これを検知して接続を閉じ、ネストレベルをリセットする `reconcileMySqlTransaction()` も追加されています。
+さらに、composer 経由の uninstall などで、DBAL のネストレベルだけが残って実接続にはトランザクションが無い、という不整合が起きることがあります。この状態で `flush()` すると、DBAL 4 では `There is no active transaction` 例外になります。これを検知して接続を閉じ、ネストレベルをリセットする `reconcileMySqlTransaction()` も追加されています。
 
 プラグインのインストーラで `SchemaTool` を直接叩いている場合、同種の問題を踏む可能性があります。
 
@@ -434,7 +434,7 @@ EC-CUBE の `UTCDateTimeType` / `UTCDateTimeTzType` は DBAL 4 対応で戻り�
 特に 3 と 5 は、コードは動くのに結果が静かに間違うタイプです。テストが通っても安心できません。EC-CUBE 本体でさえ、E2E が大量に落ちるまで「有効なプラグインが 0 件になっていた」ことに気付けませんでした。自分のプラグインなら、なおさらテストだけでは見つかりません。
 
 :::message alert
-EC-CUBE 4.4 は本記事執筆時点（2026年7月）で未リリースです。`4.4` ブランチにマージ済みの内容をもとに書いていますので、リリース時には細部が変わる可能性があります。
+EC-CUBE 4.4 はこの記事を書いている時点（2026年7月）で未リリースです。`4.4` ブランチにマージ済みの内容をもとに書いていますので、リリース時には細部が変わる可能性があります。
 :::
 
 ---
