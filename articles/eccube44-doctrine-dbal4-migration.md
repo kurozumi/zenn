@@ -15,7 +15,7 @@ published: false
 :::
 
 :::message
-この記事は EC-CUBE 4.3 以上を対象としています。
+この記事は EC-CUBE 4.4 以上を対象としています。
 また、[Claude Code](https://claude.ai/claude-code) を使って書かれています。内容に誤りがある場合はコメントでお知らせください。
 :::
 
