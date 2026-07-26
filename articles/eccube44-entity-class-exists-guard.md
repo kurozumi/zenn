@@ -21,7 +21,7 @@ published: false
 
 ## 結論: EC-CUBE 4.4で、全Entityを覆っていたあのガードが消えます
 
-EC-CUBE のソースを初めて開いた人がだいたい一度は「なんだこれは」となるコードがあります。`src/Eccube/Entity/` 配下の全 Entity が、こう書かれていることです。
+EC-CUBE のソースを初めて開いたとき、自分が最初に引っかかったのがこれでした。`src/Eccube/Entity/` 配下の全 Entity が、こう書かれています。
 
 ```php
 namespace Eccube\Entity;
@@ -40,7 +40,7 @@ if (!class_exists(Category::class)) {
 }
 ```
 
-クラス定義全体が `if (!class_exists())` でくるまれ、その分だけインデントが1段深い。IDE のクラス補完も効きにくく、`git diff` は無駄に大きくなる。プラグインを作るときも「本体がこう書いてるから」と真似して同じガードを書いた方は多いはずです。
+クラス定義全体が `if (!class_exists())` でくるまれ、その分だけインデントが1段深い。IDE のクラス補完も効きにくく、`git diff` は無駄に大きくなる。自分もプラグインを作るとき、本体がこう書いてるからという理由だけで同じガードを写経していました。理由は分かっていませんでした。
 
 このガードが、[PR #6895](https://github.com/EC-CUBE/ec-cube/pull/6895)（`4.4` ブランチに 2026年7月15日マージ済み）で **全廃** されました。差分は `+14,030 / -13,968`、76ファイル。コア 71 クラスからガードが消えています。
 
@@ -129,7 +129,7 @@ foreach ($files as $file) {
 
 ポイントは2つあります。
 
-**1つめ**は `class_exists($fqcn, false)` の第2引数です。`false` を渡すとオートローダーを起動せず、「いま実際にメモリ上で宣言済みか」だけを見ます。ここで `true`（デフォルト）にしてしまうと、判定のためにオートローダーが走って結局ファイルを読み込みかねません。二重宣言判定でこの引数を落とすのは典型的なバグなので、自作コードで似た判定を書くときも気をつけたいところです。
+**1つめ**は `class_exists($fqcn, false)` の第2引数です。`false` を渡すとオートローダーを起動せず、いま実際にメモリ上で宣言済みかどうかだけを見ます。ここで `true`（デフォルト）にしてしまうと、判定のためにオートローダーが走って結局ファイルを読み込みかねません。二重宣言判定でこの引数を落とすのは典型的なバグなので、自作コードで似た判定を書くときも気をつけたいところです。
 
 **2つめ**は、パス→FQCN の変換を `Entity` ディレクトリ配下に限定している点です。`app/Plugin/YourPlugin/phpseclib/bootstrap.php` のような同梱ライブラリまで機械的に FQCN 化すると、実在しない `Plugin\YourPlugin\phpseclib\bootstrap` を組み立てることになります。ここは限定しておかないと事故ります。
 
@@ -161,7 +161,7 @@ if ($undeclared !== []) {
 
 コメントに「旧実装では各Entityの `if (!class_exists())` ガードがこれを吸収していた」とはっきり書かれていて、何を代替したのかが読み取れます。
 
-## 副作用で直った潜在バグ: Customize の単独Entityが trait 拡張できない問題
+## Customize の単独Entityが trait 拡張できなかった件
 
 個人的にこのPRで一番おいしいのはここです。
 
@@ -176,7 +176,7 @@ $container->addCompilerPass(DoctrineOrmMappingsPass::createAttributeMappingDrive
 ));
 ```
 
-ちなみに 4.3 は、まだアノテーション時代なので `createAnnotationMappingDriver()` の同等コードです。いずれにせよ「Symfony/Doctrine 標準のマッピングドライバをそのまま使っていた」という構図は同じです。
+ちなみに 4.3 は、まだアノテーション時代なので `createAnnotationMappingDriver()` の同等コードです。いずれにせよ Symfony/Doctrine 標準のマッピングドライバをそのまま使っていた、という構図は同じです。
 
 PR 適用後は、コア・Plugin と同じドライバに統一されました。
 
@@ -196,7 +196,7 @@ $container->addCompilerPass(new DoctrineOrmMappingsPass($customizeDriver, $custo
 
 ただしこれは裏を返すと、既存の動作が変わるということでもあります。PR 本文の互換性チェックリストでも「既存機能の仕様変更はありません」に意図的にチェックが入っておらず、Discussion で相談事項として挙げられています。`app/Customize/Entity` に単独 Entity を置いていて、かつそれを trait 拡張している構成の方は、4.4 移行時にスキーマ差分が出ないか確認しておくと安全です。
 
-## プラグイン開発者は何をすればいいのか
+## プラグイン開発者への影響
 
 ### 自作プラグインの Entity にガードを書いている場合
 
@@ -213,7 +213,7 @@ $container->addCompilerPass(new DoctrineOrmMappingsPass($customizeDriver, $custo
 4.4 対応のタイミングで外していく方向で問題ありません。外す場合は `eccube:generate:proxies` の連続実行と `cache:clear` を通し、`doctrine:mapping:info` で拡張列がメタデータに乗っていることを確認してください。PR でもこの3コマンドで fatal 0 を確認したと報告されています。
 
 :::message
-なお、`eccube:plugin:generate` が生成するスケルトンはこのPRの対象外です（PR 本文に「本PRには未含」と明記。ガードを入れた当のPRは [#4719](https://github.com/EC-CUBE/ec-cube/pull/4719)）。実際、本記事執筆時点の `4.4` ブランチでも `src/Eccube/Command/PluginGenerateCommand.php` は `if (!class_exists('\Plugin\{code}\Entity\Config', false)) {` を吐き続けています。リリースまでに変わる可能性はあるので、実リリース版でご確認ください。
+なお、`eccube:plugin:generate` が生成するスケルトンはこのPRの対象外です（PR 本文に「本PRには未含」と明記。ガードを入れた当のPRは [#4719](https://github.com/EC-CUBE/ec-cube/pull/4719)）。実際、この記事を書いている時点の `4.4` ブランチでも `src/Eccube/Command/PluginGenerateCommand.php` は `if (!class_exists('\Plugin\{code}\Entity\Config', false)) {` を吐き続けています。リリースまでに変わる可能性はあるので、実リリース版でご確認ください。
 :::
 
 ### コア Entity を `require` している自作コードがある場合
@@ -277,7 +277,7 @@ class Category extends AbstractEntity implements \Stringable
 - `eccube:plugin:generate` のスケルトンには、`4.4` ブランチ時点でまだガードが残っている
 
 :::message alert
-EC-CUBE 4.4 は本記事執筆時点（2026年7月）で未リリースです。`4.4` ブランチにマージ済みの内容をもとに書いていますので、リリース時には細部が変わる可能性があります。
+EC-CUBE 4.4 はこの記事を書いている時点（2026年7月）で未リリースです。`4.4` ブランチにマージ済みの内容をもとに書いていますので、リリース時には細部が変わる可能性があります。
 :::
 
 ---
