@@ -27,7 +27,7 @@ in file ".../app/Plugin/AmazonPayV2_42_Bundle/phpseclib/bootstrap.php"
 while importing services from resource "../../../app/Plugin/*", but it was not found!
 ```
 
-プラグインを入れた瞬間、`cache:clear` も `cache:warmup` も `doctrine:schema:update` も通らなくなる。管理画面すら開けない。エラーメッセージは「このファイルにこのクラスが無い」と言っているが、そんなクラスは最初から存在しない。
+プラグインを入れた瞬間、`cache:clear` も `cache:warmup` も `doctrine:schema:update` も通らなくなる。管理画面すら開けない。エラーメッセージはこのファイルにこのクラスが無いと言っているが、そんなクラスは最初から存在しない。自分のプラグインが悪いのかと疑いたくなりますが、悪いのはコアです。
 
 このバグ、**2017年12月18日のコミット（`8633b4679b`）から存在していた潜在バグ**です。EC-CUBE 4 系がリリースされるより前から、ずっとそこにありました。[PR #6917](https://github.com/EC-CUBE/ec-cube/pull/6917)（`4.4` ブランチに 2026年7月15日マージ済み）でようやく修正されています。
 
@@ -35,7 +35,7 @@ while importing services from resource "../../../app/Plugin/*", but it was not f
 
 - 原因は `services.yaml` の `Plugin\` ブロックが `app/Plugin/*` を PSR-4 で総なめすること
 - プラグインが同梱する **非 PSR-4 のライブラリファイル**（phpseclib の `bootstrap.php` など）まで拾ってしまう
-- Symfony DI の `FileLoader::registerClasses` が「クラスが見つからない」と例外を投げてコンテナビルドが死ぬ
+- Symfony DI の `FileLoader::registerClasses` がクラスを見つけられず例外を投げ、コンテナビルドが死ぬ
 - Symfony **4.4 / 5.4 / 6.4 / 7.4 の全世代で同一に再現**（Symfony のバージョンアップによる回帰ではない）
 - 4.4 では `Plugin\` の登録を `services.php` へ移し、**ネストした `composer.json` を検出して動的に exclude** する
 - 副産物として `services.yaml` の `_defaults` の `bind` が届かなくなるため、**名前付きオートワイヤリング別名** が追加された
@@ -50,7 +50,7 @@ EC-CUBE 4.3 の `app/config/eccube/services.yaml` には、プラグインを DI
         exclude: '../../../app/Plugin/*/{Entity,Resource,ServiceProvider,Tests,Codeception,DoctrineMigrations}'
 ```
 
-Symfony の PSR-4 自動登録は、`resource` にマッチした `.php` ファイルについて「このパスなら FQCN はこうなるはず」と機械的に組み立て、そのクラスが実際に定義されているかを確認します。
+Symfony の PSR-4 自動登録は、`resource` にマッチした `.php` ファイルについて、このパスなら FQCN はこうなるはずだと機械的に組み立て、そのクラスが実際に定義されているかを確認します。
 
 つまり `app/Plugin/AmazonPayV2_42_Bundle/phpseclib/bootstrap.php` というファイルがあれば、Symfony は `Plugin\AmazonPayV2_42_Bundle\phpseclib\bootstrap` というクラスが定義されているはずだと考えます。当然そんなクラスはありません。`bootstrap.php` はライブラリの初期化スクリプトであって、PSR-4 のクラスファイルではないからです。
 
@@ -68,7 +68,7 @@ Symfony の PSR-4 自動登録は、`resource` にマッチした `.php` ファ�
 
 PR の作成者は、この挙動が Symfony 4.4 / 5.4 / 6.4 / 7.4 のすべてで同一に再現することを、`symfony/dependency-injection` 単体で隔離検証しています。
 
-「4.4 に上げたら壊れた」ではなく「4.4 に上げる前からずっと壊れていた」。Symfony メジャーバージョンアップの回帰ではないと切り分けた上で修正されました。
+4.4 に上げる前から、ずっと壊れていました。Symfony メジャーバージョンアップの回帰ではないと切り分けた上で修正されています。
 
 ## 修正: ネストした composer.json を検出して除外する
 
@@ -140,7 +140,7 @@ return function (ContainerConfigurator $configurator): void {
 
 ### 実行コストは？
 
-「コンテナビルドのたびにディレクトリを再帰走査するのか」と気になるところですが、PR に説明があります。
+コンテナビルドのたびにディレクトリを再帰走査するのか、という点は気になります。PR に説明があります。
 
 > 走査ロジック（`scandir` 再帰）は **コンテナのコンパイル時のみ**実行され, ダンプ済みコンテナ（`var/cache/<env>/*Container.php`）には含まれません。通常リクエストでは実行されないためランタイム性能への影響はありません
 
@@ -170,7 +170,7 @@ services:
 
 決済プラグインの Payment Method などが、コアの `Cash` クラスと同じように `PurchaseFlow $shoppingPurchaseFlow` を型 + 引数名で注入する。これが成立していたのは、この `bind` のおかげです。
 
-問題は、**Symfony の `_defaults` が「その定義ファイルの中のサービス」にしか適用されない** ことです。スコープは定義ファイル単位（正確には同一 `services` ブロック単位）です。公式ドキュメントにも "for any service that's defined in this file" と明記されています。
+問題は、**Symfony の `_defaults` がその定義ファイルの中のサービスにしか適用されない**ことです。スコープは定義ファイル単位（正確には同一 `services` ブロック単位）です。公式ドキュメントにも "for any service that's defined in this file" と明記されています。
 
 つまり `Plugin\` の登録を `services.php` に移した瞬間、プラグインのサービスは `services.yaml` の `_defaults` の対象外になり、`$shoppingPurchaseFlow` が解決できなくなります。決済プラグインが軒並み壊れる、というかなり危ない副作用です。
 
@@ -246,7 +246,7 @@ services:
 `exclude` にライブラリ名を1つ足せば直ったことにはなります。そうせずに、`composer.json` の存在という規則性を見つけて一般解にした。8年越しのバグ修正としては、ずいぶんきれいな決着でした。
 
 :::message alert
-EC-CUBE 4.4 は本記事執筆時点（2026年7月）で未リリースです。`4.4` ブランチにマージ済みの内容をもとに書いていますので、リリース時には細部が変わる可能性があります。
+EC-CUBE 4.4 はこの記事を書いている時点（2026年7月）で未リリースです。`4.4` ブランチにマージ済みの内容をもとに書いていますので、リリース時には細部が変わる可能性があります。
 :::
 
 ---
