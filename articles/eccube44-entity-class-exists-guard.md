@@ -3,7 +3,7 @@ title: "EC-CUBE 4.4でEntityの if (!class_exists()) が全廃される。あの
 emoji: "🧹"
 type: "tech"
 topics: ["eccube", "eccube4", "php", "symfony", "doctrine"]
-published: false
+published: true
 ---
 
 :::message alert
