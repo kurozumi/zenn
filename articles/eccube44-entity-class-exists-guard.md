@@ -48,9 +48,17 @@ if (!class_exists(Category::class)) {
 
 - EC-CUBE 4.4 で `src/Eccube/Entity/` の `if (!class_exists())` ガードが全廃される（[PR #6895](https://github.com/EC-CUBE/ec-cube/pull/6895)）
 - ガードの正体は、元ソースと `app/proxy/entity` 配下の proxy という**同一 FQCN の2ファイル**を `require_once` したときの redeclare fatal 回避
-- `EntityProxyService::scanTraits()` と `TraitProxyAttributeDriver` を proxy 対応にすることで、ガードなしでも fatal が出ない状態にした
+- `EntityProxyService::scanTraits()` と `TraitProxyAttributeDriver` を proxy 対応にすることでガードを不要にした。**ただしこれでは足りず、マージ後に回帰バグが出ています**（後述）
 - 副作用として、`app/Customize/Entity` に置いた単独 Entity を trait 拡張しても列がマッピングされない潜在バグも同時に解消された
 - プラグイン生成コマンドのスケルトンが吐くガードは、このPRには含まれていない（`4.4` ブランチでも現存）
+
+:::message alert
+**追記（2026年7月27日）**
+
+この記事の主題である #6895 は、マージ後に回帰バグが見つかりました。ガードを外した結果、特定の構成で `Cannot declare class` が発生し、全リクエストと `cache:clear` が失敗します。修正 PR は出ていますが、この記事を書いている時点では未マージです。
+
+自分でも手元で再現させ、修正 PR でも塞ぎきれていない経路を見つけて報告しました。詳しくは末尾の「その後、回帰バグが見つかった」を読んでください。
+:::
 
 ## そもそも、なぜあのガードが必要だったのか
 
@@ -96,6 +104,10 @@ PR #6895 のアプローチは、ガードを外す前に `require_once` が起�
 ただしこの表は Draft 時点のもので、**実際にマージされた差分では `TraitProxyAttributeDriver` にも修正が入っています**（+86/-12）。調査 Issue の [#6891](https://github.com/EC-CUBE/ec-cube/issues/6891) にも「全廃するには4箇所すべてを個別に安全化する必要があり、1箇所のみの修正では不十分」と書かれており、そちらのほうが結果に即しています。
 
 つまり、ガードに実際に依存していたのは `EntityProxyService::scanTraits()` と `TraitProxyAttributeDriver` の2箇所でした。
+
+:::message alert
+そして、この整理には**5箇所目が抜けていました**。doctrine-bundle の `auto_mapping` が生成する素の `AttributeDriver` です。EC-CUBE のコードには現れないので、コアのソースを追うだけでは見つかりません。これが後述の回帰バグの原因になります。
+:::
 
 :::message
 表の「対象」列も PR 本文の整理をそのまま引いたものです。実際には 4.4 の `Kernel::addEntityExtensionPass()` はコアの `src/Eccube/Entity` にも `TraitProxyAttributeDriver` を使っており、`ReloadSafeAttributeDriver` はその継承クラスです。
@@ -267,6 +279,90 @@ class Category extends AbstractEntity implements \Stringable
 
 `@return string` の PHPDoc が実際の戻り値型宣言になり、`\Stringable` と `#[\Override]` が入り、`repositoryClass` が文字列から `::class` 定数になっています。IDE のジャンプもリファクタリングも効くようになるので、実装を読むのがかなり楽になります。
 
+## その後、回帰バグが見つかった
+
+ここからは公開後の追記です（2026年7月27日）。
+
+#6895 のマージから9日後、[PR #6963](https://github.com/EC-CUBE/ec-cube/pull/6963) が出ました。**#6895 の回帰バグ修正**です。ガードを外したことで、こうなる環境が出ました。
+
+```
+PHP Fatal error: Cannot declare class Eccube\Entity\Customer,
+because the name is already in use in src/Eccube/Entity/Customer.php on line 49
+```
+
+Proxy 生成後、全リクエストが 500 になります。`cache:clear` も通りません。
+
+### 原因は5箇所目の `require_once`
+
+上で「`require_once` が起きるのは4箇所」と書きましたが、5箇所目がありました。`doctrine.orm.auto_mapping: true` です。
+
+doctrine-bundle は auto_mapping が有効なとき、登録済みの全バンドルについて「Bundle クラスが置かれたディレクトリに `Entity/` があるか」を見て、あれば自動でマッピング対象にします。`EccubeBundle` のクラスファイルは `src/Eccube/EccubeBundle.php` なので、`src/Eccube/Entity` が引っかかります。
+
+そしてこのドライバは素の `AttributeDriver` で、`ColocatedMappingDriver::getAllClassNames()` が Entity ソースを無条件に `require_once` します。`Kernel::__construct()` が `loadEntityProxies()` を呼んで proxy を先にロードしているので、そこで二重宣言になります。
+
+厄介なのは、このドライバが EC-CUBE のコードに一切現れないことです。doctrine-bundle が設定から生成します。コアのソースを `grep` しても出てきません。ガードは、この見えない経路まで黙って吸収していたわけです。
+
+### 発生条件
+
+条件が2つ揃ったときだけ起きます。
+
+1. コア Entity を trait 拡張するプラグインが入っている（＝ proxy が生成されている）
+2. **Entity を持つ第三者バンドルが別に入っている**
+
+2 が要るのは、doctrine-bundle が auto_mapping 対象のパスを1つのドライバインスタンスに集約するからです。チェーンに登録される名前空間は EC-CUBE 側の明示登録で上書きされますが、同じインスタンスが別の名前空間で残っていると、`getAllClassNames()` が自分の持つ全パスを走査してしまいます。
+
+実務的には、条件2は API プラグイン（`ec-cube/api44`）を入れれば成立します。`league/oauth2-server-bundle` が付いてくるからです。決済プラグイン + API プラグインという、ごく普通の構成で踏みます。
+
+### 修正 PR の状況
+
+[#6963](https://github.com/EC-CUBE/ec-cube/pull/6963) の修正は `doctrine.yaml` の6行です。
+
+```yaml
+    orm:
+        auto_mapping: true
+        mappings:
+            EccubeBundle: false
+```
+
+auto_mapping 全体ではなく `EccubeBundle` だけを無効化します。コアの Entity は `Kernel::addEntityExtensionPass()` が `TraitProxyAttributeDriver` で明示登録しているので、auto_mapping による登録は要りません。
+
+ただしこの PR は、この記事を書いている時点で**未マージ**です。つまり `4.4` ブランチには今もこのバグがあります。
+
+### 手元で再現させてみた
+
+書いている内容が正しいか確かめたかったので、`4.4`（`89dec55c49`）をローカルに立てて実際に踏ませました。DB のインストールは不要で、`composer install` して `cache:warmup` を叩くだけで確認できます。
+
+| 構成 | 結果 |
+| --- | --- |
+| #6963 未適用 + Entity 付き第三者バンドル + コア proxy | `Cannot declare class Eccube\Entity\Category` |
+| #6963 適用 | OK |
+| **#6963 適用 + ルート直下に Bundle を置いたプラグイン** | **`Cannot declare class Plugin\Foo\Entity\Bar`** |
+| **#6963 適用 + `app/Customize` 直下に Bundle** | **`Cannot declare class Customize\Entity\MyThing`** |
+
+3行目と4行目が問題です。**#6963 を適用しても、まだ塞がっていない経路があります。**
+
+`Kernel::registerBundles()` は `EccubeBundle` だけでなく、`app/Plugin/<Code>/Resource/config/bundles.php` と `app/Customize/Resource/config/bundles.php` からもバンドルを登録します。判定基準は上と同じなので、`app/Plugin/Foo/FooBundle.php` + `app/Plugin/Foo/Entity/` という配置だと `EccubeBundle` とまったく同じ二重登録になります。
+
+`mappings: EccubeBundle: false` はバンドル名を名指しする方式なので、サードパーティ製プラグインのバンドル名は事前に書けません。この経路は原理的に塞げないことになります。
+
+確認した範囲では、公式プラグインにこの配置のものはありませんでした。API プラグインは `ApiBundle` を `Bundle/` サブディレクトリに置いているため、たまたま該当しません。ただし置き場所を規約で縛っているわけではないので、たまたま助かっているだけです。
+
+これは [Issue #6979](https://github.com/EC-CUBE/ec-cube/issues/6979) として報告しました。
+
+### revert の可能性
+
+#6895 は 76ファイル `+14,030/-13,968` の大規模変更です。リリース直前に別の踏み方が見つかった場合、設定を足して塞ぎ続けるより丸ごと戻すほうが安全、という判断はあり得ます。作者もその可能性に言及しているそうです。
+
+とくに上で書いた経路は、サードパーティ製プラグインの構成次第なので EC-CUBE 側からは検知できません。プラグイン互換性を重視するなら、revert 判断に傾く材料になります。
+
+この記事の内容が 4.4 リリース時点でそのまま残っているとは限りません。ガード全廃を前提にした対応は、リリース版を確認してから進めてください。
+
+### 何が教訓か
+
+自分がこの記事を書いたとき、コアのソースを追って「`require_once` は4箇所」と整理しました。実際には5箇所目があり、それはフレームワークが設定から生成するもので、コアのコードには現れませんでした。
+
+アプリケーションのコードだけを読んで挙動を把握したつもりになるのは危ういです。とくに Symfony のように、設定からサービスが生成されるフレームワークでは。今回は `bin/console debug:container` や実際に動かす手順を踏むまで、この経路に気づけませんでした。
+
 ## まとめ
 
 - EC-CUBE 4.4 でコア Entity の `if (!class_exists())` ガードが全廃される（[PR #6895](https://github.com/EC-CUBE/ec-cube/pull/6895)）
@@ -275,6 +371,7 @@ class Category extends AbstractEntity implements \Stringable
 - 副作用で `app/Customize/Entity` の単独 Entity が trait 拡張できるようになった（挙動が変わるので移行時は確認推奨）
 - 自作プラグインのガードは急いで外す必要はないが、コア Entity を手動 `require` しているコードがあれば 4.4 では危険
 - `eccube:plugin:generate` のスケルトンには、`4.4` ブランチ時点でまだガードが残っている
+- **マージ後に回帰バグが出ており、修正 PR も未マージ。revert の可能性もある**（[#6963](https://github.com/EC-CUBE/ec-cube/pull/6963) / [#6979](https://github.com/EC-CUBE/ec-cube/issues/6979)）
 
 :::message alert
 EC-CUBE 4.4 はこの記事を書いている時点（2026年7月）で未リリースです。`4.4` ブランチにマージ済みの内容をもとに書いていますので、リリース時には細部が変わる可能性があります。
