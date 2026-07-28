@@ -55,9 +55,9 @@ if (!class_exists(Category::class)) {
 :::message alert
 **追記（2026年7月27日）**
 
-この記事の主題である #6895 は、マージ後に回帰バグが見つかりました。ガードを外した結果、特定の構成で `Cannot declare class` が発生し、全リクエストと `cache:clear` が失敗します。修正 PR は出ていますが、この記事を書いている時点では未マージです。
+この記事の主題である #6895 は、マージ後に回帰バグが見つかりました。ガードを外した結果、特定の構成で `Cannot declare class` が発生し、全リクエストと `cache:clear` が失敗します。
 
-自分でも手元で再現させ、修正 PR でも塞ぎきれていない経路を見つけて報告しました。詳しくは末尾の「その後、回帰バグが見つかった」を読んでください。
+自分でも手元で再現させ、最初の修正案では塞ぎきれない経路を見つけて報告しました（[#6979](https://github.com/EC-CUBE/ec-cube/issues/6979)）。現在は方式を変えた [#6982](https://github.com/EC-CUBE/ec-cube/pull/6982) で対応が進んでいますが、この記事を書いている時点ではまだマージされていません。詳しくは末尾の「その後、回帰バグが見つかった」を読んでください。
 :::
 
 ## そもそも、なぜあのガードが必要だったのか
@@ -313,9 +313,9 @@ doctrine-bundle は auto_mapping が有効なとき、登録済みの全バン�
 
 実務的には、条件2は API プラグイン（`ec-cube/api44`）を入れれば成立します。`league/oauth2-server-bundle` が付いてくるからです。決済プラグイン + API プラグインという、ごく普通の構成で踏みます。
 
-### 修正 PR の状況
+### 最初の修正案（#6963）と、その穴
 
-[#6963](https://github.com/EC-CUBE/ec-cube/pull/6963) の修正は `doctrine.yaml` の6行です。
+最初に出た [#6963](https://github.com/EC-CUBE/ec-cube/pull/6963) は `doctrine.yaml` の6行でした。
 
 ```yaml
     orm:
@@ -326,11 +326,7 @@ doctrine-bundle は auto_mapping が有効なとき、登録済みの全バン�
 
 auto_mapping 全体ではなく `EccubeBundle` だけを無効化します。コアの Entity は `Kernel::addEntityExtensionPass()` が `TraitProxyAttributeDriver` で明示登録しているので、auto_mapping による登録は要りません。
 
-ただしこの PR は、この記事を書いている時点で**未マージ**です。つまり `4.4` ブランチには今もこのバグがあります。
-
-### 手元で再現させてみた
-
-書いている内容が正しいか確かめたかったので、`4.4`（`89dec55c49`）をローカルに立てて実際に踏ませました。DB のインストールは不要で、`composer install` して `cache:warmup` を叩くだけで確認できます。
+これで直るのか確かめたくて、`4.4`（`89dec55c49`）をローカルに立てて実際に踏ませてみました。DB のインストールは不要で、`composer install` して `cache:warmup` を叩くだけで確認できます。
 
 | 構成 | 結果 |
 | --- | --- |
@@ -339,7 +335,7 @@ auto_mapping 全体ではなく `EccubeBundle` だけを無効化します。コ
 | **#6963 適用 + ルート直下に Bundle を置いたプラグイン** | **`Cannot declare class Plugin\Foo\Entity\Bar`** |
 | **#6963 適用 + `app/Customize` 直下に Bundle** | **`Cannot declare class Customize\Entity\MyThing`** |
 
-3行目と4行目が問題です。**#6963 を適用しても、まだ塞がっていない経路があります。**
+3行目と4行目が落ちました。#6963 では塞ぎきれない経路が残っていたわけです。
 
 `Kernel::registerBundles()` は `EccubeBundle` だけでなく、`app/Plugin/<Code>/Resource/config/bundles.php` と `app/Customize/Resource/config/bundles.php` からもバンドルを登録します。判定基準は上と同じなので、`app/Plugin/Foo/FooBundle.php` + `app/Plugin/Foo/Entity/` という配置だと `EccubeBundle` とまったく同じ二重登録になります。
 
@@ -347,15 +343,33 @@ auto_mapping 全体ではなく `EccubeBundle` だけを無効化します。コ
 
 確認した範囲では、公式プラグインにこの配置のものはありませんでした。API プラグインは `ApiBundle` を `Bundle/` サブディレクトリに置いているため、たまたま該当しません。ただし置き場所を規約で縛っているわけではないので、たまたま助かっているだけです。
 
-これは [Issue #6979](https://github.com/EC-CUBE/ec-cube/issues/6979) として報告しました。
+これを [Issue #6979](https://github.com/EC-CUBE/ec-cube/issues/6979) として報告しました。
 
-### revert の可能性
+### 決着: コンパイル時にパスを剥がす（#6982）
 
-#6895 は 76ファイル `+14,030/-13,968` の大規模変更です。リリース直前に別の踏み方が見つかった場合、設定を足して塞ぎ続けるより丸ごと戻すほうが安全、という判断はあり得ます。作者もその可能性に言及しているそうです。
+報告の翌日、方式を変えた [PR #6982](https://github.com/EC-CUBE/ec-cube/pull/6982) が出ました。#6963 はクローズされ、こちらに置き換わっています。
 
-とくに上で書いた経路は、サードパーティ製プラグインの構成次第なので EC-CUBE 側からは検知できません。プラグイン互換性を重視するなら、revert 判断に傾く材料になります。
+バンドル名を列挙するのをやめ、**`Kernel::addEntityExtensionPass()` が明示登録した Entity ディレクトリを、コンパイル時に auto_mapping 側のドライバの `paths` から取り除く**方式です（`StripAutoMappedEntityPathsPass`）。
 
-この記事の内容が 4.4 リリース時点でそのまま残っているとは限りません。ガード全廃を前提にした対応は、リリース版を確認してから進めてください。
+```php
+$container->addCompilerPass(
+    new StripAutoMappedEntityPathsPass($explicitlyMappedPaths),
+    PassConfig::TYPE_BEFORE_OPTIMIZATION,
+    -1001
+);
+```
+
+剥がすパスは、明示登録に使った配列をそのままコンパイラパスへ渡しています。登録先が将来増えても剥がす側が自動で追従するので、パスの二重管理が起きません。第三者バンドルのパスは残るため、`league/oauth2-server-bundle` などの Entity は従来どおりマッピングされます。
+
+こちらも手元で確認しました。上の3ケースはすべて解消し、素の構成でもマッピング数に増減はありませんでした。同一プラグイン内に「剥がす対象」と「残す対象」を同居させるケース、プロジェクトをシンボリックリンク経由で参照するケースも通っています。
+
+ただしこの PR は、この記事を書いている時点で**まだマージされていません**。つまり `4.4` ブランチには今もこのバグが残っています。
+
+### 4.4 リリース時にどうなっているか
+
+一連の経緯は #6895（ガード全廃）→ #6963（コアだけ塞ぐ）→ #6979（穴の報告）→ #6982（一般化して塞ぐ）という流れです。#6982 の方式ならバンドル名に依存しないので、同じ系統の再発は起きにくいはずです。
+
+とはいえ #6895 は 76ファイル `+14,030/-13,968` の大規模変更で、リリース直前に別の踏み方が見つかれば丸ごと戻すという判断もあり得ます。この記事の内容が 4.4 リリース時点でそのまま残っているとは限りません。ガード全廃を前提にした対応は、リリース版を確認してから進めてください。
 
 ### 何が教訓か
 
@@ -371,7 +385,7 @@ auto_mapping 全体ではなく `EccubeBundle` だけを無効化します。コ
 - 副作用で `app/Customize/Entity` の単独 Entity が trait 拡張できるようになった（挙動が変わるので移行時は確認推奨）
 - 自作プラグインのガードは急いで外す必要はないが、コア Entity を手動 `require` しているコードがあれば 4.4 では危険
 - `eccube:plugin:generate` のスケルトンには、`4.4` ブランチ時点でまだガードが残っている
-- **マージ後に回帰バグが出ており、修正 PR も未マージ。revert の可能性もある**（[#6963](https://github.com/EC-CUBE/ec-cube/pull/6963) / [#6979](https://github.com/EC-CUBE/ec-cube/issues/6979)）
+- **マージ後に回帰バグが出た。[#6982](https://github.com/EC-CUBE/ec-cube/pull/6982) で対応中だが、まだマージされていない**（経緯: [#6963](https://github.com/EC-CUBE/ec-cube/pull/6963) → [#6979](https://github.com/EC-CUBE/ec-cube/issues/6979) → #6982）
 
 :::message alert
 EC-CUBE 4.4 はこの記事を書いている時点（2026年7月）で未リリースです。`4.4` ブランチにマージ済みの内容をもとに書いていますので、リリース時には細部が変わる可能性があります。
