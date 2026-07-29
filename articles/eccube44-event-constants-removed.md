@@ -3,7 +3,7 @@ title: "そのフックポイント、一度も呼ばれていません。EC-CUB
 emoji: "🪦"
 type: "tech"
 topics: ["eccube", "eccube4", "php", "symfony"]
-published: false
+published: true
 ---
 
 :::message alert
