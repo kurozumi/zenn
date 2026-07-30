@@ -3,7 +3,7 @@ title: "EC-CUBE 4.4にCookie同意バナーが標準搭載。CDN配下でも壊�
 emoji: "🍪"
 type: "tech"
 topics: ["eccube", "eccube4", "php", "symfony", "gdpr"]
-published: false
+published: true
 ---
 
 :::message alert
