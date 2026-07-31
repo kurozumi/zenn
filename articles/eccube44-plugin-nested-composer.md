@@ -3,7 +3,7 @@ title: "8年間眠っていたEC-CUBEの地雷。プラグイン同梱ライブ�
 emoji: "💥"
 type: "tech"
 topics: ["eccube", "eccube4", "php", "symfony", "di"]
-published: false
+published: true
 ---
 
 :::message alert
