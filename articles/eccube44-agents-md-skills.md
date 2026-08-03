@@ -3,7 +3,7 @@ title: "OSSがAIエージェント向けに規約を書き始めた。EC-CUBEの
 emoji: "📐"
 type: "tech"
 topics: ["eccube", "ai", "claudecode", "oss", "設計"]
-published: false
+published: true
 ---
 
 :::message alert
@@ -23,8 +23,8 @@ published: false
 
 EC-CUBE 4.4 のリポジトリには、人間が読むための README とは別に、AIエージェントが読むための規約が置かれています。
 
-- `AGENTS.md`（309行）
-- `.claude/skills/` 配下に 19個のスキル（合計2,503行）
+- `AGENTS.md`（330行）
+- `.claude/skills/` 配下に 19個のスキル（合計2,507行）
 
 [#6817](https://github.com/EC-CUBE/ec-cube/pull/6817) で基盤が入り、[#6853](https://github.com/EC-CUBE/ec-cube/pull/6853) でレイヤ別スキルが追加され、[#6907](https://github.com/EC-CUBE/ec-cube/pull/6907) で定義ファイルの配置原則がまとまりました。
 
@@ -36,7 +36,7 @@ EC-CUBE 4.4 のリポジトリには、人間が読むための README とは別
 - ポインタは「`AGENTS.md` をネイティブに読まないツールにだけ置く」という原則を明文化
 - Cursor / Copilot / Codex CLI は `AGENTS.md` を直接読むので**専用ファイルを作らない**
 - スキルの正本は `.claude/skills/`。`.codex/skills` と `.agents/skills` は symlink。同期スクリプト不要
-- スキルは19個。`security` `purchase-flow` `entity` などレイヤ別
+- スキルは19個。`eccube-security` `eccube-purchase-flow` `eccube-entity` などレイヤ別
 - 中身の主眼は「ツールでは検出できない観点」。PHPStan や php-cs-fixer で分かることは書かない
 
 ## なぜ AI向けの規約が要るのか
@@ -127,37 +127,37 @@ symlink には前提があります。ドキュメントにも書かれている
 
 | スキル | 行数 | 対象 |
 | --- | --- | --- |
-| `purchase-flow` | 252 | 受注処理の Processor / Validator |
-| `command` | 199 | コンソールコマンド |
-| `customize` | 196 | `app/Customize` によるカスタマイズ |
-| `mail` | 183 | メール送信・テンプレート |
-| `csv` | 179 | CSV 入出力 |
-| `plugin` | 166 | プラグイン開発 |
-| `controller` | 141 | コントローラの責務分離 |
-| `migration` | 129 | マイグレーション |
-| `event-subscriber` | 126 | イベント購読 |
-| `phpunit` | 126 | PHPUnit テスト |
-| `twig-template` | 116 | Twig 拡張・テンプレート |
-| `entity` | 111 | Doctrine エンティティ |
-| `security` | 110 | 認証・認可・CSRF |
-| `service` | 100 | Service の責務分離 |
-| `contributing` | 86 | 本体への PR 手順 |
-| `formtype` | 81 | FormType |
-| `repository` | 74 | Doctrine リポジトリ |
-| `review-responsibility` | 67 | 実装直後の自己レビュー |
-| `e2e` | 61 | Playwright E2E |
+| `eccube-purchase-flow` | 252 | 受注処理の Processor / Validator |
+| `eccube-command` | 199 | コンソールコマンド |
+| `eccube-customize` | 196 | `app/Customize` によるカスタマイズ |
+| `eccube-mail` | 183 | メール送信・テンプレート |
+| `eccube-csv` | 179 | CSV 入出力 |
+| `eccube-plugin` | 166 | プラグイン開発 |
+| `eccube-controller` | 141 | コントローラの責務分離 |
+| `eccube-migration` | 129 | マイグレーション |
+| `eccube-phpunit` | 128 | PHPUnit テスト |
+| `eccube-event-subscriber` | 126 | イベント購読 |
+| `eccube-twig-template` | 116 | Twig 拡張・テンプレート |
+| `eccube-entity` | 111 | Doctrine エンティティ |
+| `eccube-security` | 110 | 認証・認可・CSRF |
+| `eccube-service` | 100 | Service の責務分離 |
+| `eccube-contributing` | 86 | 本体への PR 手順 |
+| `eccube-formtype` | 81 | FormType |
+| `eccube-repository` | 76 | Doctrine リポジトリ |
+| `eccube-review-responsibility` | 67 | 実装直後の自己レビュー |
+| `eccube-e2e` | 61 | Playwright E2E |
 
-レイヤごとに切られています。コントローラを書くときは `controller`、受注処理なら `purchase-flow`。必要なときに必要な分だけ読ませる構成です。
+レイヤごとに切られています。コントローラを書くときは `eccube-controller`、受注処理なら `eccube-purchase-flow`。必要なときに必要な分だけ読ませる構成です。名前はすべて `eccube-` 始まりで、他プロジェクトのスキルと混ざったときに区別できるようになっています。
 
-全部を `AGENTS.md` に書くと309行では収まりませんし、毎回全部を読ませるのはコンテキストの無駄です。索引だけ正典に置いて、詳細は分割する。**この分け方自体が、コンテキストウィンドウという制約への回答**になっています。
+全部を `AGENTS.md` に書くと330行では収まりませんし、毎回全部を読ませるのはコンテキストの無駄です。索引だけ正典に置いて、詳細は分割する。**この分け方自体が、コンテキストウィンドウという制約への回答**になっています。
 
 ### スキルの中身
 
-`security` スキルを見ると、書き方の方針が分かります。
+`eccube-security` スキルを見ると、書き方の方針が分かります。
 
 ```markdown
 ---
-name: security
+name: eccube-security
 description: EC-CUBE 4.4 の認証・認可・CSRF などセキュリティを実装・改修・点検するときの規約。
 「認可を追加して」「アクセス制御を直して」「このルートに権限チェックを入れて」…
 または src/Eccube/Security 配下・app/config/eccube/packages/security.yaml を作成・編集するとき…
@@ -202,7 +202,7 @@ AI が保守的すぎる判断をするのを防ぐための記述です。「�
 
 EC-CUBE の構成をそのまま真似する必要はありませんが、考え方は流用できます。
 
-**書くべきは、コードを読んでも分からないことです。** 命名規則やインデントは Linter に任せる。ドメイン用語の意味、ステータスの落とし穴、テーブル設計の暗黙の前提。この3つだけでも書いておくと、人間の新メンバーにも効きます。
+**書くべきは、コードを読んでも分からないことです。** 命名規則やインデントは Linter に任せる。ドメイン用語の意味と、ステータスまわりの落とし穴。この2つを書いておくだけでも、人間の新メンバーに効きます。
 
 **定義ファイルは増やさないルールを先に決めてください。** ツールが増えるたびに設定ファイルを足すと、同期が崩れて誰も信用しなくなります。正典を1つ決めて、他はポインタにする。EC-CUBE の `CLAUDE.md` が14行なのは、そういう判断の結果です。
 
@@ -212,7 +212,7 @@ EC-CUBE の構成をそのまま真似する必要はありませんが、考え
 
 ## まとめ
 
-- EC-CUBE 4.4 のリポジトリに、AI向けの開発規約が `AGENTS.md`（309行）+ スキル19個（2,503行）で入った
+- EC-CUBE 4.4 のリポジトリに、AI向けの開発規約が `AGENTS.md`（330行）+ スキル19個（2,507行）で入った
 - 書かれているのは静的解析で検出できない知識。ドメイン用語、ステータスの落とし穴、STI の暗黙の前提など
 - `AGENTS.md` を正典とし、`CLAUDE.md` / `GEMINI.md` は薄いポインタ。ネイティブに読まないツールにだけ置くという原則を明文化
 - スキルの正本は `.claude/skills/`。`.codex` `.agents` は symlink で共有し、同期スクリプトを不要にした（Windows では symlink サポートが前提）
@@ -222,7 +222,7 @@ EC-CUBE の構成をそのまま真似する必要はありませんが、考え
 OSS のリポジトリに AI向けの規約が入るのは、まだ珍しい段階です。中身が公開されていて、いつでも読めるというのがありがたいところで、自分のプロジェクトで同じことをやるときの叩き台になります。
 
 :::message alert
-EC-CUBE 4.4 はこの記事を書いている時点（2026年7月）で未リリースです。`4.4` ブランチにマージ済みの内容をもとに書いていますので、リリース時には細部が変わる可能性があります。AI ツール側の仕様（どのディレクトリを読むか）も変化が速いため、各ツールの最新ドキュメントを確認してください。
+EC-CUBE 4.4 はこの記事を書いている時点（2026年8月）で未リリースです。行数やスキル名は執筆時点のもので、`4.4` ブランチは今も動いています。`4.4` ブランチにマージ済みの内容をもとに書いていますので、リリース時には細部が変わる可能性があります。AI ツール側の仕様（どのディレクトリを読むか）も変化が速いため、各ツールの最新ドキュメントを確認してください。
 :::
 
 ---
