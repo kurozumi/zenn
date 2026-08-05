@@ -3,7 +3,7 @@ title: "選べない支払方法の手数料が請求されていた。EC-CUBE 4
 emoji: "💸"
 type: "tech"
 topics: ["eccube", "eccube4", "php", "symfony"]
-published: false
+published: true
 ---
 
 :::message alert
