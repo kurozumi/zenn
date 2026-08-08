@@ -3,7 +3,7 @@ title: "スキップされたテスト51件を棚卸ししたら、実装のバ�
 emoji: "🧟"
 type: "tech"
 topics: ["eccube", "eccube4", "php", "phpunit", "テスト"]
-published: false
+published: true
 ---
 
 :::message alert
@@ -114,7 +114,7 @@ Call to a member function getId() on null
 
 ### 単なる防御ではなく、実害があります
 
-「null チェック漏れを直しただけ」と読むと過小評価になります。PR にはこう書かれています。
+「null チェック漏れを直しただけ」と読むと過小評価になります。効いてくるのは帳票です。
 
 `OrderPdfService` は2つのメソッドを突き合わせて帳票を組み立てます。
 
@@ -205,7 +205,7 @@ grep -rn 'markTestIncomplete\|markTestSkipped' app/Plugin/*/Tests/
 テストを止めるのは、そのとき最も安く見える選択肢です。返済は後から来ます。
 
 :::message alert
-EC-CUBE 4.4 はこの記事を書いている時点（2026年7月）で未リリースです。`4.4` ブランチにマージ済みの内容をもとに書いていますので、リリース時には細部が変わる可能性があります。
+EC-CUBE 4.4 はこの記事を書いている時点（2026年8月）で未リリースです。`4.4` ブランチにマージ済みの内容をもとに書いていますので、リリース時には細部が変わる可能性があります。
 :::
 
 ---
