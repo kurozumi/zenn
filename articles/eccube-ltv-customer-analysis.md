@@ -1,9 +1,9 @@
 ---
-title: "「全顧客に同じクーポン」はもう終わりに——EC-CUBEとGA4でLTV上位顧客の流入元を可視化する"
+title: "「全顧客に同じクーポン」をやめる。EC-CUBEとGA4でLTV上位顧客の流入元を可視化する"
 emoji: "📊"
 type: "tech"
 topics: ["eccube", "eccube4", "php", "symfony"]
-published: false
+published: true
 ---
 
 :::message alert
@@ -19,11 +19,11 @@ published: false
 また、[Claude Code](https://claude.ai/claude-code) を使って書かれています。内容に誤りがある場合はコメントでお知らせください。
 :::
 
-**「リピーター施策を打ちたいが、どこから来た顧客がリピートするのかわからない」**——そのまま全顧客に同じクーポンを配り続けていませんか。
+リピーター施策を打ちたいけれど、どこから来た顧客がリピートするのか分からない。それで全顧客に同じクーポンを配り続けている、という状態はよくあります。
 
-**結論からお伝えします。** EC-CUBE 4.3 は顧客の累計購入金額を `buy_total` として標準で持っています。これと GA4 の `user_id` 連携を組み合わせると、「どの流入チャネルが LTV の高い顧客を生み出しているか」をコードほぼゼロで特定できます。
+EC-CUBE 4.3 は顧客の累計購入金額を `buy_total` として標準で持っています。これと GA4 の `user_id` 連携を組み合わせれば、どの流入チャネルが LTV の高い顧客を生んでいるかを、ほとんどコードを書かずに特定できます。
 
-広告運用担当者が「Google 広告が効いている」と言っていても、実際には SEO 流入のほうが 1 年後の LTV が高い——という逆転は普通に起きます。この記事では、EC-CUBE のデータと GA4 を使ってその逆転を発見する手順を解説します。
+広告運用担当が「Google 広告が効いている」と言っていても、1年後の LTV では SEO 流入のほうが上だった。この手の逆転は普通に起きます。この記事では、EC-CUBE のデータと GA4 でその逆転を見つける手順を書きます。
 
 :::details この記事で得られること（TL;DR）
 - `dtb_customer.buy_total` がどのタイミングで更新されるか理解できる
@@ -354,7 +354,7 @@ plg_coupon_order（クーポン使用履歴）
 
 | 項目 | 設定例 |
 |---|---|
-| クーポンコード | `HIGHLTV2024` |
+| クーポンコード | `HIGHLTV2026` |
 | 値引き | 定率10% |
 | 残使用回数 | エクスポートした顧客数と同数 |
 | 会員限定 | ✅ オン（クーポンコードを知っても非会員は使えない） |
@@ -387,7 +387,7 @@ $sql = "
     ORDER BY c.buy_times ASC
 ";
 
-$result = $connection->executeQuery($sql, ['coupon_cd' => 'HIGHLTV2024'])->fetchAllAssociative();
+$result = $connection->executeQuery($sql, ['coupon_cd' => 'HIGHLTV2026'])->fetchAllAssociative();
 ```
 
 このクエリで「クーポンを使った顧客は購入回数が何回の層が多いか」「平均LTVはいくらか」が把握でき、次の施策設計に使えます。
