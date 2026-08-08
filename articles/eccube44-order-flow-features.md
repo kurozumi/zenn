@@ -3,7 +3,7 @@ title: "EC-CUBE 4.4の地味に効く3機能。受注メモ・支払方法の記
 emoji: "📝"
 type: "tech"
 topics: ["eccube", "eccube4", "php", "symfony"]
-published: false
+published: true
 ---
 
 :::message alert
@@ -171,7 +171,7 @@ class OrderMemoPreprocessor implements ItemHolderPreprocessor
 派手さはありませんが、どれも問い合わせ対応や出荷作業の手間に直結します。プラグインで賄っていたものが本体に入ると、バージョンアップのたびに追従する手間が減るのが一番の価値だと思います。
 
 :::message alert
-EC-CUBE 4.4 はこの記事を書いている時点（2026年7月）で未リリースです。`4.4` ブランチにマージ済みの内容をもとに書いていますので、リリース時には細部が変わる可能性があります。
+EC-CUBE 4.4 はこの記事を書いている時点（2026年8月）で未リリースです。`4.4` ブランチにマージ済みの内容をもとに書いていますので、リリース時には細部が変わる可能性があります。
 :::
 
 ---
