@@ -1,9 +1,9 @@
 ---
-title: "Symfony 8.1のEntityExistsをEC-CUBE 4.3で今すぐ使う方法"
+title: "Symfonyに提案中のEntityExistsを、EC-CUBE 4.3で先に実装する"
 emoji: "🔍"
 type: "tech"
 topics: ["eccube", "eccube4", "php", "symfony"]
-published: false
+published: true
 ---
 
 :::message alert
@@ -23,7 +23,8 @@ published: false
 - EC-CUBE プラグインで DTO に外部参照 ID を受け取るとき、ID 存在確認のバリデーションが抜けがちな落とし穴がある
 - `EntityType` を使えば自動で存在確認が入るが、DTO + `ValidatorInterface` では自前実装が必要
 - `ConstraintValidator` を継承した `EntityExistsValidator` を実装することで、属性1行で存在チェックが書ける
-- Symfony 8.1（2026年5月予定）では公式の `EntityExists` 制約が追加されるため、移行コストも最小限
+- 同等の `EntityExists` 制約が Symfony 本体に提案されている（PR #63483）。ただし**まだマージされていない**ので、当面は自前実装が現実解
+- 提案の設計に合わせて作っておけば、将来取り込まれたときの移行コストが小さい
 - `repositoryMethod` オプションで「退会済み会員を除外」など複雑な条件にも対応できる
 :::
 
@@ -36,17 +37,35 @@ published: false
 
 EC-CUBE プラグインで DTO や API リクエストのバリデーションを書くとき、`EntityType` を使ったフォームなら選択肢の検証が自動で入りますが、DTO に直接バリデーションを書く場合は自前で実装する必要があります。
 
-**しかも Symfony 8.1 で `EntityExists` 制約が公式に追加予定（PR #63483）です。EC-CUBE 4.3（Symfony ^6.4）ではまだ使えないため、今回は同等機能を先取り実装します。**
+同じことを考えた人はいて、Symfony 本体にも `EntityExists` 制約を追加する [PR #63483](https://github.com/symfony/symfony/pull/63483) が出ています。ただし**この記事を書いている 2026年8月時点でまだマージされていません**。詳しくは次章に書きます。つまり当面は自前で書くしかないので、今回はその実装を示します。
 
 この記事でわかること：
 
-1. Symfony 8.1 で追加予定の `EntityExists` 制約の仕様
+1. Symfony に提案されている `EntityExists` 制約の仕様
 2. EC-CUBE 4.3 で今すぐ動く `EntityExistsValidator` の完全実装
 3. DTO・FormType・カスタムリポジトリメソッドへの適用例
 
-## Symfony 8.1 の EntityExists 制約（予告）
+## Symfony 本体の EntityExists は、まだ入っていない
 
-Symfony 8.1（2026年5月リリース予定、PR #63483）で追加される `EntityExists` 制約は、エンティティの存在確認を属性で簡潔に書けるようにします。
+先に現状を整理しておきます。`EntityExists` 制約を追加する [PR #63483](https://github.com/symfony/symfony/pull/63483) の状態はこうです（2026年8月時点）。
+
+| 項目 | 状態 |
+| --- | --- |
+| PR の状態 | **open（未マージ）** |
+| ターゲットブランチ | **8.2** |
+| 最終更新 | 2026年5月 |
+
+8.1 は既にリリース済み（v8.1.x）ですが、**そこには入っていません**。`Symfony\Bridge\Doctrine\Validator\Constraints\EntityExists` は 7.4・8.1・8.2 のどのブランチにも存在しない状態です。
+
+:::message alert
+「Symfony 8.1 で追加された」という説明を見かけたら誤りです。提案は 8.2 に向いていますが、マージされるかどうかも、されるとしてどのバージョンかも、現時点では確定していません。
+:::
+
+この記事では、提案されている API に合わせた実装を自分で用意します。将来取り込まれたときに乗り換えやすくするためです。
+
+## 提案されている EntityExists 制約の仕様
+
+PR #63483 の `EntityExists` 制約は、エンティティの存在確認を属性で簡潔に書けるようにするものです。
 
 ```php
 use Symfony\Bridge\Doctrine\Validator\Constraints\EntityExists;
@@ -74,10 +93,10 @@ class ProductImportDto
 
 ## EC-CUBE 4.3 でのカスタム実装
 
-EC-CUBE 4.3 は Symfony 6.4 を使用しているため、`EntityExists` は使えません。ただし Symfony の `ConstraintValidator` を継承すれば同等機能を実装できます。
+EC-CUBE 4.3 は Symfony 6.4 を使用しています。前章のとおり公式の `EntityExists` はどのバージョンにもまだ無いので、いずれにせよ自前で用意することになります。`ConstraintValidator` を継承すれば同等機能を実装できます。
 
 :::message
-将来 EC-CUBE が Symfony 8.1 以降に対応した場合は、今回実装するカスタム Validator を削除し、公式の `Symfony\Bridge\Doctrine\Validator\Constraints\EntityExists` に置き換えるだけで移行できます。属性の引数名も同じ設計にしているため、移行コストは最小限です。
+PR #63483 が取り込まれ、EC-CUBE がそのバージョンに対応した暁には、今回のカスタム Validator を削除して公式の `Symfony\Bridge\Doctrine\Validator\Constraints\EntityExists` に置き換えられます。属性の引数名を提案に合わせてあるので、その差し替えで済むはずです。取り込まれなければ、このまま使い続けても困りません。
 :::
 
 EC-CUBE のコアコードでも `src/Eccube/Form/Validator/Email.php` と `EmailValidator.php` のペアで同じパターンが使われています。
@@ -399,13 +418,13 @@ EC-CUBE では `Customer::loadValidatorMetadata()` でメールアドレスの�
 
 ## まとめ
 
-- Symfony 8.1 で追加予定の `EntityExists` 制約は参照整合性バリデーションをシンプルに書ける便利な機能
-- EC-CUBE 4.3（Symfony 6.4）では使えないが、`ConstraintValidator` を継承して同等機能を自前実装できる
+- Symfony 本体の `EntityExists` 制約は提案中（PR #63483、8.2 ターゲット、2026年8月時点で未マージ）。**まだどのバージョンでも使えない**
+- だからこそ `ConstraintValidator` を継承した自前実装が現実解。EC-CUBE 4.3（Symfony 6.4）でそのまま動く
 - プロパティレベルで属性として付与できるため、DTO やフォームで直感的に使える
 - `repositoryMethod` を使えば、退会済み会員の除外など複雑な条件にも対応できる
 - 管理画面コントローラーでは `#[IsGranted]` と CSRF 検証を必ず実装すること
 
-Symfony 8.1 がリリースされ EC-CUBE が対応するまでの橋渡しとして、ぜひ活用してみてください。
+公式に入るのを待つ理由はないので、必要なら今書いてしまうのが早いです。入ったら差し替えればいい、というだけの話です。
 
 ---
 
